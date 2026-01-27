@@ -1,0 +1,151 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Nav from "../components/main/Nav.astro";
+import Hero from "../components/main/Hero.astro";
+import Button from "../components/common/Button.astro";
+---
+
+<Layout title="MotionHub">
+    <Nav />
+    
+
+
+    <!-- titulo -->
+    <section class="text-center px-6 pt-24 pb-16">
+      <h1 class="text-4xl md:text-5xl font-bold tracking-tight leading-tight">
+        Conectando Profesionales<br />
+        y Pacientes para una<br />
+        Mejor Recuperación
+      </h1>
+      <p class="mt-4 max-w-2xl mx-auto  text-gray-700  font-light ">
+        MotionHub nació con la misión de digitalizar y optimizar la práctica de la fisioterapia,
+        mejorando la comunicación entre terapeutas y pacientes.
+      </p>
+    </section>
+
+    <!-- mision y vision -->
+    <section class="max-w-6xl mx-auto px-6 pb-20">
+      <div class="grid gap-8 md:grid-cols-2">
+        <div class="bg-gray-100 rounded-4xl p-8 shadow-md">
+      <div class=" mb-3">
+        <svg class="w-8 h-8 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M12 3a7 7 0 00-4 12v3h8v-3a7 7 0 00-4-12z"/>
+        </svg>
+      </div>
+          <h3 class="text-xl font-semibold mb-2">Nuestra Misión</h3>
+          <p class=" text-gray-700  font-light" >
+            #
+          </p>
+        </div>
+        
+        <div class="bg-gray-100 rounded-2xl p-8 shadow-md">
+      <div class="  mb-3">
+        <svg class="w-8 h-8 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M12 21s-7-4.3-7-10a4 4 0 017-2 4 4 0 017 2c0 5.7-7 10-7 10z"/>
+        </svg>
+      </div>
+          <h3 class="text-xl font-semibold mb-2">Nuestra Visión</h3>
+          <p class=" text-gray-700 font-light">
+           #
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- valores -->
+  <section class="max-w-6xl mx-auto px-6 pb-24">
+  <h2 class="text-3xl font-semibold text-center mb-12">Nuestros valores</h2>
+
+  <div class="grid gap-6 sm:grid-cols-2 md:grid-cols-4">
+
+    <div class="bg-blue-100 rounded-xl p-6 text-center">
+      <div class="flex justify-center mb-3">
+        <svg class="w-8 h-8 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M17 20h5v-2a4 4 0 00-4-4h-1m-4 6v-2a4 4 0 00-4-4H4m13-4a4 4 0 10-8 0 4 4 0 008 0z"/>
+        </svg>
+      </div>
+      <h4 class="font-semibold mb-2">Colaboración</h4>
+      <p class="text-sm text-gray-700 font-light">
+        Facilitamos la comunicación efectiva entre profesionales y pacientes.
+      </p>
+    </div>
+
+    <div class="bg-blue-200 rounded-xl p-6 text-center">
+      <div class="flex justify-center mb-3">
+        <svg class="w-8 h-8 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M12 2l3 6 6 .9-4.5 4.3 1 6-5.5-3-5.5 3 1-6L3 8.9 9 8z"/>
+        </svg>
+      </div>
+      <h4 class="font-semibold mb-2">Excelencia</h4>
+      <p class="text-sm text-gray-700 font-light">
+        Compromiso con la calidad en cada funcionalidad de la plataforma.
+      </p>
+    </div>
+
+    <div class="bg-blue-100  rounded-xl p-6 text-center">
+      <div class="flex justify-center mb-3">
+        <svg class="w-8 h-8 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M12 21s-7-4.3-7-10a4 4 0 017-2 4 4 0 017 2c0 5.7-7 10-7 10z"/>
+        </svg>
+      </div>
+      <h4 class="font-semibold mb-2">Empatía</h4>
+      <p class="text-sm text-gray-700 font-light">
+        Diseñamos pensando en las necesidades reales de los pacientes.
+      </p>
+    </div>
+
+    <div class="bg-blue-200  rounded-xl p-6 text-center">
+      <div class="flex justify-center mb-3">
+        <svg class="w-8 h-8 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M12 3a7 7 0 00-4 12v3h8v-3a7 7 0 00-4-12z"/>
+        </svg>
+      </div>
+      <h4 class="font-semibold mb-2">Innovación</h4>
+      <p class="text-sm text-gray-700 font-light">
+        Tecnología de vanguardia aplicada a la salud.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+
+    <!-- historia -->
+    <section class="max-w-5xl mx-auto px-6 pb-20 text-center">
+      <h2 class="text-3xl font-semibold mb-6">Nuestra Historia</h2>
+      <p class="text-gray-700 font-light">
+        MotionHub surgió para resolver problemas comunes en consultorios de fisioterapia como la gestión manual de expedientes y el poco seguimiento de los pacientes. <br>
+        Desarrolladores y fisioterapeutas colaboraron para crear una herramienta que digitaliza procesos y mejora la experiencia de atención. Actualmente, miles de profesionales en la región utilizan MotionHub para optimizar sus consultas, mejorar sus resultados y mantener a los pacientes motivados en su recuperación.
+              </p>
+    </section>
+
+    <!-- equipo -->
+    <section class="max-w-5xl mx-auto px-6 pb-24 text-center">
+      <h2 class="text-3xl font-semibold mb-6">Nuestro equipo</h2>
+      <p class="text-gray-700 font-light ">
+        Un equipo multidisciplinario de desarrolladores, diseñadores, fisioterapeutas y especialistas
+        en salud digital trabajando juntos para transformar la fisioterapia.
+      </p>
+    </section>
+
+    <!-- revolucion  -->
+    <section class=" text-center mb-15">
+      <h2 class="text-3xl md:text-3xl font-semibold mb-4">
+        Únete a la Revolución Digital de la Fisioterapia
+      </h2>
+      <p class="text-gray-700 mb-10  font-light">
+        Forma parte de la comunidad que está transformando el cuidado de la salud física.
+      </p>
+      <div class="flex flex-wrap justify-center gap-4">
+        
+          <Button text="Comenzar Ahora" href="#" theme="dark" />
+           <Button text="Contactar ventas" href="#" theme="dark" />
+      </div>
+    </section>
+</Layout>
