@@ -1,0 +1,27 @@
+---
+import { Image } from "astro:assets";
+import MotionHubLogo from "../../assets/MotionHub.png";
+
+interface Props {
+    size?: "sm" | "md" | "lg" | "xl" | "2xl";
+}
+
+const { size = "md" } = Astro.props;
+
+const sizeClasses = {
+    sm: "text-xs sm:text-sm",
+    md: "text-sm sm:text-base",
+    lg: "text-base sm:text-lg",
+    xl: "text-lg sm:text-xl",
+    "2xl": "text-xl sm:text-2xl md:text-3xl",
+};
+---
+
+<div class="flex items-center gap-2">
+    <div class="h-8 w-8 sm:h-10 sm:w-10">
+        <Image src={MotionHubLogo} alt="MotionHub" width={50} height={50} />
+    </div>
+    <h1 class={`font-baloo ${sizeClasses[size]} opacity-80 tracking-wider`}>
+        <strong>MOTION</strong>HUB
+    </h1>
+</div>

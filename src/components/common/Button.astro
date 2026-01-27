@@ -1,0 +1,22 @@
+---
+interface Props {
+    text: string;
+    href: string;
+    theme: "white" | "dark";
+}
+
+const themeButton = {
+    white: "bg-white text-black",
+    dark: "bg-black text-white",
+};
+
+const { text, href, theme } = Astro.props;
+---
+
+<div class="flex items-center justify-center">
+    <a
+        href={href}
+        class={`${themeButton[theme]} text-sm font-regular text-center px-4 py-2 rounded-lg`}
+        >{text}</a
+    >
+</div>

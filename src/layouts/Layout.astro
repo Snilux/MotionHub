@@ -1,0 +1,23 @@
+---
+import "../styles/global.css";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/baloo-bhaijaan-2";
+
+interface Props {
+	title: string;
+}
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" href="/icon.svg" />
+		<title>{title}</title>
+	</head>
+	<body>
+		<slot />
+	</body>
+</html>

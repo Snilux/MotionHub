@@ -1,0 +1,325 @@
+---
+import Title from "../common/Title.astro";
+---
+
+<nav class="w-full border-b border-gray-200 bg-white">
+    <div class="mx-auto flex items-center justify-between px-4 sm:px-6 py-3">
+        <!-- Logo -->
+        <div class="flex items-center gap-4 sm:gap-8">
+            <a href="/">
+                <Title size="md" />
+            </a>
+
+            <!-- Desktop Navigation -->
+            <div class="hidden lg:block">
+                <ul class="flex items-center gap-4 xl:gap-6">
+                    <li>
+                        <a
+                            href="#"
+                            class="text-sm text-gray-700 hover:text-gray-900"
+                            >Producto</a
+                        >
+                    </li>
+
+                    <div class="relative">
+                        <button
+                            id="dropdown-button"
+                            class="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900 focus:outline-none"
+                        >
+                            Uso
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path d="m6 9 6 6 6-6"></path>
+                            </svg>
+                        </button>
+
+                        <div
+                            id="dropdown-menu"
+                            class="hidden absolute left-0 top-full mt-1 w-40 rounded-md border border-gray-200 bg-white py-1 shadow-lg z-50"
+                        >
+                            <a
+                                href="#"
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                >Cliente</a
+                            >
+                            <a
+                                href="#"
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                >Fisioterapeuta</a
+                            >
+                        </div>
+                    </div>
+
+                    <li>
+                        <a
+                            href="#"
+                            class="text-sm text-gray-700 hover:text-gray-900"
+                            >Acerca de</a
+                        >
+                    </li>
+                    <li>
+                        <a
+                            href="#"
+                            class="text-sm text-gray-700 hover:text-gray-900"
+                            >Contacto</a
+                        >
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Desktop Auth Buttons -->
+        <div class="hidden md:flex items-center gap-3 lg:gap-4">
+            <a
+                href="#"
+                class="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="icon icon-tabler-login"
+                >
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <path
+                        d="M15 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"
+                    ></path>
+                    <path d="M21 12h-13l3 -3"></path>
+                    <path d="M11 15l-3 -3"></path>
+                </svg>
+                <span class="hidden lg:inline">Iniciar Sesión</span>
+            </a>
+            <a
+                href="#"
+                class="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"></path>
+                    <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"></path>
+                </svg>
+                <span class="hidden lg:inline">Registrarse</span>
+            </a>
+        </div>
+
+        <!-- Mobile Menu Button -->
+        <button
+            id="mobile-menu-button"
+            class="lg:hidden flex items-center justify-center p-2 text-gray-700 hover:text-gray-900 focus:outline-none"
+        >
+            <svg
+                id="menu-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <path d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+            <svg
+                id="close-icon"
+                class="hidden"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <path d="M18 6L6 18M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div
+        id="mobile-menu"
+        class="hidden lg:hidden border-t border-gray-200 bg-white"
+    >
+        <div class="px-4 py-3 space-y-3">
+            <a
+                href="#"
+                class="block text-sm text-gray-700 hover:text-gray-900 py-2"
+                >Producto</a
+            >
+
+            <!-- Mobile Dropdown -->
+            <div>
+                <button
+                    id="mobile-dropdown-button"
+                    class="flex items-center justify-between w-full text-sm text-gray-700 hover:text-gray-900 py-2"
+                >
+                    Uso
+                    <svg
+                        id="mobile-dropdown-icon"
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="m6 9 6 6 6-6"></path>
+                    </svg>
+                </button>
+                <div
+                    id="mobile-dropdown-menu"
+                    class="hidden pl-4 space-y-2 mt-2"
+                >
+                    <a
+                        href="#"
+                        class="block text-sm text-gray-600 hover:text-gray-900 py-1"
+                        >Cliente</a
+                    >
+                    <a
+                        href="#"
+                        class="block text-sm text-gray-600 hover:text-gray-900 py-1"
+                        >Fisioterapeuta</a
+                    >
+                </div>
+            </div>
+
+            <a
+                href="#"
+                class="block text-sm text-gray-700 hover:text-gray-900 py-2"
+                >Acerca de</a
+            >
+            <a
+                href="#"
+                class="block text-sm text-gray-700 hover:text-gray-900 py-2"
+                >Contacto</a
+            >
+
+            <!-- Mobile Auth Buttons -->
+            <div class="pt-4 border-t border-gray-200 space-y-2 md:hidden">
+                <a
+                    href="#"
+                    class="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 py-2"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"
+                        ></path>
+                        <path
+                            d="M15 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"
+                        ></path>
+                        <path d="M21 12h-13l3 -3"></path>
+                        <path d="M11 15l-3 -3"></path>
+                    </svg>
+                    Iniciar Sesión
+                </a>
+                <a
+                    href="#"
+                    class="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 py-2"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"
+                        ></path>
+                        <path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"></path>
+                        <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"
+                        ></path>
+                    </svg>
+                    Registrarse
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<script>
+    // Desktop dropdown
+    const button = document.getElementById("dropdown-button");
+    const menu = document.getElementById("dropdown-menu");
+
+    button?.addEventListener("click", () => {
+        menu?.classList.toggle("hidden");
+    });
+
+    document.addEventListener("click", (event) => {
+        if (
+            !button?.contains(event.target as Node) &&
+            !menu?.contains(event.target as Node)
+        ) {
+            menu?.classList.add("hidden");
+        }
+    });
+
+    // Mobile menu toggle
+    const mobileMenuButton = document.getElementById("mobile-menu-button");
+    const mobileMenu = document.getElementById("mobile-menu");
+    const menuIcon = document.getElementById("menu-icon");
+    const closeIcon = document.getElementById("close-icon");
+
+    mobileMenuButton?.addEventListener("click", () => {
+        mobileMenu?.classList.toggle("hidden");
+        menuIcon?.classList.toggle("hidden");
+        closeIcon?.classList.toggle("hidden");
+    });
+
+    // Mobile dropdown
+    const mobileDropdownButton = document.getElementById(
+        "mobile-dropdown-button",
+    );
+    const mobileDropdownMenu = document.getElementById("mobile-dropdown-menu");
+    const mobileDropdownIcon = document.getElementById("mobile-dropdown-icon");
+
+    mobileDropdownButton?.addEventListener("click", () => {
+        mobileDropdownMenu?.classList.toggle("hidden");
+        mobileDropdownIcon?.classList.toggle("rotate-180");
+    });
+</script>

@@ -1,0 +1,100 @@
+<div
+    class="absolute inset-x-0 bottom-0 -z-10 h-[400px] sm:h-[500px] md:h-[600px]"
+>
+    <svg
+        class="absolute bottom-0 w-full h-full"
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 1440 800"
+        preserveAspectRatio="none"
+    >
+        <defs>
+            <linearGradient
+                id="wave-gradient-1"
+                x1="0%"
+                y1="0%"
+                x2="0%"
+                y2="100%"
+            >
+                <stop offset="0%" style="stop-color:#1E3A8A;stop-opacity:0.8"
+                ></stop>
+                <stop offset="100%" style="stop-color:#1E40AF;stop-opacity:1"
+                ></stop>
+            </linearGradient>
+            <linearGradient
+                id="wave-gradient-2"
+                x1="0%"
+                y1="0%"
+                x2="0%"
+                y2="100%"
+            >
+                <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:0.7"
+                ></stop>
+                <stop offset="100%" style="stop-color:#2563EB;stop-opacity:0.9"
+                ></stop>
+            </linearGradient>
+            <linearGradient
+                id="wave-gradient-3"
+                x1="0%"
+                y1="0%"
+                x2="0%"
+                y2="100%"
+            >
+                <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:0.6"
+                ></stop>
+                <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:0.8"
+                ></stop>
+            </linearGradient>
+        </defs>
+
+        <!-- Onda 1 -->
+        <path
+            class="wave-1"
+            fill="url(#wave-gradient-1)"
+            d="M-200,400 C140,320 380,320 720,380 C1060,440 1300,440 1640,380 L1640,800 L-200,800 Z"
+        >
+            <animate
+                attributeName="d"
+                dur="8s"
+                repeatCount="indefinite"
+                values="M-200,400 C140,320 380,320 720,380 C1060,440 1300,440 1640,380 L1640,800 L-200,800 Z;
+                                 M-200,380 C140,440 380,440 720,360 C1060,280 1300,300 1640,360 L1640,800 L-200,800 Z;
+                                 M-200,360 C140,300 380,340 720,400 C1060,460 1300,420 1640,380 L1640,800 L-200,800 Z;
+                                 M-200,400 C140,320 380,320 720,380 C1060,440 1300,440 1640,380 L1640,800 L-200,800 Z"
+            ></animate>
+        </path>
+
+        <!-- Onda 2 -->
+        <path
+            class="wave-2"
+            fill="url(#wave-gradient-2)"
+            d="M-200,480 C140,420 380,460 720,500 C1060,540 1300,500 1640,460 L1640,800 L-200,800 Z"
+        >
+            <animate
+                attributeName="d"
+                dur="10s"
+                repeatCount="indefinite"
+                values="M-200,480 C140,420 380,460 720,500 C1060,540 1300,500 1640,460 L1640,800 L-200,800 Z;
+                                 M-200,460 C140,520 380,480 720,440 C1060,400 1300,440 1640,500 L1640,800 L-200,800 Z;
+                                 M-200,500 C140,440 380,420 720,480 C1060,520 1300,480 1640,440 L1640,800 L-200,800 Z;
+                                 M-200,480 C140,420 380,460 720,500 C1060,540 1300,500 1640,460 L1640,800 L-200,800 Z"
+            ></animate>
+        </path>
+
+        <!-- Onda 3 -->
+        <path
+            class="wave-3"
+            fill="url(#wave-gradient-3)"
+            d="M-200,560 C140,520 380,540 720,580 C1060,620 1300,580 1640,540 L1640,800 L-200,800 Z"
+        >
+            <animate
+                attributeName="d"
+                dur="12s"
+                repeatCount="indefinite"
+                values="M-200,560 C140,520 380,540 720,580 C1060,620 1300,580 1640,540 L1640,800 L-200,800 Z;
+                                 M-200,540 C140,600 380,560 720,520 C1060,480 1300,540 1640,600 L1640,800 L-200,800 Z;
+                                 M-200,580 C140,540 380,520 720,560 C1060,600 1300,560 1640,520 L1640,800 L-200,800 Z;
+                                 M-200,560 C140,520 380,540 720,580 C1060,620 1300,580 1640,540 L1640,800 L-200,800 Z"
+            ></animate>
+        </path>
+    </svg>
+</div>

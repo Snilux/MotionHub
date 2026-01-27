@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+@theme {
+    --font-sans: "Inter Variable", "sans-serif";
+    --font-baloo: "Baloo Bhaijaan 2 Variable", "sans-serif";
+}
+
