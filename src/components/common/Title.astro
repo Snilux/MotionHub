@@ -19,7 +19,13 @@ const sizeClasses = {
 
 <div class="flex items-center gap-2">
     <div class="h-8 w-8 sm:h-10 sm:w-10">
-        <Image src={MotionHubLogo} alt="MotionHub" width={50} height={50} />
+        <Image
+            src={MotionHubLogo}
+            alt="MotionHub"
+            width={50}
+            height={50}
+            priority
+        />
     </div>
     <h1 class={`font-baloo ${sizeClasses[size]} opacity-80 tracking-wider`}>
         <strong>MOTION</strong>HUB
