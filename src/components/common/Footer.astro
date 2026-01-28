@@ -1,0 +1,134 @@
+---
+import Title from "./Title.astro";
+import AnimatedButtonIcon from "./buttons/AnimatedButtonIcon.astro";
+import AnimatedButton from "./buttons/AnimatedButton.astro";
+---
+
+<footer
+    class="relative bg-neutral-50 border-t border-neutral-200 overflow-hidden"
+>
+    <div
+        class="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16 lg:px-8 lg:py-20"
+    >
+        <div
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-16"
+        >
+            <!-- Texto principal -->
+            <div class="lg:col-span-5 md:col-span-2 flex items-start">
+                <h2
+                    class="text-xl sm:text-2xl lg:text-3xl font-light text-neutral-900 tracking-tight leading-snug"
+                >
+                    Una mejor experiencia
+                </h2>
+            </div>
+
+            <!-- Producto -->
+            <div class="lg:col-span-3 md:col-span-1">
+                <h3
+                    class="text-sm font-semibold text-neutral-900 mb-6 tracking-wide uppercase"
+                >
+                    Producto
+                </h3>
+                <ul class="space-y-4">
+                    <li>
+                        <AnimatedButton href="#comenzar" text="Comenzar" />
+                    </li>
+                    <li>
+                        <AnimatedButton href="#uso" text="Uso" />
+                    </li>
+                    <li>
+                        <AnimatedButton href="#acerca" text="Acerca de" />
+                    </li>
+                    <li>
+                        <AnimatedButton href="#recursos" text="Recursos" />
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Social -->
+            <div class="lg:col-span-4 md:col-span-1">
+                <h3
+                    class="text-sm font-semibold text-neutral-900 mb-6 tracking-wide uppercase"
+                >
+                    Social Media
+                </h3>
+                <ul class="space-y-4">
+                    <li>
+                        <AnimatedButtonIcon
+                            href="https://x.com"
+                            name="X"
+                            iconName="x"
+                            target={true}
+                        />
+                    </li>
+                    <li>
+                        <AnimatedButtonIcon
+                            href="https://instagram.com"
+                            name="Instagram"
+                            iconName="instagram"
+                            target={true}
+                        />
+                    </li>
+                    <li>
+                        <AnimatedButtonIcon
+                            href="mailto:hello@motionhub.com"
+                            name="Email"
+                            iconName="email"
+                            target={false}
+                        />
+                    </li>
+                    <li>
+                        <AnimatedButtonIcon
+                            href="https://github.com"
+                            name="GitHub"
+                            iconName="github"
+                            target={true}
+                        />
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Parte inferior -->
+        <div class="mt-12 sm:mt-16 pt-10 sm:pt-12 border-t border-neutral-200">
+            <h2
+                class="mega text-center baloo font-semibold text-neutral-900 tracking-wider title-anim"
+            >
+                Motion<span class="hub">Hub</span>
+            </h2>
+            <p class="text-sm text-neutral-500 text-center">
+                © 2026 MotionHub. Todos los derechos reservados.
+            </p>
+        </div>
+    </div>
+
+    <Title />
+</footer>
+
+<style>
+    .mega {
+        font-size: clamp(3rem, 15vw, 12rem);
+        line-height: 1;
+    }
+
+    /* Título animado */
+    .title-anim {
+        letter-spacing: 0.05em;
+        transition: letter-spacing 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+    }
+
+    .title-anim:hover {
+        letter-spacing: 0.1em;
+    }
+
+    /* Parte "Hub" */
+    .hub {
+        display: inline-block;
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .title-anim:hover .hub {
+        transform: translateY(-0.1em);
+    }
+</style>

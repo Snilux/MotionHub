@@ -1,0 +1,42 @@
+---
+import Icons from "../Icons.astro";
+interface Props {
+    href: string;
+    name: string;
+    iconName: string;
+    target: boolean;
+}
+
+const { href, name, iconName, target } = Astro.props;
+---
+
+<a
+    href={href}
+    target={target ? "_blank" : "_self"}
+    rel="noopener noreferrer"
+    class="flex items-center gap-3 text-neutral-600 hover:text-neutral-900 transition-colors duration-200 group"
+>
+    <Icons name={iconName} />
+    <span class="text-sm">{name}</span>
+</a>
+<style>
+    /* Subrayado animado */
+    a {
+        position: relative;
+    }
+
+    a::after {
+        content: "";
+        position: absolute;
+        width: 0;
+        height: 1px;
+        bottom: -2px;
+        left: 0;
+        background-color: currentColor;
+        transition: width 0.3s ease;
+    }
+
+    a:hover::after {
+        width: 100%;
+    }
+</style>

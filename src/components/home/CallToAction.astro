@@ -1,0 +1,20 @@
+---
+import AnimationBgCallToAction from "../common/AnimationBgCallToAction.astro";
+import DoubleCardSection from "./DoubleCardSection.astro";
+---
+
+<section
+    class="relative min-h-screen flex items-center justify-center overflow-hidden"
+>
+    <div class="absolute inset-0 hidden lg:flex items-center justify-center">
+        <div class="w-full h-full scale-100">
+            <AnimationBgCallToAction />
+        </div>
+    </div>
+
+    <div
+        class="relative min-h-screen w-full flex items-center justify-center overflow-hidden px-4 py-12"
+    >
+        <DoubleCardSection />
+    </div>
+</section>
