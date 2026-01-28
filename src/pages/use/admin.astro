@@ -1,262 +1,209 @@
 ---
-import Button from "../../components/common/Button.astro"
-import Layout from "../../layouts/Layout.astro"
-import Nav from "../../components/main/Nav.astro"
-import Info from "../../components/main/Info.astro"
+import Button from "../../components/common/Button.astro";
+import Layout from "../../layouts/Layout.astro";
+import Nav from "../../components/home/Nav.astro";
+import Footer from "../../components/common/Footer.astro";
+import InfoCardsPhone from "../../components/common/InfoCardsPhone.astro";
+import InfoTools from "../../components/common/InfoTools.astro";
 ---
 
 <Layout title="MotionHub">
-    <Nav/>
-    
+  <Nav />
 
-<main
-     class="relative flex flex-col items-center gap-4 py-8 sm:py-12 lg:py-45">
-  
-
+  <main
+    class="relative flex flex-col items-center gap-4 py-8 sm:py-12 lg:py-45 h-screen "
+  >
     <!-- Content -->
-<div class="w-full max-w-5xl relative z-10">
-    <div class="flex flex-col items-center gap-4 sm:gap-6">
-         
-            <h2 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center px-4">
-                    Gestiona tu práctica de Fisioterapia de Forma Profesional </h2>
+    <div class="w-full max-w-5xl relative z-10">
+      <div class="flex flex-col items-center gap-4 sm:gap-6">
+        <h2
+          class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center px-4"
+        >
+          Gestiona tu práctica de Fisioterapia de Forma Profesional
+        </h2>
 
-            <p class="font-light text-sm sm:text-base text-center w-full sm:w-4/5 md:w-3/4 lg:w-2/3 xl:w-1/2 opacity-80 px-4">
-                    Herramientas completas para gestionar pacientes, crear rutinas personalizadas y monitorear la evulución de tus tratamientos. </p>
+        <p
+          class="font-light text-sm sm:text-base text-center w-full sm:w-4/5 md:w-3/4 lg:w-2/3 xl:w-1/2 opacity-80 px-4"
+        >
+          Herramientas completas para gestionar pacientes, crear rutinas
+          personalizadas y monitorear la evulución de tus tratamientos.
+        </p>
 
-            <div class="flex flex-wrap justify-center gap-4">
-            
-            <Button text="Iniciar sesión →" href="#" theme="dark" />
-            <Button text="Más información" href="#" theme="dark" />
-
-            </div>
+        <div class="flex flex-wrap justify-center gap-4">
+          <Button text="Iniciar sesión →" href="#" theme="dark" />
+          <Button text="Más información" href="#" theme="dark" />
         </div>
+      </div>
     </div>
-</main>
+  </main>
 
-   <!-- Los cuadros disparegos JJAJA  -->
+  <!-- Los cuadros disparegos JJAJA  -->
 
-<section class="w-full flex justify-center py-20">
-  <div class="w-full max-w-7xl px-4 sm:px-6">
+  <section class="w-full flex justify-center py-20">
+    <div class="w-full max-w-7xl px-4 sm:px-6">
+      <!-- linea -->
+      <div class="w-full h-0.5 bg-gray-800/20 mb-10"></div>
 
-    <!-- linea -->
-    <div class="w-full h-0.5 bg-gray-800/20 mb-10"></div>
+      <h3 class="text-2xl md:text-3xl font-semibold text-center mb-10 md:mb-14">
+        Herramientas Profesionales
+      </h3>
 
-    <h3 class="text-2xl md:text-3xl font-semibold text-center mb-10 md:mb-14">
-      Herramientas Profesionales
-    </h3>
+      <div
+        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 grid-flow-row-dense gap-6"
+      >
+        <!-- cuadro 1 -->
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 grid-flow-row-dense gap-6">
+        <InfoTools
+          color="blue"
+          title="Gestión de Pacientes"
+          description="Administra perfiles completos con historial clínico, datos personales y expedientes digitales centralizados."
+          iconName="user"
+        />
 
-      <!-- cuadro 1 -->
-      <div class="bg-blue-100 rounded-2xl shadow-lg p-6">
-        <div class="mb-3">
-          <svg class="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 0115 0" />
-          </svg>
-        </div>
-        <h3 class="font-semibold mb-2">Gestión de Pacientes</h3>
-        <p class="text-sm text-gray-700 font-light">
-          Administra perfiles completos con historial clínico, datos personales y expedientes digitales centralizados.
-        </p>
-      </div>
+        <!-- cuadro 2 -->
 
-      <!-- cuadro 2 -->
-      <div class="bg-white rounded-2xl shadow-lg p-6">
-        <div class="mb-3">
-          <svg class="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <rect x="3" y="5" width="18" height="16" rx="2" />
-            <path stroke-linecap="round" d="M8 3v4M16 3v4M3 11h18" />
-          </svg>
-        </div>
-        <h3 class="font-semibold mb-2">Agenda Inteligente</h3>
-        <p class="text-sm text-gray-700 font-light">
-          Gestiona citas con recordatorios automáticos, reprogramación fácil y sincronización con tu calendario.
-        </p>
-      </div>
+        <InfoTools
+          color="white"
+          title="Agenda Inteligente"
+          description="Gestiona citas con recordatorios automáticos, reprogramación fácil y sincronización con tu calendario."
+          iconName="schedule"
+        />
 
-      <!-- cuadro 3 -->
-      <div class="bg-white rounded-2xl shadow-lg p-6
+        <!-- cuadro 3 -->
+        <div
+          class="bg-white rounded-2xl shadow-lg p-6
                   flex flex-col items-center justify-center text-center
-                  sm:col-span-2 lg:col-span-1 lg:row-span-2">
-        <div class="mb-4">
-          <svg class="w-8 h-8 text-gray-800" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <circle cx="12" cy="5" r="2" />
-            <path stroke-linecap="round" d="M12 7v10M7 22l5-5 5 5M6 12l6-3 6 3" />
-          </svg>
+                  sm:col-span-2 lg:col-span-1 lg:row-span-2"
+        >
+          <div class="mb-4">
+            <svg
+              class="w-8 h-8 text-gray-800"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              viewBox="0 0 24 24"
+            >
+              <circle cx="12" cy="5" r="2"></circle>
+              <path
+                stroke-linecap="round"
+                d="M12 7v10M7 22l5-5 5 5M6 12l6-3 6 3"></path>
+            </svg>
+          </div>
+          <h3 class="font-semibold mb-2">Rutinas personalizadas</h3>
+          <p class="text-sm text-gray-700 font-light">
+            Accede a ejercicios diseñados específicamente para tu condición y
+            objetivos de recuperación.
+          </p>
         </div>
-        <h3 class="font-semibold mb-2">Rutinas personalizadas</h3>
-        <p class="text-sm text-gray-700 font-light">
-          Accede a ejercicios diseñados específicamente para tu condición y objetivos de recuperación.
-        </p>
-      </div>
 
-      <!-- cuadro 4 -->
-      <div class="bg-white rounded-2xl shadow-lg p-6">
-        <div class="mb-3">
-          <svg class="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 7-7" />
-          </svg>
-        </div>
-        <h3 class="font-semibold mb-2">Seguimiento de Progreso</h3>
-        <p class="text-sm text-gray-700 font-light">
-          Registra tu evolución, nivel de dolor y logros para que tu terapeuta ajuste tu tratamiento.
-        </p>
-      </div>
+        <!-- cuadro 4 -->
 
-      <!-- cuadro 5 -->
-      <div class="bg-blue-100 rounded-2xl shadow-lg p-6">
-        <div class="mb-3">
-          <svg class="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" d="M3 3v18h18" />
-            <path stroke-linecap="round" d="M7 15v-4M11 15v-7M15 15v-2" />
-          </svg>
-        </div>
-        <h3 class="font-semibold mb-2">Dashboards Analíticos</h3>
-        <p class="text-sm text-gray-700 font-light">
-          Visualiza la evolución de tus pacientes con gráficos de progreso, adherencia y métricas de dolor.
-        </p>
-      </div>
+        <InfoTools
+          color="white"
+          title="Seguimiento de Progreso"
+          description="Registra tu evolución, nivel de dolor y logros para que tu terapeuta ajuste tu tratamiento."
+          iconName="follow-progress"
+        />
 
-      <!-- cuadro 6 -->
-      <div class="bg-blue-100 rounded-2xl shadow-lg p-6">
-        <div class="mb-3">
-          <svg class="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round"
-              d="M12 3l8 4v6c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V7l8-4z" />
-          </svg>
-        </div>
-        <h3 class="font-semibold mb-2">Privacidad</h3>
-        <p class="text-sm text-gray-700 font-light">
-          Garantizamos tu privacidad mediante el manejo seguro de consentimientos y accesos autorizados.
-        </p>
-      </div>
+        <!-- cuadro 5 -->
 
-      <!-- cuadro 7 -->
-      <div class="bg-white rounded-2xl shadow-lg p-6">
-        <div class="mb-3">
-          <svg class="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" d="M12 3v12" />
-            <path stroke-linecap="round" d="M7 10l5 5 5-5" />
-            <path stroke-linecap="round" d="M5 21h14" />
-          </svg>
-        </div>
-        <h3 class="font-semibold mb-2">Exportación de Datos</h3>
-        <p class="text-sm text-gray-700 font-light">
-          Genera reportes profesionales y exporta historiale clínicos en formato PDF.
-        </p>
-      </div>
+        <InfoTools
+          color="blue"
+          title="Dashboards Analíticos"
+          description="Visualiza la evolución de tus pacientes con gráficos de progreso, adherencia y métricas de dolor."
+          iconName="metrics"
+        />
 
-      <!-- cuadro 8 -->
-      <div class="bg-blue-100 rounded-2xl shadow-lg p-6">
-        <div class="mb-3">
-          <svg class="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <rect x="3" y="4" width="18" height="12" rx="2" />
-            <path stroke-linecap="round" d="M8 20h8M12 16v4" />
-          </svg>
-        </div>
-        <h3 class="font-semibold mb-2">Panel de Administración</h3>
-        <p class="text-sm text-gray-700 font-light">
-          Gestiona usuarios, revisa métricas de tu práctica y accede a logs de actividad completos.
-        </p>
-      </div>
+        <!-- cuadro 6 -->
 
+        <InfoTools
+          color="blue"
+          title="Privacidad"
+          description="Garantizamos tu privacidad mediante el manejo seguro de consentimientos y accesos autorizados."
+          iconName="shield-check"
+        />
+
+        <!-- cuadro 7 -->
+
+        <InfoTools
+          color="white"
+          title="Exportación de Datos"
+          description="Genera reportes profesionales y exporta historiale clínicos en formato PDF."
+          iconName="download"
+        />
+
+        <!-- cuadro 8 -->
+        <InfoTools
+          color="blue"
+          title="Panel de Administración"
+          description="Gestiona usuarios, revisa métricas de tu práctica y accede a logs de actividad completos."
+          iconName="settings"
+        />
+      </div>
     </div>
-  </div>
-</section>
+  </section>
 
+  <!-- línea -->
 
-
-     <!-- línea -->
-
-<section class="w-full flex justify-center py-20">
-  <div class="w-full max-w-7xl px-6">
-    <div class="w-full h-0.5 bg-gray-800/20 mb-10"></div>
-    
+  <section class="w-full flex justify-center py-20">
+    <div class="w-full max-w-7xl px-6">
+      <div class="w-full h-0.5 bg-gray-800/20 mb-10"></div>
 
       <!-- Los cuadrotes   -->
 
-    <h3 class="text-3xl font-semibold text-center mb-14">
-      Descubre cómo funciona MotionHub
-    </h3>
+      <h3 class="text-3xl font-semibold text-center mb-14">
+        Descubre cómo funciona MotionHub
+      </h3>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- cuadro 1 -->
 
-      <!-- cuadro 1 -->
-      <div>
-        <div class="bg-gray-300 rounded-2xl shadow-lg p-8 min-h-125 flex flex-col justify-center items-center text-center">
-        </div>
-        <div class="mt-4 text-center">
-          <h4 class="text-lg font-semibold text-gray-900">
-            Gestión Clínica Integral
-          </h4>
-          <p class="text-sm text-gray-600 mt-2">
-            Administra expedientes, coordina tu agenda de citas y gestiona los perfiles
-            de tus pacientes desde un panel centralizado y seguro.
-          </p>
-        </div>
+        <InfoCardsPhone
+          title="Gestión Clínica Integral"
+          description="Administra expedientes, coordina tu agenda de citas y gestiona los perfiles de tus pacientes desde un panel centralizado y seguro."
+        />
+
+        <!-- Cuadro 2 -->
+
+        <InfoCardsPhone
+          title="Diseño de Rutinas Personalizadas"
+          description="Crea planes de ejercicios específicos, asigna contenido multimedia y define la frecuencia para la rehabilitación de cada paciente."
+        />
+        <!-- Cuadro 3 -->
+
+        <InfoCardsPhone
+          title="Monitoreo de Evolución"
+          description="Visualiza el progreso real de tus pacientes mediante dashboards intuitivos que reflejan cumplimiento, dolor y métricas de recuperación."
+        />
       </div>
-
-      <!-- Cuadro 2 -->
-      <div>
-        <div class="bg-gray-300 rounded-2xl shadow-lg p-8 min-h-125 flex flex-col justify-center text-center">
-        </div>
-        <div class="mt-4 text-center">
-          <h4 class="text-lg font-semibold text-gray-900">
-            Diseño de Rutinas Personalizadas
-          </h4>
-          <p class="text-sm text-gray-600 mt-2">
-            Crea planes de ejercicios específicos, asigna contenido multimedia y define
-            la frecuencia para la rehabilitación de cada paciente.
-          </p>
-        </div>
-      </div>
-
-      <!-- Cuadro 3 -->
-      <div>
-        <div class="bg-gray-300 rounded-2xl shadow-lg pp-8 min-h-125 flex flex-col justify-center text-center">
-        </div>
-        <div class="mt-4 text-center">
-          <h4 class="text-lg font-semibold text-gray-900">
-            Monitoreo de Evolución
-          </h4>
-          <p class="text-sm text-gray-600 mt-2">
-            Visualiza el progreso real de tus pacientes mediante dashboards intuitivos
-            que reflejan cumplimiento, dolor y métricas de recuperación.
-          </p>
-        </div>
-      </div>
-
     </div>
-  </div>
-</section>
+  </section>
 
-<main
-     class="relative flex flex-col items-center gap-4 py-8 sm:py-12 lg:py-45">
-  
-
-
+  <main
+    class="relative flex flex-col items-center gap-4 py-8 sm:py-12 lg:py-45"
+  >
     <!-- Content -->
-<div class="w-full max-w-5xl relative z-10">
-    <div class="flex flex-col items-center gap-4 sm:gap-6">
-         
-            <h2 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center px-4">
-                    Eleva tu Práctica al Siguiente Nivel </h2>    
-             <div class="flex flex-wrap justify-center gap-4">
-            
-            <Button text="Iniciar sesión →" href="#" theme="dark" />
-
-            </div>
+    <div class="w-full max-w-5xl relative z-10">
+      <div class="flex flex-col items-center gap-4 sm:gap-6">
+        <h2
+          class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center px-4"
+        >
+          Eleva tu Práctica al Siguiente Nivel
+        </h2>
+        <div class="flex flex-wrap justify-center gap-4">
+          <Button text="Iniciar sesión →" href="#" theme="dark" />
         </div>
+      </div>
     </div>
-</main>
+  </main>
 
-    <!-- línea -->
+  <!-- línea -->
 
-<section class="w-full flex justify-center py-20">
-         <div class="w-full max-w-7xl px-6">
-        <div class="w-full h-0.5 bg-gray-800/20 mb-10"></div>
+  <section class="w-full flex justify-center py-20">
+    <div class="w-full max-w-7xl px-6">
+      <div class="w-full h-0.5 bg-gray-800/20 mb-10"></div>
     </div>
-</section>
+  </section>
 
-
+  <Footer />
 </Layout>
