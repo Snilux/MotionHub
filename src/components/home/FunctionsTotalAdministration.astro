@@ -1,0 +1,48 @@
+---
+import InfoCards from "../common/InfoCards.astro";
+---
+
+<section
+    class="grid grid-cols-1 md:grid-cols-2 min-h-screen px-8 md:px-20 py-16 gap-10 pt-24"
+>
+    <!-- IZQUIERDA -->
+    <div class="flex flex-col justify-start gap-6">
+        <h2 class="text-4xl md:text-5xl font-medium">
+            Historial Clínico Digital
+        </h2>
+
+        <p class="opacity-80 text-lg max-w-lg font-light">
+            Accede al historial completo de cada paciente: diagnósticos,
+            tratamientos, evolución por sesión. Todo organizado y seguro.
+        </p>
+
+        <!-- Cards -->
+
+        <div class="w-full lg:w-2/3 flex flex-col gap-6">
+            <InfoCards
+                icon="settings"
+                text="Panel de administración para gestión de usuarios"
+                description=""
+            />
+            <InfoCards
+                icon="multimedia"
+                text="Añade videos, imágenes y descripciones "
+                description=""
+            />
+            <InfoCards
+                icon="metrics"
+                text="Métricas  de clínica"
+                description=""
+            />
+        </div>
+    </div>
+
+    <!-- DERECHA -->
+    <div class="hidden lg:flex justify-center items-center">
+        <img
+            src="/total-administration.png"
+            alt="Historial clínico"
+
+        />
+    </div>
+</section>
