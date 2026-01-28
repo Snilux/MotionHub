@@ -1,0 +1,42 @@
+---
+import Icons from "../common/Icons.astro";
+import Button from "../common/Button.astro";
+---
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-6xl w-full z-10 px-4 md:px-0">
+    <div
+        class="glass-card backdrop-blur-md rounded-2xl md:rounded-3xl p-8 md:p-12 flex flex-col items-center justify-between shadow-xl min-h-[500px] md:min-h-[600px] text-center"
+    >
+        <div>
+            <h2 class="text-3xl md:text-4xl font-regular mb-2">Sigue avanzando</h2>
+            <p class="text-lg md:text-xl font-light">Accede ahora</p>
+        </div>
+
+        <div class="my-6 md:my-8 flex items-center justify-center scale-75 md:scale-100">
+            <Icons name="run" />
+        </div>
+
+        <Button text="Iniciar sesión" href="#" theme="dark" />
+    </div>
+
+    <div
+        class="glass-card bg-black backdrop-blur-md rounded-2xl md:rounded-3xl p-8 md:p-12 flex flex-col items-center justify-between shadow-xl min-h-[500px] md:min-h-[600px] text-center"
+    >
+        <div>
+            <h2 class="text-3xl md:text-4xl font-regular text-white mb-2">
+                Simplifica la conexión
+            </h2>
+            <p class="text-lg md:text-xl text-white font-light">fisio-paciente.</p>
+        </div>
+
+        <div class="my-6 md:my-8">
+            <div
+                class="w-16 h-20 md:w-20 md:h-24 border border-gray-400 rounded-4xl flex items-center justify-center"
+            >
+                <span class="text-white text-3xl md:text-4xl font-light">!</span>
+            </div>
+        </div>
+
+        <Button text="Información" href="#" theme="white" />
+    </div>
+</div>

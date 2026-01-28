@@ -1,0 +1,54 @@
+---
+import Button from "../common/Button.astro";
+---
+
+<section
+    class="relative flex flex-col items-center justify-center gap-4 py-8 sm:py-12 lg:py-16 px-4 sm:px-6 h-screen overflow-hidden animate-gradient-slow"
+>
+    <div class="w-full max-w-5xl relative z-10 pt-20 sm:pt-24">
+        <div class="flex flex-col items-center gap-4 sm:gap-6 text-white">
+            <h2
+                class="text-3xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center px-4 drop-shadow-sm"
+            >
+                Lleva Tu Clínica al Siguiente Nivel
+            </h2>
+
+            <p
+                class="font-medium text-sm sm:text-base text-center w-full sm:w-4/5 md:w-3/4 lg:w-2/3 xl:w-1/2 px-4"
+            >
+                Únete a cientos de fisioterapeutas que ya están transformando su
+                práctica con MotionHub.
+            </p>
+            <div class="flex flex-col gap-4 sm:flex-row">
+                <Button text="Comenzar ahora →" href="#" theme="dark" />
+                <Button text="Más información →" href="#" theme="white" />
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .animate-gradient-slow {
+        background: linear-gradient(
+            135deg,
+            #9bdff0,
+            rgb(191 219 254),
+            #81afce,
+            rgb(191 219 254)
+        );
+        background-size: 400% 400%;
+        animation: gradient-animation 10s ease infinite;
+    }
+
+    @keyframes gradient-animation {
+        0% {
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+</style>

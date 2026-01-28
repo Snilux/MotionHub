@@ -1,0 +1,35 @@
+---
+interface Props {
+    href: string;
+    text: string;
+}
+
+const { href, text } = Astro.props;
+---
+
+<a
+    href={href}
+    class="text-neutral-600 hover:text-neutral-900 transition-colors duration-200 text-sm"
+    >{text}</a
+>
+<style>
+    /* Subrayado animado */
+    a {
+        position: relative;
+    }
+
+    a::after {
+        content: "";
+        position: absolute;
+        width: 0;
+        height: 1px;
+        bottom: -2px;
+        left: 0;
+        background-color: currentColor;
+        transition: width 0.3s ease;
+    }
+
+    a:hover::after {
+        width: 100%;
+    }
+</style>
