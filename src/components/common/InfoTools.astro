@@ -14,7 +14,9 @@ const themeInfoCard = {
 const { title, description, color, iconName } = Astro.props;
 ---
 
-<div class={`${themeInfoCard[color]} rounded-2xl shadow-lg p-6`}>
+<div
+    class={`${themeInfoCard[color]} rounded-2xl shadow-lg p-6 hover:translate-y-2 transition-all duration-300`}
+>
     <div class="mb-3">
         <Icons name={iconName} />
     </div>

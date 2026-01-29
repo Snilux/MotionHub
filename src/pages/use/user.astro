@@ -1,0 +1,192 @@
+---
+import Button from "../../components/common/Button.astro";
+import Layout from "../../layouts/Layout.astro";
+import Nav from "../../components/home/Nav.astro";
+import Footer from "../../components/common/Footer.astro";
+import InfoCardsPhone from "../../components/common/InfoCardsPhone.astro";
+import InfoTools from "../../components/common/InfoTools.astro";
+---
+
+<Layout title="MotionHub">
+    <Nav />
+
+    <main
+        class="relative flex flex-col items-center gap-4 py-8 sm:py-12 lg:py-45 h-screen"
+    >
+        <!-- Content -->
+        <div class="w-full max-w-5xl relative z-10">
+            <div class="flex flex-col items-center gap-4 sm:gap-6">
+                <h2
+                    class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center px-4"
+                >
+                    Tu Recuperación, Ahora en tus Manos
+                </h2>
+
+                <p
+                    class="font-light text-sm sm:text-base text-center w-full sm:w-4/5 md:w-3/4 lg:w-2/3 xl:w-1/2 opacity-80 px-4"
+                >
+                    Accede a tus rutinas personalizadas, sigue tu progreso y
+                    comunícate con tu fisioterapeuta desde cualquier lugar.
+                </p>
+
+                <div class="flex flex-wrap justify-center gap-4">
+                    <Button text="Comenzar ahora" href="#" theme="dark" />
+                    <Button text="Más información" href="#" theme="dark" />
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Los cuadros disparegos JJAJA  -->
+
+    <section class="w-full flex justify-center py-20">
+        <div class="w-full max-w-7xl px-4 sm:px-6">
+            <!-- linea -->
+            <div class="w-full h-0.5 bg-gray-800/20 mb-10"></div>
+
+            <h3
+                class="text-2xl md:text-3xl font-semibold text-center mb-10 md:mb-14"
+            >
+                Funcionalidades para pacientes
+            </h3>
+
+            <div
+                class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 grid-flow-row-dense gap-6"
+            >
+                <!-- cuadro 1 -->
+                <div
+                    class="bg-white rounded-2xl shadow-lg p-6
+                  flex flex-col"
+                >
+                    <div class="mb-4">
+                        <svg
+                            class="w-8 h-8 text-gray-800"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            viewBox="0 0 24 24"
+                        >
+                            <circle cx="12" cy="5" r="2"></circle>
+                            <path
+                                stroke-linecap="round"
+                                d="M12 7v10M7 22l5-5 5 5M6 12l6-3 6 3"></path>
+                        </svg>
+                    </div>
+                    <h3 class="font-semibold mb-2">Rutinas Personalizadas</h3>
+                    <p class="text-sm text-gray-700 font-light">
+                        Accede a ejercicios diseñados específicamente para tu
+                        condición y objetivos de recuperación.
+                    </p>
+                </div>
+
+                <!-- cuadro 2 -->
+
+                <InfoTools
+                    color="blue"
+                    title="Historial Médico"
+                    description="Consulta todo tu historial médico, notas de sesiones y evolución en un solo lugar."
+                    iconName="clock"
+                />
+
+                <!-- cuadro 3 -->
+
+                <InfoTools
+                    color="white"
+                    title="Gestión de Citas"
+                    description="GAgenda, reprograma y cancela tus citas con tu fisioterapeuta de manera fácil y rápida."
+                    iconName="schedule"
+                />
+            </div>
+        </div>
+    </section>
+
+    <section class="w-full flex justify-center">
+        <div class="w-full max-w-7xl px-4 sm:px-6">
+            <div
+                class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 grid-flow-row-dense gap-6"
+            >
+                <!-- cuadro 4 -->
+
+                <InfoTools
+                    color="blue"
+                    title="Recordatorios Inteligentes"
+                    description="Recibe notificaciones para no olvidar tus ejercicios y mantener la constancia en tu tratamiento."
+                    iconName="notification"
+                />
+
+                <!-- cuadro 5 -->
+
+                <InfoTools
+                    color="blue"
+                    title="Seguimiento de Progreso"
+                    description="Registra tu evolución, nivel de dolor y logros para que tu terapeuta ajuste tu tratamiento."
+                    iconName="follow-progress"
+                />
+            </div>
+        </div>
+    </section>
+
+    <!-- línea -->
+
+    <section class="w-full flex justify-center py-20">
+        <div class="w-full max-w-7xl px-6">
+            <div class="w-full h-0.5 bg-gray-800/20 mb-10"></div>
+
+            <!-- Los cuadrotes   -->
+
+            <h3 class="text-3xl font-semibold text-center mb-14">
+                Descubre la App MotionHub
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- cuadro 1 -->
+
+                <InfoCardsPhone
+                    title="Crea tu perfil"
+                    description="Crea tu cuenta y completa tu información personal y médica para que tu fisioterapeuta pueda conocerte mejor."
+                />
+
+                <!-- Cuadro 2 -->
+
+                <InfoCardsPhone
+                    title="Recibe y monitorea tus ejercicios"
+                    description="Accede a ejercicios personalizados, sigue las instrucciones visuales y reporta tu evolución al instante."
+                />
+                <!-- Cuadro 3 -->
+
+                <InfoCardsPhone
+                    title="Monitorea tu Evolución"
+                    description="Tu fisioterapeuta revisará tu progreso y ajustará tu tratamiento según tu evolución y necesidades."
+                />
+            </div>
+        </div>
+    </section>
+
+    <main
+        class="relative flex flex-col items-center gap-4 py-8 sm:py-12 lg:py-45"
+    >
+        <!-- Content -->
+        <div class="w-full max-w-5xl relative z-10">
+            <div class="flex flex-col items-center gap-4 sm:gap-6">
+                <h2
+                    class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center px-4"
+                >
+                    Comienza tu recuperacion hoy
+                </h2>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <Button text="Más información" href="#" theme="dark" />
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- línea -->
+
+    <section class="w-full flex justify-center py-20">
+        <div class="w-full max-w-7xl px-6">
+            <div class="w-full h-0.5 bg-gray-800/20 mb-10"></div>
+        </div>
+    </section>
+
+    <Footer />
+</Layout>

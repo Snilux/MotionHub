@@ -1,0 +1,264 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Nav from "../components/home/Nav.astro";
+import Button from "../components/common/Button.astro";
+import AnimationBgProduct from "../components/common/AnimationBgProduct.astro";
+import Footer from "../components/common/Footer.astro";
+import InfoTools from "../components/common/InfoTools.astro";
+import Carousel from "../components/common/Carousel.astro";
+---
+
+<Layout title="Producto">
+    <Nav />
+
+    <!-- Hero Section - Página 1 -->
+    <section class="snap-section min-h-screen">
+        <div class="relative min-h-screen overflow-hidden">
+            <!-- SVG de fondo -->
+            <AnimationBgProduct />
+
+            <!-- Contenido -->
+            <main
+                class="relative px-6 sm:px-10 md:px-16 pt-24 md:pt-32 max-w-4xl text-center md:text-left"
+            >
+                <h1
+                    class="hero-title mt-6 text-3xl sm:text-4xl md:text-5xl font-medium leading-tight"
+                >
+                    "Simplifica la terapia. Maximiza los resultados. Conecta sin
+                    límites."
+                </h1>
+
+                <div
+                    class="hero-button mt-6 flex justify-center md:justify-start"
+                >
+                    <Button
+                        href="/register"
+                        theme="dark"
+                        text="Registrarse ->"
+                    />
+                </div>
+            </main>
+        </div>
+    </section>
+
+    <!-- Features Section - Página 2 -->
+    <section
+        class="snap-section max-w-7xl mx-auto px-6 py-16 min-h-screen flex flex-col justify-center"
+    >
+        <!-- Título -->
+        <h1 class="features-title text-3xl md:text-4xl font-light text-center">
+            Ve como funciona MotionHub
+        </h1>
+
+        <!-- Subtítulo -->
+        <p
+            class="features-subtitle mt-3 text-center max-w-2xl mx-auto opacity-80 font-light"
+        >
+            Mire para aprender cómo puede transformar tu centro de control para
+            diagnósticos, ejercicios y evolución fisioterapéutica
+        </p>
+
+        <!-- Carrusel -->
+        <div class="carousel-container mb-2">
+            <Carousel />
+        </div>
+
+        <!-- Texto sección -->
+        <h2 class="explore-title text-3xl font-light mb-2">
+            Explora funcionalidades
+        </h2>
+
+        <!-- Cards -->
+        <div class="cards-grid grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="card-item">
+                <InfoTools
+                    color="blue"
+                    iconName="settings"
+                    title="App para el Paciente"
+                    description="Ofrece a los pacientes acceso directo desde su móvil a sus ejercicios asignados y recordatorios automáticos para garantizar el cumplimiento de su terapia."
+                />
+            </div>
+
+            <div class="card-item">
+                <InfoTools
+                    color="white"
+                    iconName="schedule"
+                    title="Agenda y Citas"
+                    description="Simplifica la coordinación de sesiones permitiendo crear, editar y cancelar citas, además de gestionar notificaciones para asegurar la asistencia."
+                />
+            </div>
+
+            <div class="card-item">
+                <InfoTools
+                    color="blue"
+                    iconName="metrics"
+                    title="Monitoreo de Progreso"
+                    description="Visualiza la evolución del tratamiento mediante dashboards claros que reflejan los registros de dolor, repeticiones y comentarios ingresados por el paciente."
+                />
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Section - Página 3 -->
+    <section class="snap-section footer-section">
+        <Footer />
+    </section>
+</Layout>
+
+<script>
+    import { gsap } from "gsap";
+    import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+    gsap.registerPlugin(ScrollTrigger);
+
+    let isAnimating = false;
+
+    // Animación inicial del Hero Section
+    const heroTimeline = gsap.timeline({
+        defaults: { ease: "power3.out" },
+        onStart: () => {
+            isAnimating = true;
+        },
+        onComplete: () => {
+            isAnimating = false;
+        },
+    });
+
+    heroTimeline
+        .from(".hero-title", {
+            opacity: 0,
+            y: 50,
+            duration: 1,
+            delay: 0.3,
+        })
+        .from(
+            ".hero-button",
+            {
+                opacity: 0,
+                y: 30,
+                duration: 0.8,
+            },
+            "-=0.5",
+        );
+
+    // Animación para Features Section (página 2)
+    const featuresTimeline = gsap.timeline({
+        scrollTrigger: {
+            trigger: ".features-title",
+            start: "top 80%",
+            end: "top 20%",
+            toggleActions: "play none none reverse",
+        },
+        defaults: { ease: "power3.out" },
+    });
+
+    featuresTimeline
+        .from(".features-title", {
+            opacity: 0,
+            y: 50,
+            duration: 1,
+        })
+        .from(
+            ".features-subtitle",
+            {
+                opacity: 0,
+                y: 40,
+                duration: 1,
+            },
+            "-=0.7",
+        )
+        .from(
+            ".carousel-container",
+            {
+                opacity: 0,
+                scale: 0.95,
+                duration: 1,
+            },
+            "-=0.6",
+        )
+        .from(
+            ".explore-title",
+            {
+                opacity: 0,
+                x: -30,
+                duration: 1,
+            },
+            "-=0.4",
+        )
+        .from(
+            ".card-item",
+            {
+                opacity: 0,
+                y: 60,
+                duration: 0.8,
+                stagger: 0.2,
+            },
+            "-=0.5",
+        );
+
+    // Efecto hover en las cards
+    const cards = document.querySelectorAll(".card-item");
+
+    cards.forEach((card) => {
+        card.addEventListener("mouseenter", () => {
+            gsap.to(card, {
+                y: -10,
+                duration: 0.3,
+                ease: "power2.out",
+            });
+        });
+
+        card.addEventListener("mouseleave", () => {
+            gsap.to(card, {
+                y: 0,
+                duration: 0.3,
+                ease: "power2.out",
+            });
+        });
+    });
+
+    // Navegación con teclado
+    document.addEventListener("keydown", (e) => {
+        if (isAnimating) return;
+
+        const sections = document.querySelectorAll(".snap-section");
+        let currentSection = 0;
+
+        sections.forEach((section, index) => {
+            const rect = section.getBoundingClientRect();
+            if (rect.top <= 100 && rect.bottom > 100) {
+                currentSection = index;
+            }
+        });
+
+        if (e.key === "ArrowDown" || e.key === "PageDown") {
+            e.preventDefault();
+            if (currentSection < sections.length - 1) {
+                sections[currentSection + 1].scrollIntoView({
+                    behavior: "smooth",
+                });
+            }
+        } else if (e.key === "ArrowUp" || e.key === "PageUp") {
+            e.preventDefault();
+            if (currentSection > 0) {
+                sections[currentSection - 1].scrollIntoView({
+                    behavior: "smooth",
+                });
+            }
+        }
+    });
+</script>
+
+<style>
+    /* Asegurar que las secciones ocupen toda la pantalla */
+    .snap-section {
+        min-height: 100vh;
+        position: relative;
+    }
+
+    /* El footer NO necesita min-height */
+    .footer-section {
+        min-height: 0;
+        height: auto;
+    }
+</style>
