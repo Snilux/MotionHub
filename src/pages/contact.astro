@@ -14,7 +14,8 @@ import Footer from "../components/common/Footer.astro";
       ¿Cómo podemos ayudarte?
     </h1>
     <p class="mt-4 max-w-2xl mx-auto text-gray-700 font-light">
-      Estamos aquí para resolver tus dudas y ayudarte a aprovechar al máximo MotionHub
+      Estamos aquí para resolver tus dudas y ayudarte a aprovechar al máximo
+      MotionHub
     </p>
 
     <!-- BUSCADOR -->
@@ -23,88 +24,87 @@ import Footer from "../components/common/Footer.astro";
         <input
           type="text"
           placeholder="Busca tu pregunta o problema..."
-          class="w-full rounded-xl border border-gray-200 px-12 py-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+          class="w-full rounded-xl border border-gray-200 px-12 py-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
         />
         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
           <img
             src="/src/assets/icons/buscar-icon.svg"
             alt="Buscar"
             class="w-7 h-7 md-2 mb-1"
-            />
+          />
         </span>
       </div>
     </div>
   </section>
 
   <!-- CANALES DE SOPORTE -->
-    <section class="max-w-6xl mx-auto px-6 pb-24">
-    <h2 class="text-4xl font-semibold text-center mb-14">
-        Canales de soporte
-    </h2>
+  <section class="max-w-6xl mx-auto px-6 pb-24">
+    <h2 class="text-4xl font-semibold text-center mb-14">Canales de soporte</h2>
 
     <div class="grid gap-8 md:grid-cols-3">
-        <!-- WhatsApp -->
-        <div class="bg-[#c7ded7] rounded-3xl p-10 text-center shadow-xl shadow-black/20">
+      <!-- WhatsApp -->
+      <div
+        class="bg-blue-100 rounded-3xl p-10 text-center shadow-xl shadow-black/20"
+      >
         <div class="flex justify-center mb-6">
-            <img
+          <img
             src="/src/assets/icons/whatsapp-icon.svg"
             alt="WhatsApp"
             class="w-15 h-15 mx-auto mb-6"
-            />
+          />
         </div>
 
         <h3 class="text-xl font-medium mb-6">WhatsApp</h3>
 
         <Button text="Enviar mensaje" href="#" theme="white" />
-        </div>
+      </div>
 
-        <!-- Email -->
-        <div class="bg-[#f5faf7] rounded-3xl p-10 text-center shadow-xl shadow-black/20">
+      <!-- Email -->
+      <div
+        class="bg-white rounded-3xl p-10 text-center shadow-xl shadow-black/20"
+      >
         <div class="flex justify-center mb-6">
-            <img
+          <img
             src="/src/assets/icons/mail-icon.svg"
             alt="email"
             class="w-15 h-15 mx-auto mb-6"
-            />
+          />
         </div>
 
         <h3 class="text-xl font-medium mb-6">Email</h3>
 
         <Button text="soporte@motionhub.com" href="#" theme="white" />
-        </div>
+      </div>
 
-        <!-- Teléfono -->
-        <div class="bg-[#c7ded7] rounded-3xl p-10 text-center shadow-xl shadow-black/20">
+      <!-- Teléfono -->
+      <div
+        class="bg-blue-100 rounded-3xl p-10 text-center shadow-xl shadow-black/20"
+      >
         <div class="flex justify-center mb-6">
-            <img
+          <img
             src="/src/assets/icons/phone-icon.svg"
             alt="Teléfono"
             class="w-15 h-15 mx-auto mb-6"
-            />
+          />
         </div>
 
         <h3 class="text-xl font-medium mb-6">Teléfono</h3>
 
         <Button text="+52 241 222 11 33" href="#" theme="white" />
-        </div>
+      </div>
     </div>
-    </section>
-
+  </section>
 
   <!-- PREGUNTAS FRECUENTES -->
   <section class="max-w-4xl mx-auto px-6 pb-24">
-    <h2 class="text-3xl font-semibold mb-10">
-      Preguntas frecuentes
-    </h2>
+    <h2 class="text-3xl font-semibold mb-10">Preguntas frecuentes</h2>
 
     <div class="space-y-4">
       <div class="bg-white rounded-xl p-6 shadow-sm">
-        <h4 class="font-semibold mb-1">
-          ¿Cómo creo una cuenta en MotionHub?
-        </h4>
+        <h4 class="font-semibold mb-1">¿Cómo creo una cuenta en MotionHub?</h4>
         <p class="text-gray-700 font-light text-sm">
-          Puedes registrarte desde nuestra página principal. Completa el formulario
-          con tus datos y verifica tu correo electrónico.
+          Puedes registrarte desde nuestra página principal. Completa el
+          formulario con tus datos y verifica tu correo electrónico.
         </p>
       </div>
 
@@ -113,15 +113,13 @@ import Footer from "../components/common/Footer.astro";
           ¿Puedo gestionar múltiples pacientes?
         </h4>
         <p class="text-gray-700 font-light text-sm">
-          Sí, los fisioterapeutas pueden gestionar un número ilimitado de pacientes,
-          crear rutinas y monitorear su progreso.
+          Sí, los fisioterapeutas pueden gestionar un número ilimitado de
+          pacientes, crear rutinas y monitorear su progreso.
         </p>
       </div>
 
       <div class="bg-white rounded-xl p-6 shadow-sm">
-        <h4 class="font-semibold mb-1">
-          ¿Es segura mi información médica?
-        </h4>
+        <h4 class="font-semibold mb-1">¿Es segura mi información médica?</h4>
         <p class="text-gray-700 font-light text-sm">
           MotionHub cumple con estándares de seguridad y privacidad médica,
           cifrando toda la información sensible.
@@ -133,7 +131,8 @@ import Footer from "../components/common/Footer.astro";
           ¿Puedo usar MotionHub desde mi móvil?
         </h4>
         <p class="text-gray-700 font-light text-sm">
-          Sí, la plataforma es completamente responsive y funciona en dispositivos móviles.
+          Sí, la plataforma es completamente responsive y funciona en
+          dispositivos móviles.
         </p>
       </div>
     </div>
@@ -153,14 +152,16 @@ import Footer from "../components/common/Footer.astro";
         ¿No encontraste lo que buscabas? Escríbenos directamente
       </p>
 
-      <form class="grid gap-6">
+      <form id="contactForm" class="grid gap-6">
         <div class="grid md:grid-cols-2 gap-4">
           <input
+            id="name"
             type="text"
             placeholder="Tu nombre completo"
             class="w-full rounded-lg border border-gray-300 px-4 py-3"
           />
           <input
+            id="email"
             type="email"
             placeholder="tu@email.com"
             class="w-full rounded-lg border border-gray-300 px-4 py-3"
@@ -168,19 +169,27 @@ import Footer from "../components/common/Footer.astro";
         </div>
 
         <input
+          id="subject"
           type="text"
           placeholder="¿En qué podemos ayudarte?"
           class="w-full rounded-lg border border-gray-300 px-4 py-3"
         />
 
         <textarea
+          id="message"
           rows="4"
           placeholder="Describe tu problema o pregunta en detalle..."
-          class="w-full rounded-lg border border-gray-300 px-4 py-3"
-        ></textarea>
+          class="w-full rounded-lg border border-gray-300 px-4 py-3"></textarea>
+
+        <p id="formError" class="text-red-500 text-sm hidden"></p>
 
         <div class="text-center">
-          <Button text="Enviar mensaje" href="#" theme="white" />
+          <button
+            type="submit"
+            class="bg-white px-6 py-3 rounded-xl shadow hover:scale-105 transition"
+          >
+            Enviar mensaje
+          </button>
         </div>
       </form>
     </div>
@@ -188,3 +197,71 @@ import Footer from "../components/common/Footer.astro";
 
   <Footer />
 </Layout>
+<script>
+  const form = document.getElementById("contactForm") as HTMLFormElement;
+  const errorText = document.getElementById(
+    "formError",
+  ) as HTMLParagraphElement;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const name = (
+      document.getElementById("name") as HTMLInputElement
+    ).value.trim();
+    const email = (
+      document.getElementById("email") as HTMLInputElement
+    ).value.trim();
+    const subject = (
+      document.getElementById("subject") as HTMLInputElement
+    ).value.trim();
+    const message = (
+      document.getElementById("message") as HTMLTextAreaElement
+    ).value.trim();
+
+    // Validaciones
+    if (!name || !email || !subject || !message) {
+      showError("Todos los campos son obligatorios.");
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      showError("Ingresa un correo válido.");
+      return;
+    }
+
+    if (message.length < 10) {
+      showError("El mensaje debe tener al menos 10 caracteres.");
+      return;
+    }
+
+    errorText.classList.add("hidden");
+
+    // Aquí ya puedes llamar a tu API
+    const payload = { name, email, subject, message };
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Error al enviar");
+
+      alert("Mensaje enviado correctamente ✅");
+      form.reset();
+    } catch (err) {
+      showError("Error al enviar el mensaje. Intenta más tarde.");
+    }
+  });
+
+  function validateEmail(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function showError(msg: string) {
+    errorText.textContent = msg;
+    errorText.classList.remove("hidden");
+  }
+</script>
