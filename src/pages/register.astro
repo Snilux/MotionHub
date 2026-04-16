@@ -38,12 +38,12 @@ import Icon from "../components/common/Icons.astro";
             </div>
 
             <!-- Form Content -->
-            <form class="space-y-2">
+            <form id="registerForm" class="space-y-2">
                 <!-- Three Column Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
                     <!-- Column 1: Email and Name -->
                     <div
-                        class="backdrop-blur-xl bg-white/50 rounded-xl shadow-2xl p-2 space-y-2"
+                        class="backdrop-blur-xl bg-white/50 rounded-xl shadow-2xl p-6 space-y-2"
                     >
                         <!-- Name Input -->
                         <div>
@@ -61,6 +61,11 @@ import Icon from "../components/common/Icons.astro";
                                 placeholder="Juan Pérez"
                                 class="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder:text-gray-400"
                             />
+                            <p
+                                id="nameError"
+                                class="mt-1 text-xs text-red-500 hidden"
+                            >
+                            </p>
                         </div>
 
                         <!-- Email Input -->
@@ -79,6 +84,11 @@ import Icon from "../components/common/Icons.astro";
                                 placeholder="tu@email.com"
                                 class="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder:text-gray-400"
                             />
+                            <p
+                                id="emailError"
+                                class="mt-1 text-xs text-red-500 hidden"
+                            >
+                            </p>
                         </div>
                     </div>
 
@@ -94,16 +104,76 @@ import Icon from "../components/common/Icons.astro";
                             >
                                 Contraseña
                             </label>
-                            <input
-                                type="password"
-                                id="password"
-                                name="password"
-                                required
-                                placeholder="••••••••"
-                                class="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder:text-gray-400"
-                            />
-                            <p class="mt-1 text-xs text-gray-500">
-                                Mínimo 8 caracteres
+                            <div class="relative">
+                                <input
+                                    type="password"
+                                    id="password"
+                                    name="password"
+                                    required
+                                    placeholder="••••••••"
+                                    class="w-full px-4 py-3 pr-12 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder:text-gray-400"
+                                />
+                                <button
+                                    type="button"
+                                    id="togglePassword"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                >
+                                    <svg
+                                        id="eyeIcon"
+                                        class="w-5 h-5"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                        ></path>
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                        ></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <!-- Password Strength Indicator -->
+                            <div class="mt-2 space-y-1">
+                                <div class="flex gap-1">
+                                    <div
+                                        id="strength-1"
+                                        class="h-1 flex-1 bg-gray-200 rounded transition-colors"
+                                    >
+                                    </div>
+                                    <div
+                                        id="strength-2"
+                                        class="h-1 flex-1 bg-gray-200 rounded transition-colors"
+                                    >
+                                    </div>
+                                    <div
+                                        id="strength-3"
+                                        class="h-1 flex-1 bg-gray-200 rounded transition-colors"
+                                    >
+                                    </div>
+                                    <div
+                                        id="strength-4"
+                                        class="h-1 flex-1 bg-gray-200 rounded transition-colors"
+                                    >
+                                    </div>
+                                </div>
+                                <p
+                                    id="strengthText"
+                                    class="text-xs text-gray-500"
+                                >
+                                </p>
+                            </div>
+                            <p
+                                id="passwordError"
+                                class="mt-1 text-xs text-red-500 hidden"
+                            >
                             </p>
                         </div>
 
@@ -123,6 +193,11 @@ import Icon from "../components/common/Icons.astro";
                                 placeholder="••••••••"
                                 class="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder:text-gray-400"
                             />
+                            <p
+                                id="confirmPasswordError"
+                                class="mt-1 text-xs text-red-500 hidden"
+                            >
+                            </p>
                         </div>
                     </div>
 
@@ -137,7 +212,7 @@ import Icon from "../components/common/Icons.astro";
                         </label>
                         <div class="space-y-2">
                             <label
-                                class="relative flex items-center justify-center p-2 bg-white/50 border-2 border-gray-200 rounded-xl cursor-pointer hover:bg-white/80 transition-all duration-200 has-[checked]:border-blue-500 has-[checked]:bg-blue-50/50"
+                                class="relative flex items-center justify-center p-2 bg-white/50 border-2 border-gray-200 rounded-xl cursor-pointer hover:bg-white/80 transition-all duration-200 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50"
                             >
                                 <input
                                     type="radio"
@@ -167,7 +242,7 @@ import Icon from "../components/common/Icons.astro";
                                 </div>
                             </label>
                             <label
-                                class="relative flex items-center justify-center p-2 bg-white/50 border-2 border-gray-200 rounded-xl cursor-pointer hover:bg-white/80 transition-all duration-200 has-[checked]:border-blue-500 has-[checked]:bg-blue-50/50"
+                                class="relative flex items-center justify-center p-2 bg-white/50 border-2 border-gray-200 rounded-xl cursor-pointer hover:bg-white/80 transition-all duration-200 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50"
                             >
                                 <input
                                     type="radio"
@@ -196,6 +271,11 @@ import Icon from "../components/common/Icons.astro";
                                 </div>
                             </label>
                         </div>
+                        <p
+                            id="userTypeError"
+                            class="mt-2 text-xs text-red-500 hidden"
+                        >
+                        </p>
                     </div>
                 </div>
 
@@ -208,75 +288,602 @@ import Icon from "../components/common/Icons.astro";
                         <label class="flex items-start">
                             <input
                                 type="checkbox"
+                                id="terms"
                                 required
                                 class="w-4 h-4 mt-1 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                             />
                             <span class="ml-2 text-sm text-gray-600">
-                                Acepto los
-                                <a
+                                Acepto los <a
                                     href="#"
-                                    class="text-blue-600 hover:text-blue-700 font-medium"
+                                    class="text-blue-600
+                                hover:text-blue-700 font-medium"
                                     >términos y condiciones</a
                                 >
-                                y la
-                                <a
+                                y la <a
                                     href="#"
-                                    class="text-blue-600 hover:text-blue-700 font-medium"
+                                    class="text-blue-600 hover:text-blue-700
+                            font-medium"
                                     >política de privacidad</a
-                                >
-                            </span>
+                                ></span
+                            >
                         </label>
                     </div>
+                    <p id="termsError" class="mt-1 text-xs text-red-500 hidden">
+                    </p>
+                </div>
 
-                    <!-- Submit Button -->
-                    <button
-                        type="submit"
-                        class="w-full bg-linear-to-r from-blue-600 to-blue-500 text-white py-3 px-4 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-lg shadow-blue-500/30"
-                    >
-                        Crear cuenta
-                    </button>
+                <!-- Error/Success Messages -->
+                <div
+                    id="formError"
+                    class="hidden p-3 bg-red-50 border border-red-200 rounded-lg"
+                >
+                    <p class="text-sm text-red-600"></p>
+                </div>
+                <div
+                    id="formSuccess"
+                    class="hidden p-3 bg-green-50 border border-green-200 rounded-lg"
+                >
+                    <p class="text-sm text-green-600"></p>
+                </div>
 
-                    <!-- Divider -->
-                    <div class="relative">
-                        <div class="relative flex justify-center text-sm">
-                            <span class="px-4  "
-                                >O regístrate con</span
-                            >
-                        </div>
-                    </div>
+                <!-- Submit Button -->
+                <button
+                    type="submit"
+                    id="submitButton"
+                    class="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white py-3 px-4 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Crear cuenta
+                </button>
 
-                    <!-- Social Register -->
-                    <div class="flex justify-center gap-2">
-                        <button
-                            type="button"
-                            class="flex items-center justify-center gap-2 px-4 py-3 bg-white/50 border border-gray-200 rounded-xl hover:bg-white/80 transition-all duration-200 w-full shadow-2xl"
-                        >
-                            <Icon name="google" />
-                            <span class="text-sm font-medium text-gray-700"
-                                >Google</span
-                            >
-                        </button>
-                    </div>
-
-                    <!-- Login Link -->
-                    <div class="text-center">
-                        <p class="text-gray-600">
-                            ¿Ya tienes una cuenta?
-                            <a
-                                href="/login"
-                                class="text-blue-600 hover:text-blue-700 font-semibold"
-                            >
-                                Inicia sesión aquí
-                            </a>
-                        </p>
+                <!-- Divider -->
+                <div class="relative">
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-4">O regístrate con</span>
                     </div>
                 </div>
-            </form>
 
-            <!-- Footer -->
-            <div class="mt-2 text-center text-sm text-gray-500">
-                <p>© 2026 MotionHub. Todos los derechos reservados.</p>
-            </div>
+                <!-- Social Register -->
+                <div class="flex justify-center gap-2">
+                    <button
+                        type="button"
+                        class="flex items-center justify-center gap-2 px-4 py-3 bg-white/50 border border-gray-200 rounded-xl hover:bg-white/80 transition-all duration-200 w-full shadow-2xl"
+                    >
+                        <Icon name="google" />
+                        <span class="text-sm font-medium text-gray-700"
+                            >Google</span
+                        >
+                    </button>
+                </div>
+
+                <!-- Login Link -->
+                <div class="text-center">
+                    <p class="text-gray-600">
+                        ¿Ya tienes una cuenta? <a
+                            href="/login"
+                            class="text-blue-600 hover:text-blue-700 font-semibold"
+                        >
+                            Inicia sesión aquí
+                        </a>
+                    </p>
+                </div>
+            </form>
         </div>
     </div>
+
+    <!-- Footer -->
+    <div class="mt-2 text-center text-sm text-gray-500">
+        <p>© 2026 MotionHub. Todos los derechos reservados.</p>
+    </div>
+
+    <script>
+        // ============================================
+        // UTILIDADES DE SANITIZACIÓN Y SEGURIDAD
+        // ============================================
+        const sanitizeInput = (input: string): string => {
+            return input
+                .replace(/[<>]/g, "") // Elimina < y >
+                .replace(/javascript:/gi, "") // Elimina javascript:
+                .replace(/on\w+=/gi, "") // Elimina atributos de eventos
+                .trim();
+        };
+
+        // ============================================
+        // FUNCIONES DE VALIDACIÓN
+        // ============================================
+        const validateName = (
+            name: string,
+        ): { valid: boolean; error: string } => {
+            const sanitized = sanitizeInput(name);
+
+            if (!sanitized) {
+                return {
+                    valid: false,
+                    error: "El nombre completo es obligatorio",
+                };
+            }
+
+            if (sanitized.length < 6) {
+                return {
+                    valid: false,
+                    error: "El nombre debe tener al menos 6 caracteres",
+                };
+            }
+
+            if (sanitized.length > 100) {
+                return { valid: false, error: "El nombre es demasiado largo" };
+            }
+
+            // Verifica que no sea solo caracteres repetidos
+            const uniqueChars = new Set(
+                sanitized.toLowerCase().replace(/\s/g, ""),
+            ).size;
+            if (uniqueChars < 3) {
+                return {
+                    valid: false,
+                    error: "Por favor ingresa un nombre válido",
+                };
+            }
+
+            // Verifica que contenga al menos dos palabras
+            const words = sanitized.split(/\s+/).filter((w) => w.length > 0);
+            if (words.length < 2) {
+                return {
+                    valid: false,
+                    error: "Ingresa tu nombre completo (nombre y apellido)",
+                };
+            }
+
+            // Verifica que cada palabra tenga al menos 2 caracteres
+            if (words.some((word) => word.length < 2)) {
+                return {
+                    valid: false,
+                    error: "Cada parte del nombre debe tener al menos 2 caracteres",
+                };
+            }
+
+            // Solo permite letras, espacios, guiones y apóstrofes
+            const nameRegex = /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s'-]+$/;
+            if (!nameRegex.test(sanitized)) {
+                return {
+                    valid: false,
+                    error: "El nombre solo puede contener letras",
+                };
+            }
+
+            return { valid: true, error: "" };
+        };
+
+        const validateEmail = (
+            email: string,
+        ): { valid: boolean; error: string } => {
+            const sanitized = sanitizeInput(email);
+
+            if (!sanitized) {
+                return { valid: false, error: "El email es obligatorio" };
+            }
+
+            // Expresión regular estricta para emails
+            const emailRegex =
+                /^[a-zA-Z0-9][a-zA-Z0-9._-]*@[a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,}$/;
+
+            if (!emailRegex.test(sanitized)) {
+                return { valid: false, error: "Ingresa un email válido" };
+            }
+
+            // Verifica dominios comunes mal escritos
+            const suspiciousPatterns = [
+                /\.con$/i,
+                /\.coom$/i,
+                /\.coml$/i,
+                /@test\./i,
+                /@example\./i,
+                /@temp\./i,
+            ];
+
+            if (suspiciousPatterns.some((pattern) => pattern.test(sanitized))) {
+                return {
+                    valid: false,
+                    error: "Verifica el dominio de tu email",
+                };
+            }
+
+            // Verifica que no sea un email temporal obvio
+            if (/^(test|temp|fake|spam)@/i.test(sanitized)) {
+                return { valid: false, error: "Por favor usa un email válido" };
+            }
+
+            return { valid: true, error: "" };
+        };
+
+        const calculatePasswordStrength = (password: string): number => {
+            let strength = 0;
+
+            if (password.length >= 8) strength++;
+            if (password.length >= 12) strength++;
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+            if (/\d/.test(password)) strength++;
+            if (/[^a-zA-Z0-9]/.test(password)) strength++;
+
+            return Math.min(strength, 4);
+        };
+
+        const validatePassword = (
+            password: string,
+        ): { valid: boolean; error: string; strength: number } => {
+            const sanitized = sanitizeInput(password);
+
+            if (!sanitized) {
+                return {
+                    valid: false,
+                    error: "La contraseña es obligatoria",
+                    strength: 0,
+                };
+            }
+
+            if (sanitized.length < 8) {
+                return {
+                    valid: false,
+                    error: "Mínimo 8 caracteres",
+                    strength: 0,
+                };
+            }
+
+            if (sanitized.length > 128) {
+                return {
+                    valid: false,
+                    error: "La contraseña es demasiado larga",
+                    strength: 0,
+                };
+            }
+
+            const strength = calculatePasswordStrength(sanitized);
+
+            if (strength < 2) {
+                return {
+                    valid: false,
+                    error: "Contraseña débil. Usa mayúsculas, minúsculas y números",
+                    strength,
+                };
+            }
+
+            // Verificar patrones comunes débiles
+            const weakPatterns = [
+                /^123456/i,
+                /^password/i,
+                /^qwerty/i,
+                /^abc123/i,
+                /^111111/i,
+                /^admin/i,
+            ];
+
+            if (weakPatterns.some((pattern) => pattern.test(sanitized))) {
+                return {
+                    valid: false,
+                    error: "Esta contraseña es muy común",
+                    strength,
+                };
+            }
+
+            return { valid: true, error: "", strength };
+        };
+
+        const validateConfirmPassword = (
+            password: string,
+            confirmPassword: string,
+        ): { valid: boolean; error: string } => {
+            const sanitized = sanitizeInput(confirmPassword);
+
+            if (!sanitized) {
+                return { valid: false, error: "Confirma tu contraseña" };
+            }
+
+            if (sanitized !== password) {
+                return { valid: false, error: "Las contraseñas no coinciden" };
+            }
+
+            return { valid: true, error: "" };
+        };
+
+        // ============================================
+        // FUNCIONES UI
+        // ============================================
+        const showError = (elementId: string, message: string) => {
+            const errorElement = document.getElementById(elementId);
+            const inputId = elementId.replace("Error", "");
+            const inputElement = document.getElementById(inputId);
+
+            if (errorElement) {
+                errorElement.textContent = message;
+                errorElement.classList.remove("hidden");
+            }
+
+            if (inputElement) {
+                inputElement.classList.add("border-red-500");
+                inputElement.classList.remove("border-gray-200");
+            }
+        };
+
+        const clearError = (elementId: string) => {
+            const errorElement = document.getElementById(elementId);
+            const inputId = elementId.replace("Error", "");
+            const inputElement = document.getElementById(inputId);
+
+            if (errorElement) {
+                errorElement.textContent = "";
+                errorElement.classList.add("hidden");
+            }
+
+            if (inputElement) {
+                inputElement.classList.remove("border-red-500");
+                inputElement.classList.add("border-gray-200");
+            }
+        };
+
+        const updatePasswordStrength = (strength: number) => {
+            const colors = [
+                "bg-red-500",
+                "bg-orange-500",
+                "bg-yellow-500",
+                "bg-green-500",
+            ];
+            const texts = ["Muy débil", "Débil", "Aceptable", "Fuerte"];
+
+            for (let i = 1; i <= 4; i++) {
+                const bar = document.getElementById(`strength-${i}`);
+                if (bar) {
+                    bar.className = `h-1 flex-1 rounded transition-colors ${
+                        i <= strength ? colors[strength - 1] : "bg-gray-200"
+                    }`;
+                }
+            }
+
+            const strengthText = document.getElementById("strengthText");
+            if (strengthText && strength > 0) {
+                strengthText.textContent = `Fortaleza: ${texts[strength - 1]}`;
+                strengthText.className = `text-xs ${strength >= 3 ? "text-green-600" : "text-orange-600"}`;
+            } else if (strengthText) {
+                strengthText.textContent = "";
+            }
+        };
+
+        const showFormMessage = (
+            type: "error" | "success",
+            message: string,
+        ) => {
+            const errorDiv = document.getElementById("formError");
+            const successDiv = document.getElementById("formSuccess");
+
+            if (type === "error" && errorDiv) {
+                const p = errorDiv.querySelector("p");
+                if (p) p.textContent = message;
+                errorDiv.classList.remove("hidden");
+                successDiv?.classList.add("hidden");
+            } else if (type === "success" && successDiv) {
+                const p = successDiv.querySelector("p");
+                if (p) p.textContent = message;
+                successDiv.classList.remove("hidden");
+                errorDiv?.classList.add("hidden");
+            }
+        };
+
+        const hideFormMessages = () => {
+            document.getElementById("formError")?.classList.add("hidden");
+            document.getElementById("formSuccess")?.classList.add("hidden");
+        };
+
+        // ============================================
+        // INICIALIZACIÓN
+        // ============================================
+        const form = document.getElementById("registerForm") as HTMLFormElement;
+        const nameInput = document.getElementById("name") as HTMLInputElement;
+        const emailInput = document.getElementById("email") as HTMLInputElement;
+        const passwordInput = document.getElementById(
+            "password",
+        ) as HTMLInputElement;
+        const confirmPasswordInput = document.getElementById(
+            "confirm-password",
+        ) as HTMLInputElement;
+        const termsCheckbox = document.getElementById(
+            "terms",
+        ) as HTMLInputElement;
+        const submitButton = document.getElementById(
+            "submitButton",
+        ) as HTMLButtonElement;
+        const togglePasswordButton = document.getElementById("togglePassword");
+
+        // ============================================
+        // EVENTOS
+        // ============================================
+
+        // Toggle mostrar/ocultar contraseña
+        togglePasswordButton?.addEventListener("click", () => {
+            const type =
+                passwordInput.type === "password" ? "text" : "password";
+            passwordInput.type = type;
+            confirmPasswordInput.type = type;
+
+            const eyeIcon = document.getElementById("eyeIcon");
+            if (eyeIcon) {
+                if (type === "text") {
+                    eyeIcon.innerHTML = `
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                `;
+                } else {
+                    eyeIcon.innerHTML = `
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                `;
+                }
+            }
+        });
+
+        // Validación en tiempo real
+        nameInput?.addEventListener("blur", () => {
+            const validation = validateName(nameInput.value);
+            if (!validation.valid) {
+                showError("nameError", validation.error);
+            } else {
+                clearError("nameError");
+            }
+        });
+
+        emailInput?.addEventListener("blur", () => {
+            const validation = validateEmail(emailInput.value);
+            if (!validation.valid) {
+                showError("emailError", validation.error);
+            } else {
+                clearError("emailError");
+            }
+        });
+
+        passwordInput?.addEventListener("input", () => {
+            const validation = validatePassword(passwordInput.value);
+            updatePasswordStrength(validation.strength);
+        });
+
+        passwordInput?.addEventListener("blur", () => {
+            const validation = validatePassword(passwordInput.value);
+            if (!validation.valid) {
+                showError("passwordError", validation.error);
+            } else {
+                clearError("passwordError");
+            }
+        });
+
+        confirmPasswordInput?.addEventListener("blur", () => {
+            const validation = validateConfirmPassword(
+                passwordInput.value,
+                confirmPasswordInput.value,
+            );
+            if (!validation.valid) {
+                showError("confirmPasswordError", validation.error);
+            } else {
+                clearError("confirmPasswordError");
+            }
+        });
+
+        // ============================================
+        // ENVÍO DEL FORMULARIO
+        // ============================================
+        form?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            // Limpiar errores previos
+            ["name", "email", "password", "confirmPassword", "terms"].forEach(
+                (field) => {
+                    clearError(`${field}Error`);
+                },
+            );
+            hideFormMessages();
+
+            // Obtener valores
+            const name = nameInput.value;
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            const userType = (
+                document.querySelector(
+                    'input[name="user-type"]:checked',
+                ) as HTMLInputElement
+            )?.value;
+            const termsAccepted = termsCheckbox.checked;
+
+            // Validar todos los campos
+            let hasErrors = false;
+
+            const nameValidation = validateName(name);
+            if (!nameValidation.valid) {
+                showError("nameError", nameValidation.error);
+                hasErrors = true;
+            }
+
+            const emailValidation = validateEmail(email);
+            if (!emailValidation.valid) {
+                showError("emailError", emailValidation.error);
+                hasErrors = true;
+            }
+
+            const passwordValidation = validatePassword(password);
+            if (!passwordValidation.valid) {
+                showError("passwordError", passwordValidation.error);
+                hasErrors = true;
+            }
+
+            const confirmPasswordValidation = validateConfirmPassword(
+                password,
+                confirmPassword,
+            );
+            if (!confirmPasswordValidation.valid) {
+                showError(
+                    "confirmPasswordError",
+                    confirmPasswordValidation.error,
+                );
+                hasErrors = true;
+            }
+
+            // Validar términos y condiciones
+            if (!termsAccepted) {
+                showError(
+                    "termsError",
+                    "Debes aceptar los términos y condiciones",
+                );
+                hasErrors = true;
+            }
+
+            if (hasErrors) {
+                showFormMessage(
+                    "error",
+                    "Por favor corrige los errores antes de continuar",
+                );
+                return;
+            }
+
+            // Si todo es válido, procesar el formulario
+            submitButton.disabled = true;
+            submitButton.textContent = "Creando cuenta...";
+
+            try {
+                // Preparar datos para enviar
+                const formData = {
+                    name: sanitizeInput(name),
+                    email: sanitizeInput(email),
+                    password, // No sanitizar la contraseña
+                    userType,
+                };
+
+                // Aquí iría tu lógica de envío al servidor
+                console.log("Datos del formulario:", formData);
+
+                // Simulación de envío
+                await new Promise((resolve) => setTimeout(resolve, 2000));
+
+                showFormMessage(
+                    "success",
+                    "¡Cuenta creada exitosamente! Redirigiendo...",
+                );
+
+                // Simular redirección
+                setTimeout(() => {
+                    window.location.href = "/dashboard";
+                }, 1500);
+            } catch (error) {
+                showFormMessage(
+                    "error",
+                    "Hubo un error al crear la cuenta. Por favor intenta de nuevo.",
+                );
+                console.error("Error:", error);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = "Crear cuenta";
+            }
+        });
+    </script>
+
+    <style>
+        /* Transiciones suaves */
+        input,
+        button {
+            transition: all 0.2s ease;
+        }
+    </style>
 </Layout>

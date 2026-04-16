@@ -1,176 +1,476 @@
----
-import Button from "../../components/common/Button.astro";
-import Layout from "../../layouts/Layout.astro";
-import Nav from "../../components/home/Nav.astro";
-import Footer from "../../components/common/Footer.astro";
-import InfoCardsPhone from "../../components/common/InfoCardsPhone.astro";
-import InfoTools from "../../components/common/InfoTools.astro";
-import AnimationBgProduct from "../../components/common/AnimationBgProduct.astro";
----
+    ---
+    import Button from "../../components/common/Button.astro";
+    import Layout from "../../layouts/Layout.astro";
+    import Nav from "../../components/home/Nav.astro";
+    import Footer from "../../components/common/Footer.astro";
+    import InfoCardsPhone from "../../components/common/InfoCardsPhone.astro";
+    import InfoTools from "../../components/common/InfoTools.astro";
+    import AnimationBgProduct from "../../components/common/AnimationBgProduct.astro";
+    ---
 
-<Layout title="MotionHub">
-    <Nav />
+    <Layout title="MotionHub">
+        <Nav />
 
-    <main
-        class="relative flex flex-col items-center gap-4 py-8 sm:py-12 lg:py-45 h-screen"
-    >
-        <!-- Content -->
-        <AnimationBgProduct />
-        <div class="w-full max-w-5xl relative z-10 pt-24">
-            <div class="flex flex-col items-center gap-4 sm:gap-6">
-                <h2
-                    class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center px-4"
-                >
-                    Tu Recuperación, Ahora en tus Manos
-                </h2>
+        <!-- Hero Section - Página 1 -->
+        <section class="snap-section min-h-screen" data-section="hero">
+            <main
+                class="relative flex flex-col items-center gap-4 py-8 sm:py-12 lg:py-45 h-screen"
+            >
+                <AnimationBgProduct />
+                <div class="w-full max-w-5xl relative z-10 pt-24">
+                    <div class="flex flex-col items-center gap-4 sm:gap-6">
+                        <h2
+                            class="hero-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center px-4"
+                        >
+                            Tu Recuperación, Ahora en tus Manos
+                        </h2>
 
-                <p
-                    class="font-light text-sm sm:text-base text-center w-full sm:w-4/5 md:w-3/4 lg:w-2/3 xl:w-1/2 opacity-80 px-4"
-                >
-                    Accede a tus rutinas personalizadas, sigue tu progreso y
-                    comunícate con tu fisioterapeuta desde cualquier lugar.
-                </p>
+                        <p
+                            class="hero-subtitle font-light text-sm sm:text-base text-center w-full sm:w-4/5 md:w-3/4 lg:w-2/3 xl:w-1/2 opacity-80 px-4"
+                        >
+                            Accede a tus rutinas personalizadas, sigue tu progreso y
+                            comunícate con tu fisioterapeuta desde cualquier lugar.
+                        </p>
 
-                <div class="flex flex-wrap justify-center gap-4">
-                    <Button text="Comenzar ahora" href="#" theme="dark" />
-                    <Button text="Más información" href="#" theme="dark" />
+                        <div
+                            class="hero-buttons flex flex-wrap justify-center gap-4"
+                        >
+                            <Button text="Comenzar ahora" href="#" theme="dark" />
+                            <Button text="Más información" href="#" theme="dark" />
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </section>
+
+        <!-- Funcionalidades Section - Página 2 -->
+        <section
+            class="snap-section min-h-screen flex items-center"
+            data-section="funcionalidades"
+        >
+            <div class="w-full flex justify-center py-20">
+                <div class="w-full max-w-7xl px-4 sm:px-6">
+                    <div class="divider w-full h-0.5 bg-gray-800/20 mb-10"></div>
+
+                    <h3
+                        class="section-title text-2xl md:text-3xl font-semibold text-center mb-10 md:mb-14"
+                    >
+                        Funcionalidades para pacientes
+                    </h3>
+
+                    <div
+                        class="cards-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 grid-flow-row-dense gap-6 mb-8"
+                    >
+                        <div class="card-item">
+                            <InfoTools
+                                color="white"
+                                title="Rutinas Personalizadas"
+                                description="Accede a ejercicios diseñados específicamente para tu condición y objetivos de recuperación."
+                                iconName="routines"
+                            />
+                        </div>
+
+                        <div class="card-item">
+                            <InfoTools
+                                color="blue"
+                                title="Historial Médico"
+                                description="Consulta todo tu historial médico, notas de sesiones y evolución en un solo lugar."
+                                iconName="clock"
+                            />
+                        </div>
+
+                        <div class="card-item">
+                            <InfoTools
+                                color="white"
+                                title="Gestión de Citas"
+                                description="Agenda, reprograma y cancela tus citas con tu fisioterapeuta de manera fácil y rápida."
+                                iconName="schedule"
+                            />
+                        </div>
+                    </div>
+
+                    <div
+                        class="cards-grid-secondary grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 grid-flow-row-dense gap-6 max-w-4xl mx-auto"
+                    >
+                        <div class="card-item">
+                            <InfoTools
+                                color="blue"
+                                title="Recordatorios Inteligentes"
+                                description="Recibe notificaciones para no olvidar tus ejercicios y mantener la constancia en tu tratamiento."
+                                iconName="notification"
+                            />
+                        </div>
+
+                        <div class="card-item">
+                            <InfoTools
+                                color="blue"
+                                title="Seguimiento de Progreso"
+                                description="Registra tu evolución, nivel de dolor y logros para que tu terapeuta ajuste tu tratamiento."
+                                iconName="follow-progress"
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </main>
+        </section>
 
-    <!-- Los cuadros disparegos JJAJA  -->
+        <!-- App Discovery Section - Página 3 -->
+        <section
+            class="snap-section min-h-screen flex items-center"
+            data-section="app-discovery"
+        >
+            <div class="w-full flex justify-center py-20">
+                <div class="w-full max-w-7xl px-6">
+                    <div class="divider w-full h-0.5 bg-gray-800/20 mb-10"></div>
 
-    <section class="w-full flex justify-center py-20">
-        <div class="w-full max-w-7xl px-4 sm:px-6">
-            <!-- linea -->
-            <div class="w-full h-0.5 bg-gray-800/20 mb-10"></div>
+                    <h3
+                        class="section-title text-3xl font-semibold text-center mb-14"
+                    >
+                        Descubre la App MotionHub
+                    </h3>
 
-            <h3
-                class="text-2xl md:text-3xl font-semibold text-center mb-10 md:mb-14"
-            >
-                Funcionalidades para pacientes
-            </h3>
+                    <div
+                        class="phone-cards-grid grid grid-cols-1 md:grid-cols-3 gap-6"
+                    >
+                        <div class="phone-card-item">
+                            <InfoCardsPhone
+                                title="Crea tu perfil"
+                                description="Crea tu cuenta y completa tu información personal y médica para que tu fisioterapeuta pueda conocerte mejor."
+                            />
+                        </div>
 
-            <div
-                class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 grid-flow-row-dense gap-6"
-            >
-                <!-- cuadro 1 -->
-                <InfoTools
-                    color="white"
-                    title="Rutinas Personalizadas"
-                    description="Accede a ejercicios diseñados específicamente para tu condición y objetivos de recuperación."
-                    iconName="routines"
-                />
+                        <div class="phone-card-item">
+                            <InfoCardsPhone
+                                title="Recibe y monitorea tus ejercicios"
+                                description="Accede a ejercicios personalizados, sigue las instrucciones visuales y reporta tu evolución al instante."
+                            />
+                        </div>
 
-                <!-- cuadro 2 -->
-
-                <InfoTools
-                    color="blue"
-                    title="Historial Médico"
-                    description="Consulta todo tu historial médico, notas de sesiones y evolución en un solo lugar."
-                    iconName="clock"
-                />
-
-                <!-- cuadro 3 -->
-
-                <InfoTools
-                    color="white"
-                    title="Gestión de Citas"
-                    description="GAgenda, reprograma y cancela tus citas con tu fisioterapeuta de manera fácil y rápida."
-                    iconName="schedule"
-                />
-            </div>
-        </div>
-    </section>
-
-    <section class="w-full flex justify-center">
-        <div class="w-full max-w-7xl px-4 sm:px-6">
-            <div
-                class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 grid-flow-row-dense gap-6"
-            >
-                <!-- cuadro 4 -->
-
-                <InfoTools
-                    color="blue"
-                    title="Recordatorios Inteligentes"
-                    description="Recibe notificaciones para no olvidar tus ejercicios y mantener la constancia en tu tratamiento."
-                    iconName="notification"
-                />
-
-                <!-- cuadro 5 -->
-
-                <InfoTools
-                    color="blue"
-                    title="Seguimiento de Progreso"
-                    description="Registra tu evolución, nivel de dolor y logros para que tu terapeuta ajuste tu tratamiento."
-                    iconName="follow-progress"
-                />
-            </div>
-        </div>
-    </section>
-
-    <!-- línea -->
-
-    <section class="w-full flex justify-center py-20">
-        <div class="w-full max-w-7xl px-6">
-            <div class="w-full h-0.5 bg-gray-800/20 mb-10"></div>
-
-            <!-- Los cuadrotes   -->
-
-            <h3 class="text-3xl font-semibold text-center mb-14">
-                Descubre la App MotionHub
-            </h3>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- cuadro 1 -->
-
-                <InfoCardsPhone
-                    title="Crea tu perfil"
-                    description="Crea tu cuenta y completa tu información personal y médica para que tu fisioterapeuta pueda conocerte mejor."
-                />
-
-                <!-- Cuadro 2 -->
-
-                <InfoCardsPhone
-                    title="Recibe y monitorea tus ejercicios"
-                    description="Accede a ejercicios personalizados, sigue las instrucciones visuales y reporta tu evolución al instante."
-                />
-                <!-- Cuadro 3 -->
-
-                <InfoCardsPhone
-                    title="Monitorea tu Evolución"
-                    description="Tu fisioterapeuta revisará tu progreso y ajustará tu tratamiento según tu evolución y necesidades."
-                />
-            </div>
-        </div>
-    </section>
-
-    <main
-        class="relative flex flex-col items-center gap-4 py-8 sm:py-12 lg:py-45"
-    >
-        <!-- Content -->
-        <div class="w-full max-w-5xl relative z-10">
-            <div class="flex flex-col items-center gap-4 sm:gap-6">
-                <h2
-                    class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center px-4"
-                >
-                    Comienza tu recuperacion hoy
-                </h2>
-                <div class="flex flex-wrap justify-center gap-4">
-                    <Button text="Más información" href="#" theme="dark" />
+                        <div class="phone-card-item">
+                            <InfoCardsPhone
+                                title="Monitorea tu Evolución"
+                                description="Tu fisioterapeuta revisará tu progreso y ajustará tu tratamiento según tu evolución y necesidades."
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </main>
+        </section>
 
-    <!-- línea -->
+        <!-- CTA Section - Página 4 -->
+        <section
+            class="snap-section min-h-screen flex items-center"
+            data-section="cta"
+        >
+            <main
+                class="relative flex flex-col items-center gap-4 py-8 sm:py-12 lg:py-45 w-full"
+            >
+                <div class="w-full max-w-5xl relative z-10">
+                    <div class="flex flex-col items-center gap-4 sm:gap-6">
+                        <h2
+                            class="cta-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center px-4"
+                        >
+                            Comienza tu recuperación hoy
+                        </h2>
+                        <div class="cta-button flex flex-wrap justify-center gap-4">
+                            <Button text="Más información" href="#" theme="dark" />
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </section>
 
-    <section class="w-full flex justify-center py-20">
-        <div class="w-full max-w-7xl px-6">
-            <div class="w-full h-0.5 bg-gray-800/20 mb-10"></div>
-        </div>
-    </section>
+        <!-- Footer Section -->
+        <section class="snap-section footer-section" data-section="footer">
+            <div class="w-full flex justify-center py-10">
+                <div class="w-full max-w-7xl px-6">
+                    <div class="divider w-full h-0.5 bg-gray-800/20 mb-10"></div>
+                </div>
+            </div>
+            <Footer />
+        </section>
+    </Layout>
 
-    <Footer />
-</Layout>
+    <script>
+        import { gsap } from "gsap";
+        import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+        gsap.registerPlugin(ScrollTrigger);
+
+        // ======================
+        // HERO SECTION (Página 1)
+        // ======================
+        const heroSection = document.querySelector('[data-section="hero"]');
+        if (heroSection) {
+            gsap.from(".hero-title", {
+                opacity: 0,
+                y: 80,
+                duration: 1.2,
+                ease: "power3.out",
+                delay: 0.3,
+            });
+
+            gsap.from(".hero-subtitle", {
+                opacity: 0,
+                y: 50,
+                duration: 1,
+                ease: "power3.out",
+                delay: 0.6,
+            });
+
+            gsap.from(".hero-buttons", {
+                opacity: 0,
+                y: 30,
+                duration: 0.8,
+                ease: "power2.out",
+                delay: 0.9,
+            });
+        }
+
+        // ======================
+        // FUNCIONALIDADES SECTION (Página 2)
+        // ======================
+        const funcionalidadesSection = document.querySelector(
+            '[data-section="funcionalidades"]',
+        );
+        if (funcionalidadesSection) {
+            // Divider animation
+            gsap.from('[data-section="funcionalidades"] .divider', {
+                scrollTrigger: {
+                    trigger: funcionalidadesSection,
+                    start: "top 80%",
+                    toggleActions: "play none none reverse",
+                },
+                scaleX: 0,
+                duration: 1,
+                ease: "power2.out",
+            });
+
+            // Title
+            gsap.from('[data-section="funcionalidades"] .section-title', {
+                scrollTrigger: {
+                    trigger: funcionalidadesSection,
+                    start: "top 80%",
+                    toggleActions: "play none none reverse",
+                },
+                opacity: 0,
+                y: 50,
+                duration: 1,
+                ease: "power3.out",
+            });
+
+            // First row of cards (3 cards)
+            const cardsGrid = funcionalidadesSection.querySelector(".cards-grid");
+            if (cardsGrid) {
+                gsap.from(".cards-grid .card-item", {
+                    scrollTrigger: {
+                        trigger: cardsGrid,
+                        start: "top 85%",
+                        toggleActions: "play none none reverse",
+                    },
+                    opacity: 0,
+                    y: 60,
+                    duration: 0.8,
+                    stagger: 0.2,
+                    ease: "power3.out",
+                });
+            }
+
+            // Second row of cards (2 cards)
+            const cardsGridSecondary = funcionalidadesSection.querySelector(
+                ".cards-grid-secondary",
+            );
+            if (cardsGridSecondary) {
+                gsap.from(".cards-grid-secondary .card-item", {
+                    scrollTrigger: {
+                        trigger: cardsGridSecondary,
+                        start: "top 85%",
+                        toggleActions: "play none none reverse",
+                    },
+                    opacity: 0,
+                    y: 60,
+                    duration: 0.8,
+                    stagger: 0.25,
+                    ease: "power3.out",
+                });
+            }
+        }
+
+        // ======================
+        // APP DISCOVERY SECTION (Página 3)
+        // ======================
+        const appDiscoverySection = document.querySelector(
+            '[data-section="app-discovery"]',
+        );
+        if (appDiscoverySection) {
+            // Divider
+            gsap.from('[data-section="app-discovery"] .divider', {
+                scrollTrigger: {
+                    trigger: appDiscoverySection,
+                    start: "top 80%",
+                    toggleActions: "play none none reverse",
+                },
+                scaleX: 0,
+                duration: 1,
+                ease: "power2.out",
+            });
+
+            // Title
+            gsap.from('[data-section="app-discovery"] .section-title', {
+                scrollTrigger: {
+                    trigger: appDiscoverySection,
+                    start: "top 80%",
+                    toggleActions: "play none none reverse",
+                },
+                opacity: 0,
+                y: 50,
+                duration: 1,
+                ease: "power3.out",
+            });
+
+            // Phone cards
+            const phoneCardsGrid =
+                appDiscoverySection.querySelector(".phone-cards-grid");
+            if (phoneCardsGrid) {
+                gsap.from(".phone-card-item", {
+                    scrollTrigger: {
+                        trigger: phoneCardsGrid,
+                        start: "top 85%",
+                        toggleActions: "play none none reverse",
+                    },
+                    opacity: 0,
+                    y: 60,
+                    scale: 0.95,
+                    duration: 0.8,
+                    stagger: 0.2,
+                    ease: "power3.out",
+                });
+            }
+        }
+
+        // ======================
+        // CTA SECTION (Página 4)
+        // ======================
+        const ctaSection = document.querySelector('[data-section="cta"]');
+        if (ctaSection) {
+            gsap.from(".cta-title", {
+                scrollTrigger: {
+                    trigger: ctaSection,
+                    start: "top 80%",
+                    toggleActions: "play none none reverse",
+                },
+                opacity: 0,
+                y: 60,
+                duration: 1,
+                ease: "power3.out",
+            });
+
+            gsap.from(".cta-button", {
+                scrollTrigger: {
+                    trigger: ctaSection,
+                    start: "top 80%",
+                    toggleActions: "play none none reverse",
+                },
+                opacity: 0,
+                y: 30,
+                duration: 0.8,
+                delay: 0.3,
+                ease: "power2.out",
+            });
+        }
+
+        // ======================
+        // FOOTER DIVIDER
+        // ======================
+        const footerSection = document.querySelector('[data-section="footer"]');
+        if (footerSection) {
+            gsap.from('[data-section="footer"] .divider', {
+                scrollTrigger: {
+                    trigger: footerSection,
+                    start: "top 80%",
+                    toggleActions: "play none none reverse",
+                },
+                scaleX: 0,
+                duration: 1,
+                ease: "power2.out",
+            });
+        }
+
+        // ======================
+        // KEYBOARD NAVIGATION
+        // ======================
+        let isAnimating = false;
+
+        document.addEventListener("keydown", (e) => {
+            if (isAnimating) return;
+
+            const sections = document.querySelectorAll(".snap-section");
+            let currentSection = 0;
+
+            sections.forEach((section, index) => {
+                const rect = section.getBoundingClientRect();
+                if (rect.top <= 100 && rect.bottom > 100) {
+                    currentSection = index;
+                }
+            });
+
+            if (e.key === "ArrowDown" || e.key === "PageDown") {
+                e.preventDefault();
+                if (currentSection < sections.length - 1) {
+                    isAnimating = true;
+                    sections[currentSection + 1].scrollIntoView({
+                        behavior: "smooth",
+                    });
+                    setTimeout(() => (isAnimating = false), 1000);
+                }
+            } else if (e.key === "ArrowUp" || e.key === "PageUp") {
+                e.preventDefault();
+                if (currentSection > 0) {
+                    isAnimating = true;
+                    sections[currentSection - 1].scrollIntoView({
+                        behavior: "smooth",
+                    });
+                    setTimeout(() => (isAnimating = false), 1000);
+                }
+            }
+        });
+
+        // ======================
+        // HOVER EFFECTS ON CARDS
+        // ======================
+        const allCards = document.querySelectorAll(".card-item, .phone-card-item");
+        allCards.forEach((card) => {
+            card.addEventListener("mouseenter", () => {
+                gsap.to(card, {
+                    y: -10,
+                    duration: 0.3,
+                    ease: "power2.out",
+                });
+            });
+
+            card.addEventListener("mouseleave", () => {
+                gsap.to(card, {
+                    y: 0,
+                    duration: 0.3,
+                    ease: "power2.out",
+                });
+            });
+        });
+    </script>
+
+    <style>
+        .snap-section {
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .footer-section {
+            min-height: 0;
+            height: auto;
+        }
+
+        /* Asegurar que los dividers tengan transform-origin correcto */
+        .divider {
+            transform-origin: left;
+        }
+    </style>

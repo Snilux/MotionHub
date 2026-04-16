@@ -11,201 +11,502 @@ import AnimationBgProduct from "../../components/common/AnimationBgProduct.astro
 <Layout title="MotionHub">
   <Nav />
 
-  <main
-    class="relative flex flex-col items-center gap-4 py-8 sm:py-12 lg:py-45 h-screen"
-  >
-    <!-- Content -->
-    <AnimationBgProduct />
-    <div class="w-full max-w-5xl relative z-10 pt-24">
-      <div class="flex flex-col items-center gap-4 sm:gap-6">
-        <h2
-          class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center px-4"
-        >
-          Gestiona tu práctica de Fisioterapia de Forma Profesional
-        </h2>
+  <!-- Hero Section - Página 1 -->
+  <section class="snap-section min-h-screen" data-section="hero">
+    <main
+      class="relative flex flex-col items-center gap-4 py-8 sm:py-12 lg:py-45 h-screen"
+    >
+      <AnimationBgProduct />
+      <div class="w-full max-w-5xl relative z-10 pt-24">
+        <div class="flex flex-col items-center gap-4 sm:gap-6">
+          <h2
+            class="hero-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center px-4"
+          >
+            Gestiona tu práctica de Fisioterapia de Forma Profesional
+          </h2>
 
-        <p
-          class="font-light text-sm sm:text-base text-center w-full sm:w-4/5 md:w-3/4 lg:w-2/3 xl:w-1/2 opacity-80 px-4"
-        >
-          Herramientas completas para gestionar pacientes, crear rutinas
-          personalizadas y monitorear la evulución de tus tratamientos.
-        </p>
-
-        <div class="flex flex-wrap justify-center gap-4">
-          <Button text="Iniciar sesión →" href="#" theme="dark" />
-          <Button text="Más información" href="#" theme="white" />
-        </div>
-      </div>
-    </div>
-  </main>
-
-  <!-- Los cuadros disparegos JJAJA  -->
-
-  <section class="w-full flex justify-center py-20">
-    <div class="w-full max-w-7xl px-4 sm:px-6">
-      <!-- linea -->
-      <div class="w-full h-0.5 bg-gray-800/20 mb-10"></div>
-
-      <h3 class="text-2xl md:text-3xl font-semibold text-center mb-10 md:mb-14">
-        Herramientas Profesionales
-      </h3>
-
-      <div
-        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 grid-flow-row-dense gap-6"
-      >
-        <!-- cuadro 1 -->
-
-        <InfoTools
-          color="blue"
-          title="Gestión de Pacientes"
-          description="Administra perfiles completos con historial clínico, datos personales y expedientes digitales centralizados."
-          iconName="user"
-        />
-
-        <!-- cuadro 2 -->
-
-        <InfoTools
-          color="white"
-          title="Agenda Inteligente"
-          description="Gestiona citas con recordatorios automáticos, reprogramación fácil y sincronización con tu calendario."
-          iconName="schedule"
-        />
-
-        <!-- cuadro 3 -->
-        <div
-          class="bg-white rounded-2xl shadow-lg p-6
-                  flex flex-col items-center justify-center text-center
-                  sm:col-span-2 lg:col-span-1 lg:row-span-2 hover:translate-y-2 transition-all duration-300"
-        >
-          <div class="mb-4">
-            <svg
-              class="w-8 h-8 text-gray-800"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              viewBox="0 0 24 24"
-            >
-              <circle cx="12" cy="5" r="2"></circle>
-              <path
-                stroke-linecap="round"
-                d="M12 7v10M7 22l5-5 5 5M6 12l6-3 6 3"></path>
-            </svg>
-          </div>
-          <h3 class="font-semibold mb-2">Rutinas personalizadas</h3>
-          <p class="text-sm text-gray-700 font-light">
-            Accede a ejercicios diseñados específicamente para tu condición y
-            objetivos de recuperación.
+          <p
+            class="hero-subtitle font-light text-sm sm:text-base text-center w-full sm:w-4/5 md:w-3/4 lg:w-2/3 xl:w-1/2 opacity-80 px-4"
+          >
+            Herramientas completas para gestionar pacientes, crear rutinas
+            personalizadas y monitorear la evolución de tus tratamientos.
           </p>
+
+          <div class="hero-buttons flex flex-wrap justify-center gap-4">
+            <Button text="Iniciar sesión →" href="#" theme="dark" />
+            <Button text="Más información" href="#" theme="white" />
+          </div>
         </div>
-
-        <!-- cuadro 4 -->
-
-        <InfoTools
-          color="white"
-          title="Seguimiento de Progreso"
-          description="Registra tu evolución, nivel de dolor y logros para que tu terapeuta ajuste tu tratamiento."
-          iconName="follow-progress"
-        />
-
-        <!-- cuadro 5 -->
-
-        <InfoTools
-          color="blue"
-          title="Dashboards Analíticos"
-          description="Visualiza la evolución de tus pacientes con gráficos de progreso, adherencia y métricas de dolor."
-          iconName="metrics"
-        />
-
-        <!-- cuadro 6 -->
-
-        <InfoTools
-          color="blue"
-          title="Privacidad"
-          description="Garantizamos tu privacidad mediante el manejo seguro de consentimientos y accesos autorizados."
-          iconName="shield-check"
-        />
-
-        <!-- cuadro 7 -->
-
-        <InfoTools
-          color="white"
-          title="Exportación de Datos"
-          description="Genera reportes profesionales y exporta historiale clínicos en formato PDF."
-          iconName="download"
-        />
-
-        <!-- cuadro 8 -->
-        <InfoTools
-          color="blue"
-          title="Panel de Administración"
-          description="Gestiona usuarios, revisa métricas de tu práctica y accede a logs de actividad completos."
-          iconName="settings"
-        />
       </div>
-    </div>
+    </main>
   </section>
 
-  <!-- línea -->
-
-  <section class="w-full flex justify-center py-20">
-    <div class="w-full max-w-7xl px-6">
-      <div class="w-full h-0.5 bg-gray-800/20 mb-10"></div>
-
-      <!-- Los cuadrotes   -->
-
-      <h3 class="text-3xl font-semibold text-center mb-14">
-        Descubre cómo funciona MotionHub
-      </h3>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- cuadro 1 -->
-
-        <InfoCardsPhone
-          title="Gestión Clínica Integral"
-          description="Administra expedientes, coordina tu agenda de citas y gestiona los perfiles de tus pacientes desde un panel centralizado y seguro."
-        />
-
-        <!-- Cuadro 2 -->
-
-        <InfoCardsPhone
-          title="Diseño de Rutinas Personalizadas"
-          description="Crea planes de ejercicios específicos, asigna contenido multimedia y define la frecuencia para la rehabilitación de cada paciente."
-        />
-        <!-- Cuadro 3 -->
-
-        <InfoCardsPhone
-          title="Monitoreo de Evolución"
-          description="Visualiza el progreso real de tus pacientes mediante dashboards intuitivos que reflejan cumplimiento, dolor y métricas de recuperación."
-        />
-      </div>
-    </div>
-  </section>
-
-  <main
-    class="relative flex flex-col items-center gap-4 py-8 sm:py-12 lg:py-45"
+  <!-- Herramientas Section - Página 2 -->
+  <section
+    class="snap-section min-h-screen flex items-center"
+    data-section="herramientas"
   >
-    <!-- Content -->
-    <div class="w-full max-w-5xl relative z-10">
-      <div class="flex flex-col items-center gap-4 sm:gap-6">
-        <h2
-          class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center px-4"
+    <div class="w-full flex justify-center py-20">
+      <div class="w-full max-w-7xl px-4 sm:px-6">
+        <div class="divider w-full h-0.5 bg-gray-800/20 mb-10"></div>
+
+        <h3
+          class="section-title text-2xl md:text-3xl font-semibold text-center mb-10 md:mb-14"
         >
-          Eleva tu Práctica al Siguiente Nivel
-        </h2>
-        <div class="flex flex-wrap justify-center gap-4">
-          <Button text="Iniciar sesión →" href="#" theme="dark" />
+          Herramientas Profesionales
+        </h3>
+
+        <div
+          class="tools-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 grid-flow-row-dense gap-6"
+        >
+          <!-- cuadro 1 -->
+          <div class="tool-card">
+            <InfoTools
+              color="blue"
+              title="Gestión de Pacientes"
+              description="Administra perfiles completos con historial clínico, datos personales y expedientes digitales centralizados."
+              iconName="user"
+            />
+          </div>
+
+          <!-- cuadro 2 -->
+          <div class="tool-card">
+            <InfoTools
+              color="white"
+              title="Agenda Inteligente"
+              description="Gestiona citas con recordatorios automáticos, reprogramación fácil y sincronización con tu calendario."
+              iconName="schedule"
+            />
+          </div>
+
+          <!-- cuadro 3 - Card grande -->
+          <div
+            class="tool-card-featured bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center justify-center text-center sm:col-span-2 lg:col-span-1 lg:row-span-2 transition-all duration-300"
+          >
+            <div class="mb-4">
+              <svg
+                class="w-8 h-8 text-gray-800"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                viewBox="0 0 24 24"
+              >
+                <circle cx="12" cy="5" r="2"></circle>
+                <path
+                  stroke-linecap="round"
+                  d="M12 7v10M7 22l5-5 5 5M6 12l6-3 6 3"></path>
+              </svg>
+            </div>
+            <h3 class="font-semibold mb-2">Rutinas personalizadas</h3>
+            <p class="text-sm text-gray-700 font-light">
+              Accede a ejercicios diseñados específicamente para tu condición y
+              objetivos de recuperación.
+            </p>
+          </div>
+
+          <!-- cuadro 4 -->
+          <div class="tool-card">
+            <InfoTools
+              color="white"
+              title="Seguimiento de Progreso"
+              description="Registra tu evolución, nivel de dolor y logros para que tu terapeuta ajuste tu tratamiento."
+              iconName="follow-progress"
+            />
+          </div>
+
+          <!-- cuadro 5 -->
+          <div class="tool-card">
+            <InfoTools
+              color="blue"
+              title="Dashboards Analíticos"
+              description="Visualiza la evolución de tus pacientes con gráficos de progreso, adherencia y métricas de dolor."
+              iconName="metrics"
+            />
+          </div>
+
+          <!-- cuadro 6 -->
+          <div class="tool-card">
+            <InfoTools
+              color="blue"
+              title="Privacidad"
+              description="Garantizamos tu privacidad mediante el manejo seguro de consentimientos y accesos autorizados."
+              iconName="shield-check"
+            />
+          </div>
+
+          <!-- cuadro 7 -->
+          <div class="tool-card">
+            <InfoTools
+              color="white"
+              title="Exportación de Datos"
+              description="Genera reportes profesionales y exporta historiales clínicos en formato PDF."
+              iconName="download"
+            />
+          </div>
+
+          <!-- cuadro 8 -->
+          <div class="tool-card">
+            <InfoTools
+              color="blue"
+              title="Panel de Administración"
+              description="Gestiona usuarios, revisa métricas de tu práctica y accede a logs de actividad completos."
+              iconName="settings"
+            />
+          </div>
         </div>
       </div>
     </div>
-  </main>
+  </section>
 
-  <!-- línea -->
+  <!-- Cómo funciona Section - Página 3 -->
+  <section
+    class="snap-section min-h-screen flex items-center"
+    data-section="como-funciona"
+  >
+    <div class="w-full flex justify-center py-20">
+      <div class="w-full max-w-7xl px-6">
+        <div class="divider w-full h-0.5 bg-gray-800/20 mb-10"></div>
 
-  <section class="w-full flex justify-center py-20">
-    <div class="w-full max-w-7xl px-6">
-      <div class="w-full h-0.5 bg-gray-800/20 mb-10"></div>
+        <h3 class="section-title text-3xl font-semibold text-center mb-14">
+          Descubre cómo funciona MotionHub
+        </h3>
+
+        <div class="workflow-grid grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="workflow-card">
+            <InfoCardsPhone
+              title="Gestión Clínica Integral"
+              description="Administra expedientes, coordina tu agenda de citas y gestiona los perfiles de tus pacientes desde un panel centralizado y seguro."
+            />
+          </div>
+
+          <div class="workflow-card">
+            <InfoCardsPhone
+              title="Diseño de Rutinas Personalizadas"
+              description="Crea planes de ejercicios específicos, asigna contenido multimedia y define la frecuencia para la rehabilitación de cada paciente."
+            />
+          </div>
+
+          <div class="workflow-card">
+            <InfoCardsPhone
+              title="Monitoreo de Evolución"
+              description="Visualiza el progreso real de tus pacientes mediante dashboards intuitivos que reflejan cumplimiento, dolor y métricas de recuperación."
+            />
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
-  <Footer />
+  <!-- CTA Final - Página 4 -->
+  <section
+    class="snap-section min-h-screen flex items-center"
+    data-section="cta"
+  >
+    <main
+      class="relative flex flex-col items-center gap-4 py-8 sm:py-12 lg:py-45 w-full"
+    >
+      <div class="w-full max-w-5xl relative z-10">
+        <div class="flex flex-col items-center gap-4 sm:gap-6">
+          <h2
+            class="cta-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center px-4"
+          >
+            Eleva tu Práctica al Siguiente Nivel
+          </h2>
+          <div class="cta-button flex flex-wrap justify-center gap-4">
+            <Button text="Iniciar sesión →" href="#" theme="dark" />
+          </div>
+        </div>
+      </div>
+    </main>
+  </section>
+
+  <!-- Footer Section -->
+  <section class="snap-section footer-section" data-section="footer">
+    <div class="w-full flex justify-center py-10">
+      <div class="w-full max-w-7xl px-6">
+        <div class="divider w-full h-0.5 bg-gray-800/20 mb-10"></div>
+      </div>
+    </div>
+    <Footer />
+  </section>
 </Layout>
+
+<script>
+  import { gsap } from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  // ======================
+  // HERO SECTION (Página 1)
+  // ======================
+  const heroSection = document.querySelector('[data-section="hero"]');
+  if (heroSection) {
+    gsap.from(".hero-title", {
+      opacity: 0,
+      y: 80,
+      duration: 1.2,
+      ease: "power3.out",
+      delay: 0.3,
+    });
+
+    gsap.from(".hero-subtitle", {
+      opacity: 0,
+      y: 50,
+      duration: 1,
+      ease: "power3.out",
+      delay: 0.6,
+    });
+
+    gsap.from(".hero-buttons", {
+      opacity: 0,
+      y: 30,
+      duration: 0.8,
+      ease: "power2.out",
+      delay: 0.9,
+    });
+  }
+
+  // ======================
+  // HERRAMIENTAS SECTION (Página 2)
+  // ======================
+  const herramientasSection = document.querySelector(
+    '[data-section="herramientas"]',
+  );
+  if (herramientasSection) {
+    // Divider
+    gsap.from('[data-section="herramientas"] .divider', {
+      scrollTrigger: {
+        trigger: herramientasSection,
+        start: "top 80%",
+        toggleActions: "play none none reverse",
+      },
+      scaleX: 0,
+      duration: 1,
+      ease: "power2.out",
+    });
+
+    // Title
+    gsap.from('[data-section="herramientas"] .section-title', {
+      scrollTrigger: {
+        trigger: herramientasSection,
+        start: "top 80%",
+        toggleActions: "play none none reverse",
+      },
+      opacity: 0,
+      y: 50,
+      duration: 1,
+      ease: "power3.out",
+    });
+
+    // Animación especial: las cards normales y la featured
+    const toolsGrid = herramientasSection.querySelector(".tools-grid");
+    if (toolsGrid) {
+      // Cards normales
+      gsap.from(".tool-card", {
+        scrollTrigger: {
+          trigger: toolsGrid,
+          start: "top 85%",
+          toggleActions: "play none none reverse",
+        },
+        opacity: 0,
+        y: 60,
+        duration: 0.8,
+        stagger: 0.15,
+        ease: "power3.out",
+      });
+
+      // Card featured (la grande) con animación diferente
+      gsap.from(".tool-card-featured", {
+        scrollTrigger: {
+          trigger: toolsGrid,
+          start: "top 85%",
+          toggleActions: "play none none reverse",
+        },
+        opacity: 0,
+        scale: 0.9,
+        duration: 1,
+        delay: 0.3,
+        ease: "back.out(1.2)",
+      });
+    }
+  }
+
+  // ======================
+  // CÓMO FUNCIONA SECTION (Página 3)
+  // ======================
+  const comoFuncionaSection = document.querySelector(
+    '[data-section="como-funciona"]',
+  );
+  if (comoFuncionaSection) {
+    // Divider
+    gsap.from('[data-section="como-funciona"] .divider', {
+      scrollTrigger: {
+        trigger: comoFuncionaSection,
+        start: "top 80%",
+        toggleActions: "play none none reverse",
+      },
+      scaleX: 0,
+      duration: 1,
+      ease: "power2.out",
+    });
+
+    // Title
+    gsap.from('[data-section="como-funciona"] .section-title', {
+      scrollTrigger: {
+        trigger: comoFuncionaSection,
+        start: "top 80%",
+        toggleActions: "play none none reverse",
+      },
+      opacity: 0,
+      y: 50,
+      duration: 1,
+      ease: "power3.out",
+    });
+
+    // Workflow cards
+    const workflowGrid = comoFuncionaSection.querySelector(".workflow-grid");
+    if (workflowGrid) {
+      gsap.from(".workflow-card", {
+        scrollTrigger: {
+          trigger: workflowGrid,
+          start: "top 85%",
+          toggleActions: "play none none reverse",
+        },
+        opacity: 0,
+        y: 60,
+        scale: 0.95,
+        duration: 0.8,
+        stagger: 0.2,
+        ease: "power3.out",
+      });
+    }
+  }
+
+  // ======================
+  // CTA SECTION (Página 4)
+  // ======================
+  const ctaSection = document.querySelector('[data-section="cta"]');
+  if (ctaSection) {
+    gsap.from(".cta-title", {
+      scrollTrigger: {
+        trigger: ctaSection,
+        start: "top 80%",
+        toggleActions: "play none none reverse",
+      },
+      opacity: 0,
+      y: 60,
+      duration: 1,
+      ease: "power3.out",
+    });
+
+    gsap.from(".cta-button", {
+      scrollTrigger: {
+        trigger: ctaSection,
+        start: "top 80%",
+        toggleActions: "play none none reverse",
+      },
+      opacity: 0,
+      y: 30,
+      duration: 0.8,
+      delay: 0.3,
+      ease: "power2.out",
+    });
+  }
+
+  // ======================
+  // FOOTER DIVIDER
+  // ======================
+  const footerSection = document.querySelector('[data-section="footer"]');
+  if (footerSection) {
+    gsap.from('[data-section="footer"] .divider', {
+      scrollTrigger: {
+        trigger: footerSection,
+        start: "top 80%",
+        toggleActions: "play none none reverse",
+      },
+      scaleX: 0,
+      duration: 1,
+      ease: "power2.out",
+    });
+  }
+
+  // ======================
+  // KEYBOARD NAVIGATION
+  // ======================
+  let isAnimating = false;
+
+  document.addEventListener("keydown", (e) => {
+    if (isAnimating) return;
+
+    const sections = document.querySelectorAll(".snap-section");
+    let currentSection = 0;
+
+    sections.forEach((section, index) => {
+      const rect = section.getBoundingClientRect();
+      if (rect.top <= 100 && rect.bottom > 100) {
+        currentSection = index;
+      }
+    });
+
+    if (e.key === "ArrowDown" || e.key === "PageDown") {
+      e.preventDefault();
+      if (currentSection < sections.length - 1) {
+        isAnimating = true;
+        sections[currentSection + 1].scrollIntoView({
+          behavior: "smooth",
+        });
+        setTimeout(() => (isAnimating = false), 1000);
+      }
+    } else if (e.key === "ArrowUp" || e.key === "PageUp") {
+      e.preventDefault();
+      if (currentSection > 0) {
+        isAnimating = true;
+        sections[currentSection - 1].scrollIntoView({
+          behavior: "smooth",
+        });
+        setTimeout(() => (isAnimating = false), 1000);
+      }
+    }
+  });
+
+  // ======================
+  // HOVER EFFECTS ON CARDS
+  // ======================
+  const allCards = document.querySelectorAll(
+    ".tool-card, .workflow-card, .tool-card-featured",
+  );
+  allCards.forEach((card) => {
+    card.addEventListener("mouseenter", () => {
+      gsap.to(card, {
+        y: -10,
+        duration: 0.3,
+        ease: "power2.out",
+      });
+    });
+
+    card.addEventListener("mouseleave", () => {
+      gsap.to(card, {
+        y: 0,
+        duration: 0.3,
+        ease: "power2.out",
+      });
+    });
+  });
+</script>
+
+<style>
+  .snap-section {
+    min-height: 100vh;
+    position: relative;
+  }
+
+  .footer-section {
+    min-height: 0;
+    height: auto;
+  }
+
+  .divider {
+    transform-origin: left;
+  }
+</style>
