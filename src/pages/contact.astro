@@ -154,39 +154,53 @@ import Footer from "../components/common/Footer.astro";
 
       <form id="contactForm" class="grid gap-6">
         <div class="grid md:grid-cols-2 gap-4">
-          <input
-            id="name"
-            type="text"
-            placeholder="Tu nombre completo"
-            class="w-full rounded-lg border border-gray-300 px-4 py-3"
-          />
-          <input
-            id="email"
-            type="email"
-            placeholder="tu@email.com"
-            class="w-full rounded-lg border border-gray-300 px-4 py-3"
-          />
+          <div>
+            <input
+              id="name"
+              type="text"
+              placeholder="Tu nombre completo"
+              class="w-full rounded-lg border border-gray-300 px-4 py-3"
+            />
+            <p id="nameError" class="text-red-500 text-sm mt-1 hidden"></p>
+          </div>
+          <div>
+            <input
+              id="email"
+              type="email"
+              placeholder="tu@email.com"
+              class="w-full rounded-lg border border-gray-300 px-4 py-3"
+            />
+            <p id="emailError" class="text-red-500 text-sm mt-1 hidden"></p>
+          </div>
         </div>
 
-        <input
-          id="subject"
-          type="text"
-          placeholder="¿En qué podemos ayudarte?"
-          class="w-full rounded-lg border border-gray-300 px-4 py-3"
-        />
+        <div>
+          <input
+            id="subject"
+            type="text"
+            placeholder="¿En qué podemos ayudarte?"
+            class="w-full rounded-lg border border-gray-300 px-4 py-3"
+          />
+          <p id="subjectError" class="text-red-500 text-sm mt-1 hidden"></p>
+        </div>
 
-        <textarea
-          id="message"
-          rows="4"
-          placeholder="Describe tu problema o pregunta en detalle..."
-          class="w-full rounded-lg border border-gray-300 px-4 py-3"></textarea>
+        <div>
+          <textarea
+            id="message"
+            rows="4"
+            placeholder="Describe tu problema o pregunta en detalle..."
+            class="w-full rounded-lg border border-gray-300 px-4 py-3"
+          ></textarea>
+          <p id="messageError" class="text-red-500 text-sm mt-1 hidden"></p>
+        </div>
 
         <p id="formError" class="text-red-500 text-sm hidden"></p>
+        <p id="formSuccess" class="text-green-600 text-sm hidden"></p>
 
         <div class="text-center">
           <button
             type="submit"
-            class="bg-white px-6 py-3 rounded-xl shadow hover:scale-105 transition"
+            class="bg-white px-6 py-3 rounded-xl shadow hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Enviar mensaje
           </button>
@@ -195,73 +209,665 @@ import Footer from "../components/common/Footer.astro";
     </div>
   </section>
 
+  <script>
+    // Utilidades de validación
+    const sanitizeInput = (input: string): string => {
+      return input
+        .replace(/[<>]/g, "") // Elimina < y >
+        .replace(/javascript:/gi, "") // Elimina javascript:
+        .replace(/on\w+=/gi, "") // Elimina atributos de eventos como onclick=
+        .trim();
+    };
+
+    const validateName = (name: string): { valid: boolean; error: string } => {
+      const sanitized = sanitizeInput(name);
+
+      if (!sanitized) {
+        return { valid: false, error: "El nombre es obligatorio" };
+      }
+
+      if (sanitized.length < 3) {
+        return {
+          valid: false,
+          error: "El nombre debe tener al menos 3 caracteres",
+        };
+      }
+
+      if (sanitized.length > 100) {
+        return { valid: false, error: "El nombre es demasiado largo" };
+      }
+
+      // Verifica que no sea solo caracteres repetidos o sin sentido
+      const uniqueChars = new Set(sanitized.toLowerCase().replace(/\s/g, ""))
+        .size;
+      if (uniqueChars < 3) {
+        return { valid: false, error: "Por favor ingresa un nombre válido" };
+      }
+
+      // Verifica que contenga al menos dos palabras (nombre y apellido)
+      const words = sanitized.split(/\s+/).filter((w) => w.length > 0);
+      if (words.length < 2) {
+        return { valid: false, error: "Por favor ingresa tu nombre completo" };
+      }
+
+      // Verifica que cada palabra tenga al menos 2 caracteres
+      if (words.some((word) => word.length < 2)) {
+        return {
+          valid: false,
+          error: "Cada parte del nombre debe tener al menos 2 caracteres",
+        };
+      }
+
+      // Solo permite letras, espacios, guiones y apóstrofes
+      const nameRegex = /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s'-]+$/;
+      if (!nameRegex.test(sanitized)) {
+        return { valid: false, error: "El nombre solo puede contener letras" };
+      }
+
+      return { valid: true, error: "" };
+    };
+
+    const validateEmail = (
+      email: string,
+    ): { valid: boolean; error: string } => {
+      const sanitized = sanitizeInput(email);
+
+      if (!sanitized) {
+        return { valid: false, error: "El email es obligatorio" };
+      }
+
+      // Expresión regular estricta para emails
+      const emailRegex =
+        /^[a-zA-Z0-9][a-zA-Z0-9._-]*@[a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,}$/;
+
+      if (!emailRegex.test(sanitized)) {
+        return { valid: false, error: "Por favor ingresa un email válido" };
+      }
+
+      // Verifica dominios comunes mal escritos
+      const suspiciousPatterns = [
+        /\.con$/i,
+        /\.coom$/i,
+        /\.coml$/i,
+        /@test\./i,
+        /@example\./i,
+        /@temp\./i,
+        /\.123$/i,
+        /\.abc$/i,
+      ];
+
+      if (suspiciousPatterns.some((pattern) => pattern.test(sanitized))) {
+        return {
+          valid: false,
+          error: "Por favor verifica el dominio de tu email",
+        };
+      }
+
+      // Verifica que no sea un email temporal o de prueba obvio
+      if (/^(test|temp|fake|spam|junk|throwaway)@/i.test(sanitized)) {
+        return { valid: false, error: "Por favor usa un email válido" };
+      }
+
+      return { valid: true, error: "" };
+    };
+
+    const validateSubject = (
+      subject: string,
+    ): { valid: boolean; error: string } => {
+      const sanitized = sanitizeInput(subject);
+
+      if (!sanitized) {
+        return { valid: false, error: "El asunto es obligatorio" };
+      }
+
+      if (sanitized.length < 5) {
+        return {
+          valid: false,
+          error: "El asunto debe tener al menos 5 caracteres",
+        };
+      }
+
+      if (sanitized.length > 200) {
+        return { valid: false, error: "El asunto es demasiado largo" };
+      }
+
+      // Verifica que no sea solo caracteres repetidos
+      const uniqueChars = new Set(sanitized.toLowerCase().replace(/\s/g, ""))
+        .size;
+      if (uniqueChars < 3) {
+        return { valid: false, error: "Por favor ingresa un asunto válido" };
+      }
+
+      return { valid: true, error: "" };
+    };
+
+    const validateMessage = (
+      message: string,
+    ): { valid: boolean; error: string } => {
+      const sanitized = sanitizeInput(message);
+
+      if (!sanitized) {
+        return { valid: false, error: "El mensaje es obligatorio" };
+      }
+
+      if (sanitized.length < 10) {
+        return {
+          valid: false,
+          error: "El mensaje debe tener al menos 10 caracteres",
+        };
+      }
+
+      if (sanitized.length > 2000) {
+        return {
+          valid: false,
+          error: "El mensaje es demasiado largo (máximo 2000 caracteres)",
+        };
+      }
+
+      // Verifica que no sea solo caracteres repetidos
+      const uniqueChars = new Set(sanitized.toLowerCase().replace(/\s/g, ""))
+        .size;
+      if (uniqueChars < 5) {
+        return { valid: false, error: "Por favor ingresa un mensaje válido" };
+      }
+
+      // Verifica que contenga al menos algunas palabras reales
+      const words = sanitized.split(/\s+/).filter((w) => w.length > 2);
+      if (words.length < 3) {
+        return {
+          valid: false,
+          error: "Por favor describe tu problema con más detalle",
+        };
+      }
+
+      return { valid: true, error: "" };
+    };
+
+    const showError = (elementId: string, message: string) => {
+      const errorElement = document.getElementById(elementId);
+      const inputElement = document.getElementById(
+        elementId.replace("Error", ""),
+      );
+
+      if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.classList.remove("hidden");
+      }
+
+      if (inputElement) {
+        inputElement.classList.add("border-red-500");
+      }
+    };
+
+    const clearError = (elementId: string) => {
+      const errorElement = document.getElementById(elementId);
+      const inputElement = document.getElementById(
+        elementId.replace("Error", ""),
+      );
+
+      if (errorElement) {
+        errorElement.textContent = "";
+        errorElement.classList.add("hidden");
+      }
+
+      if (inputElement) {
+        inputElement.classList.remove("border-red-500");
+      }
+    };
+
+    // Manejo del formulario
+    const form = document.getElementById("contactForm") as HTMLFormElement;
+    const nameInput = document.getElementById("name") as HTMLInputElement;
+    const emailInput = document.getElementById("email") as HTMLInputElement;
+    const subjectInput = document.getElementById("subject") as HTMLInputElement;
+    const messageInput = document.getElementById(
+      "message",
+    ) as HTMLTextAreaElement;
+    const submitButton = form?.querySelector(
+      'button[type="submit"]',
+    ) as HTMLButtonElement;
+
+    // Validación en tiempo real
+    nameInput?.addEventListener("blur", () => {
+      const validation = validateName(nameInput.value);
+      if (!validation.valid) {
+        showError("nameError", validation.error);
+      } else {
+        clearError("nameError");
+      }
+    });
+
+    emailInput?.addEventListener("blur", () => {
+      const validation = validateEmail(emailInput.value);
+      if (!validation.valid) {
+        showError("emailError", validation.error);
+      } else {
+        clearError("emailError");
+      }
+    });
+
+    subjectInput?.addEventListener("blur", () => {
+      const validation = validateSubject(subjectInput.value);
+      if (!validation.valid) {
+        showError("subjectError", validation.error);
+      } else {
+        clearError("subjectError");
+      }
+    });
+
+    messageInput?.addEventListener("blur", () => {
+      const validation = validateMessage(messageInput.value);
+      if (!validation.valid) {
+        showError("messageError", validation.error);
+      } else {
+        clearError("messageError");
+      }
+    });
+
+    // Validación al enviar
+    form?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      // Limpiar errores previos
+      clearError("nameError");
+      clearError("emailError");
+      clearError("subjectError");
+      clearError("messageError");
+      document.getElementById("formError")?.classList.add("hidden");
+      document.getElementById("formSuccess")?.classList.add("hidden");
+
+      // Validar todos los campos
+      const nameValidation = validateName(nameInput.value);
+      const emailValidation = validateEmail(emailInput.value);
+      const subjectValidation = validateSubject(subjectInput.value);
+      const messageValidation = validateMessage(messageInput.value);
+
+      let hasErrors = false;
+
+      if (!nameValidation.valid) {
+        showError("nameError", nameValidation.error);
+        hasErrors = true;
+      }
+
+      if (!emailValidation.valid) {
+        showError("emailError", emailValidation.error);
+        hasErrors = true;
+      }
+
+      if (!subjectValidation.valid) {
+        showError("subjectError", subjectValidation.error);
+        hasErrors = true;
+      }
+
+      if (!messageValidation.valid) {
+        showError("messageError", messageValidation.error);
+        hasErrors = true;
+      }
+
+      if (hasErrors) {
+        return;
+      }
+
+      // Si todo es válido, procesar el formulario
+      submitButton.disabled = true;
+      submitButton.textContent = "Enviando...";
+
+      try {
+        // Aquí iría tu lógica de envío al servidor
+        // Por ahora solo simulamos un envío exitoso
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        const successMsg = document.getElementById("formSuccess");
+        if (successMsg) {
+          successMsg.textContent =
+            "¡Mensaje enviado con éxito! Te responderemos pronto.";
+          successMsg.classList.remove("hidden");
+        }
+
+        // Limpiar el formulario
+        form.reset();
+      } catch (error) {
+        const errorMsg = document.getElementById("formError");
+        if (errorMsg) {
+          errorMsg.textContent =
+            "Hubo un error al enviar el mensaje. Por favor intenta de nuevo.";
+          errorMsg.classList.remove("hidden");
+        }
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Enviar mensaje";
+      }
+    });
+  </script>
+
   <Footer />
 </Layout>
+
 <script>
+  // Utilidades de validación
+  const sanitizeInput = (input: string): string => {
+    return input
+      .replace(/[<>]/g, "") // Elimina < y >
+      .replace(/javascript:/gi, "") // Elimina javascript:
+      .replace(/on\w+=/gi, "") // Elimina atributos de eventos como onclick=
+      .trim();
+  };
+
+  const validateName = (name: string): { valid: boolean; error: string } => {
+    const sanitized = sanitizeInput(name);
+
+    if (!sanitized) {
+      return { valid: false, error: "El nombre es obligatorio" };
+    }
+
+    if (sanitized.length < 3) {
+      return {
+        valid: false,
+        error: "El nombre debe tener al menos 3 caracteres",
+      };
+    }
+
+    if (sanitized.length > 100) {
+      return { valid: false, error: "El nombre es demasiado largo" };
+    }
+
+    // Verifica que no sea solo caracteres repetidos o sin sentido
+    const uniqueChars = new Set(sanitized.toLowerCase().replace(/\s/g, ""))
+      .size;
+    if (uniqueChars < 3) {
+      return { valid: false, error: "Por favor ingresa un nombre válido" };
+    }
+
+    // Verifica que contenga al menos dos palabras (nombre y apellido)
+    const words = sanitized.split(/\s+/).filter((w) => w.length > 0);
+    if (words.length < 2) {
+      return { valid: false, error: "Por favor ingresa tu nombre completo" };
+    }
+
+    // Verifica que cada palabra tenga al menos 2 caracteres
+    if (words.some((word) => word.length < 2)) {
+      return {
+        valid: false,
+        error: "Cada parte del nombre debe tener al menos 2 caracteres",
+      };
+    }
+
+    // Solo permite letras, espacios, guiones y apóstrofes
+    const nameRegex = /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s'-]+$/;
+    if (!nameRegex.test(sanitized)) {
+      return { valid: false, error: "El nombre solo puede contener letras" };
+    }
+
+    return { valid: true, error: "" };
+  };
+
+  const validateEmail = (email: string): { valid: boolean; error: string } => {
+    const sanitized = sanitizeInput(email);
+
+    if (!sanitized) {
+      return { valid: false, error: "El email es obligatorio" };
+    }
+
+    // Expresión regular estricta para emails
+    const emailRegex =
+      /^[a-zA-Z0-9][a-zA-Z0-9._-]*@[a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,}$/;
+
+    if (!emailRegex.test(sanitized)) {
+      return { valid: false, error: "Por favor ingresa un email válido" };
+    }
+
+    // Verifica dominios comunes mal escritos
+    const suspiciousPatterns = [
+      /\.con$/i,
+      /\.coom$/i,
+      /\.coml$/i,
+      /@test\./i,
+      /@example\./i,
+      /@temp\./i,
+      /\.123$/i,
+      /\.abc$/i,
+    ];
+
+    if (suspiciousPatterns.some((pattern) => pattern.test(sanitized))) {
+      return {
+        valid: false,
+        error: "Por favor verifica el dominio de tu email",
+      };
+    }
+
+    // Verifica que no sea un email temporal o de prueba obvio
+    if (/^(test|temp|fake|spam|junk|throwaway)@/i.test(sanitized)) {
+      return { valid: false, error: "Por favor usa un email válido" };
+    }
+
+    return { valid: true, error: "" };
+  };
+
+  const validateSubject = (
+    subject: string,
+  ): { valid: boolean; error: string } => {
+    const sanitized = sanitizeInput(subject);
+
+    if (!sanitized) {
+      return { valid: false, error: "El asunto es obligatorio" };
+    }
+
+    if (sanitized.length < 5) {
+      return {
+        valid: false,
+        error: "El asunto debe tener al menos 5 caracteres",
+      };
+    }
+
+    if (sanitized.length > 200) {
+      return { valid: false, error: "El asunto es demasiado largo" };
+    }
+
+    // Verifica que no sea solo caracteres repetidos
+    const uniqueChars = new Set(sanitized.toLowerCase().replace(/\s/g, ""))
+      .size;
+    if (uniqueChars < 3) {
+      return { valid: false, error: "Por favor ingresa un asunto válido" };
+    }
+
+    return { valid: true, error: "" };
+  };
+
+  const validateMessage = (
+    message: string,
+  ): { valid: boolean; error: string } => {
+    const sanitized = sanitizeInput(message);
+
+    if (!sanitized) {
+      return { valid: false, error: "El mensaje es obligatorio" };
+    }
+
+    if (sanitized.length < 10) {
+      return {
+        valid: false,
+        error: "El mensaje debe tener al menos 10 caracteres",
+      };
+    }
+
+    if (sanitized.length > 2000) {
+      return {
+        valid: false,
+        error: "El mensaje es demasiado largo (máximo 2000 caracteres)",
+      };
+    }
+
+    // Verifica que no sea solo caracteres repetidos
+    const uniqueChars = new Set(sanitized.toLowerCase().replace(/\s/g, ""))
+      .size;
+    if (uniqueChars < 5) {
+      return { valid: false, error: "Por favor ingresa un mensaje válido" };
+    }
+
+    // Verifica que contenga al menos algunas palabras reales
+    const words = sanitized.split(/\s+/).filter((w) => w.length > 2);
+    if (words.length < 3) {
+      return {
+        valid: false,
+        error: "Por favor describe tu problema con más detalle",
+      };
+    }
+
+    return { valid: true, error: "" };
+  };
+
+  const showError = (elementId: string, message: string) => {
+    const errorElement = document.getElementById(elementId);
+    const inputElement = document.getElementById(
+      elementId.replace("Error", ""),
+    );
+
+    if (errorElement) {
+      errorElement.textContent = message;
+      errorElement.classList.remove("hidden");
+    }
+
+    if (inputElement) {
+      inputElement.classList.add("border-red-500");
+    }
+  };
+
+  const clearError = (elementId: string) => {
+    const errorElement = document.getElementById(elementId);
+    const inputElement = document.getElementById(
+      elementId.replace("Error", ""),
+    );
+
+    if (errorElement) {
+      errorElement.textContent = "";
+      errorElement.classList.add("hidden");
+    }
+
+    if (inputElement) {
+      inputElement.classList.remove("border-red-500");
+    }
+  };
+
+  // Manejo del formulario
   const form = document.getElementById("contactForm") as HTMLFormElement;
-  const errorText = document.getElementById(
-    "formError",
-  ) as HTMLParagraphElement;
+  const nameInput = document.getElementById("name") as HTMLInputElement;
+  const emailInput = document.getElementById("email") as HTMLInputElement;
+  const subjectInput = document.getElementById("subject") as HTMLInputElement;
+  const messageInput = document.getElementById(
+    "message",
+  ) as HTMLTextAreaElement;
+  const submitButton = form?.querySelector(
+    'button[type="submit"]',
+  ) as HTMLButtonElement;
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const name = (
-      document.getElementById("name") as HTMLInputElement
-    ).value.trim();
-    const email = (
-      document.getElementById("email") as HTMLInputElement
-    ).value.trim();
-    const subject = (
-      document.getElementById("subject") as HTMLInputElement
-    ).value.trim();
-    const message = (
-      document.getElementById("message") as HTMLTextAreaElement
-    ).value.trim();
-
-    // Validaciones
-    if (!name || !email || !subject || !message) {
-      showError("Todos los campos son obligatorios.");
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      showError("Ingresa un correo válido.");
-      return;
-    }
-
-    if (message.length < 10) {
-      showError("El mensaje debe tener al menos 10 caracteres.");
-      return;
-    }
-
-    errorText.classList.add("hidden");
-
-    // Aquí ya puedes llamar a tu API
-    const payload = { name, email, subject, message };
-
-    try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) throw new Error("Error al enviar");
-
-      alert("Mensaje enviado correctamente ✅");
-      form.reset();
-    } catch (err) {
-      showError("Error al enviar el mensaje. Intenta más tarde.");
+  // Validación en tiempo real
+  nameInput?.addEventListener("blur", () => {
+    const validation = validateName(nameInput.value);
+    if (!validation.valid) {
+      showError("nameError", validation.error);
+    } else {
+      clearError("nameError");
     }
   });
 
-  function validateEmail(email: string): boolean {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  }
+  emailInput?.addEventListener("blur", () => {
+    const validation = validateEmail(emailInput.value);
+    if (!validation.valid) {
+      showError("emailError", validation.error);
+    } else {
+      clearError("emailError");
+    }
+  });
 
-  function showError(msg: string) {
-    errorText.textContent = msg;
-    errorText.classList.remove("hidden");
-  }
+  subjectInput?.addEventListener("blur", () => {
+    const validation = validateSubject(subjectInput.value);
+    if (!validation.valid) {
+      showError("subjectError", validation.error);
+    } else {
+      clearError("subjectError");
+    }
+  });
+
+  messageInput?.addEventListener("blur", () => {
+    const validation = validateMessage(messageInput.value);
+    if (!validation.valid) {
+      showError("messageError", validation.error);
+    } else {
+      clearError("messageError");
+    }
+  });
+
+  // Validación al enviar
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    // Limpiar errores previos
+    clearError("nameError");
+    clearError("emailError");
+    clearError("subjectError");
+    clearError("messageError");
+    document.getElementById("formError")?.classList.add("hidden");
+    document.getElementById("formSuccess")?.classList.add("hidden");
+
+    // Validar todos los campos
+    const nameValidation = validateName(nameInput.value);
+    const emailValidation = validateEmail(emailInput.value);
+    const subjectValidation = validateSubject(subjectInput.value);
+    const messageValidation = validateMessage(messageInput.value);
+
+    let hasErrors = false;
+
+    if (!nameValidation.valid) {
+      showError("nameError", nameValidation.error);
+      hasErrors = true;
+    }
+
+    if (!emailValidation.valid) {
+      showError("emailError", emailValidation.error);
+      hasErrors = true;
+    }
+
+    if (!subjectValidation.valid) {
+      showError("subjectError", subjectValidation.error);
+      hasErrors = true;
+    }
+
+    if (!messageValidation.valid) {
+      showError("messageError", messageValidation.error);
+      hasErrors = true;
+    }
+
+    if (hasErrors) {
+      return;
+    }
+
+    // Si todo es válido, procesar el formulario
+    submitButton.disabled = true;
+    submitButton.textContent = "Enviando...";
+
+    try {
+      // Aquí iría tu lógica de envío al servidor
+      // Por ahora solo simulamos un envío exitoso
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const successMsg = document.getElementById("formSuccess");
+      if (successMsg) {
+        successMsg.textContent =
+          "¡Mensaje enviado con éxito! Te responderemos pronto.";
+        successMsg.classList.remove("hidden");
+      }
+
+      // Limpiar el formulario
+      form.reset();
+    } catch (error) {
+      const errorMsg = document.getElementById("formError");
+      if (errorMsg) {
+        errorMsg.textContent =
+          "Hubo un error al enviar el mensaje. Por favor intenta de nuevo.";
+        errorMsg.classList.remove("hidden");
+      }
+    } finally {
+      submitButton.disabled = false;
+      submitButton.textContent = "Enviar mensaje";
+    }
+  });
 </script>

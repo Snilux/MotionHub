@@ -31,10 +31,54 @@ import Footer from "../components/common/Footer.astro";
     <div class="snap-section" data-section="cta">
         <CallToAction />
     </div>
+
+    <!-- Nueva sección de Testimonios -->
+    <div class="snap-section" data-section="testimonials">
+        <section class="min-h-screen flex items-center">
+            <div class="max-w-7xl mx-auto px-6 w-full py-20">
+                <h2
+                    class="testimonials-title text-3xl md:text-4xl font-semibold text-center mb-12"
+                >
+                    Lo que dicen nuestros usuarios
+                </h2>
+
+                <!-- Loading state -->
+                <div id="testimonials-loading" class="text-center">
+                    <div
+                        class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"
+                    >
+                    </div>
+                    <p class="mt-4 text-gray-600">Cargando testimonios...</p>
+                </div>
+
+                <!-- Testimonials container -->
+                <div
+                    id="testimonials-container"
+                    class="grid grid-cols-1 md:grid-cols-3 gap-6 hidden"
+                >
+                    <!-- Los testimonios se insertarán aquí dinámicamente -->
+                </div>
+
+                <!-- Error state -->
+                <div
+                    id="testimonials-error"
+                    class="text-center text-red-600 hidden"
+                >
+                    <p>
+                        No se pudieron cargar los testimonios. Por favor,
+                        intenta más tarde.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+   
+
     <div class="snap-section" data-section="final">
         <FinalCTA />
     </div>
-    <div class="snap-section" data-section="footer">
+    <div class="snap-section footer-section" data-section="footer">
         <Footer />
     </div>
 </Layout>
@@ -45,6 +89,9 @@ import Footer from "../components/common/Footer.astro";
 
     gsap.registerPlugin(ScrollTrigger);
 
+    // ======================
+    // ANIMACIONES GENERALES
+    // ======================
     document.addEventListener("DOMContentLoaded", () => {
         const sections = document.querySelectorAll(".snap-section");
 
@@ -142,10 +189,10 @@ import Footer from "../components/common/Footer.astro";
                         end: "top 20%",
                         toggleActions: "play none none none",
                     },
-                    x: -100, 
+                    x: -100,
                     opacity: 0,
                     duration: 0.7,
-                    stagger: 0.30, 
+                    stagger: 0.3,
                     ease: "power2.out",
                 });
             }
@@ -170,6 +217,7 @@ import Footer from "../components/common/Footer.astro";
             }
         });
 
+        // Animación especial para Hero
         const heroSection = document.querySelector('[data-section="hero"]');
         if (heroSection) {
             const heroTitles = heroSection.querySelectorAll("h1, h2");
@@ -197,4 +245,152 @@ import Footer from "../components/common/Footer.astro";
             });
         }
     });
+
+    // ======================
+    // API: FETCH TESTIMONIALS
+    // ======================
+    async function fetchTestimonials() {
+        try {
+            const response = await fetch(
+                "https://jsonplaceholder.typicode.com/comments?_limit=6",
+            );
+            if (!response.ok) {
+                throw new Error("Error en la respuesta de la API");
+            }
+            const data = await response.json();
+
+            return data.map((item: any, index: number) => ({
+                id: item.id,
+                name: item.email.split("@")[0].replace(".", " "),
+                role: index % 2 === 0 ? "Fisioterapeuta" : "Paciente",
+                comment: item.body.substring(0, 150) + "...",
+                rating: Math.floor(Math.random() * 2) + 4, // 4 o 5 estrellas
+            }));
+        } catch (error) {
+            console.error("Error fetching testimonials:", error);
+            throw error;
+        }
+    }
+
+    async function loadTestimonials() {
+        const container = document.getElementById("testimonials-container");
+        const loading = document.getElementById("testimonials-loading");
+        const error = document.getElementById("testimonials-error");
+
+        try {
+            const testimonials = await fetchTestimonials();
+
+            // Ocultar loading
+            loading?.classList.add("hidden");
+
+            // Mostrar container
+            container?.classList.remove("hidden");
+
+            // Renderizar testimonios
+            if (container) {
+                container.innerHTML = testimonials
+                    .map(
+                        (testimonial: any) => `
+                    <div class="testimonial-card bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-xl">
+                                ${testimonial.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div class="ml-4">
+                                <h4 class="font-semibold capitalize">${testimonial.name}</h4>
+                                <p class="text-sm text-gray-600">${testimonial.role}</p>
+                            </div>
+                        </div>
+                        <div class="mb-3 text-yellow-400 text-lg">
+                            ${"★".repeat(testimonial.rating)}${"☆".repeat(5 - testimonial.rating)}
+                        </div>
+                        <p class="text-gray-700 text-sm leading-relaxed">${testimonial.comment}</p>
+                    </div>
+                `,
+                    )
+                    .join("");
+
+                // Animar las cards cuando aparezcan
+                gsap.from(".testimonial-card", {
+                    scrollTrigger: {
+                        trigger: container,
+                        start: "top 85%",
+                        toggleActions: "play none none reverse",
+                    },
+                    opacity: 0,
+                    y: 60,
+                    duration: 0.8,
+                    stagger: 0.15,
+                    ease: "power3.out",
+                });
+            }
+        } catch (err) {
+            loading?.classList.add("hidden");
+            error?.classList.remove("hidden");
+        }
+    }
+
+
+    // ======================
+    // INICIALIZAR APIS
+    // ======================
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", () => {
+            loadTestimonials();
+        });
+    } else {
+        loadTestimonials();
+    }
+
+    // ======================
+    // HOVER EFFECTS
+    // ======================
+    document.addEventListener("DOMContentLoaded", () => {
+        // Hover para testimonials y stats
+        setTimeout(() => {
+            const cards = document.querySelectorAll(
+                ".testimonial-card, .stat-card",
+            );
+            cards.forEach((card) => {
+                card.addEventListener("mouseenter", () => {
+                    gsap.to(card, {
+                        y: -10,
+                        duration: 0.3,
+                        ease: "power2.out",
+                    });
+                });
+
+                card.addEventListener("mouseleave", () => {
+                    gsap.to(card, {
+                        y: 0,
+                        duration: 0.3,
+                        ease: "power2.out",
+                    });
+                });
+            });
+        }, 1000);
+    });
 </script>
+
+<style>
+    .snap-section {
+        min-height: 100vh;
+        position: relative;
+    }
+
+    .footer-section {
+        min-height: 0;
+        height: auto;
+    }
+
+    /* Animación del spinner */
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .animate-spin {
+        animation: spin 1s linear infinite;
+    }
+</style>

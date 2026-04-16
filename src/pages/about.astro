@@ -8,206 +8,527 @@ import Footer from "../components/common/Footer.astro";
 <Layout title="MotionHub">
   <Nav />
 
-  <!-- titulo -->
-  <section class="text-center px-6 pt-24 pb-16">
-    <h1 class="text-4xl md:text-5xl font-bold tracking-tight leading-tight">
-      Conectando Profesionales<br />
-      y Pacientes para una<br />
-      Mejor Recuperación
-    </h1>
-    <p class="mt-4 max-w-2xl mx-auto text-gray-700 font-light">
-      MotionHub nació con la misión de digitalizar y optimizar la práctica de la
-      fisioterapia, mejorando la comunicación entre terapeutas y pacientes.
-    </p>
+  <!-- Hero Section - Página 1 -->
+  <section
+    class="snap-section min-h-screen flex items-center"
+    data-section="hero"
+  >
+    <div class="text-center px-6 w-full">
+      <h1
+        class="hero-title text-4xl md:text-5xl font-bold tracking-tight leading-tight"
+      >
+        Conectando Profesionales<br />
+        y Pacientes para una<br />
+        Mejor Recuperación
+      </h1>
+      <p class="hero-subtitle mt-4 max-w-2xl mx-auto text-gray-700 font-light">
+        MotionHub nació con la misión de digitalizar y optimizar la práctica de
+        la fisioterapia, mejorando la comunicación entre terapeutas y pacientes.
+      </p>
+    </div>
   </section>
 
-  <!-- mision y vision -->
-  <section class="max-w-6xl mx-auto px-6 pb-20">
-    <div class="grid gap-8 md:grid-cols-2">
-      <div class="bg-gray-100 rounded-4xl p-8 shadow-md">
-        <div class="mb-3">
-          <svg
-            class="w-8 h-8 text-gray-800"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-              d="M12 3a7 7 0 00-4 12v3h8v-3a7 7 0 00-4-12z"></path>
-          </svg>
+  <!-- Misión y Visión - Página 2 -->
+  <section
+    class="snap-section min-h-screen flex items-center"
+    data-section="mision-vision"
+  >
+    <div class="max-w-6xl mx-auto px-6 w-full">
+      <div class="grid gap-8 md:grid-cols-2">
+        <div class="mission-card bg-gray-100 rounded-2xl p-8 shadow-lg">
+          <div class="mb-3">
+            <svg
+              class="w-8 h-8 text-gray-800"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M12 3a7 7 0 00-4 12v3h8v-3a7 7 0 00-4-12z"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold mb-2">Nuestra Misión</h3>
+          <p class="text-gray-700 font-light">
+            Brindar a los profesionales de la fisioterapia una plataforma
+            digital innovadora que optimice la gestión de sus consultas y
+            potencie el seguimiento de los pacientes, mejorando la calidad de la
+            atención mediante tecnología confiable, empática y centrada en las
+            necesidades reales de la salud.
+          </p>
         </div>
-        <h3 class="text-xl font-semibold mb-2">Nuestra Misión</h3>
-        <p class="text-gray-700 font-light">
-          Brindar a los profesionales de la fisioterapia una plataforma digital
-          innovadora que optimice la gestión de sus consultas y potencie el
-          seguimiento de los pacientes, mejorando la calidad de la atención
-          mediante tecnología confiable, empática y centrada en las necesidades
-          reales de la salud.
+
+        <div class="vision-card bg-gray-100 rounded-2xl p-8 shadow-lg">
+          <div class="mb-3">
+            <svg
+              class="w-8 h-8 text-gray-800"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M12 21s-7-4.3-7-10a4 4 0 017-2 4 4 0 017 2c0 5.7-7 10-7 10z"
+              ></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold mb-2">Nuestra Visión</h3>
+          <p class="text-gray-700 font-light">
+            Ser la plataforma líder en soluciones digitales para fisioterapia en
+            Latinoamérica, transformando la forma en que profesionales y
+            pacientes se conectan, impulsando la recuperación a través de la
+            innovación tecnológica, la excelencia en el servicio y una atención
+            más humana y accesible.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Valores - Página 3 -->
+  <section
+    class="snap-section min-h-screen flex items-center"
+    data-section="valores"
+  >
+    <div class="max-w-6xl mx-auto px-6 w-full">
+      <h2 class="values-title text-3xl font-semibold text-center mb-12">
+        Nuestros valores
+      </h2>
+
+      <div class="values-grid grid gap-6 sm:grid-cols-2 md:grid-cols-4">
+        <div
+          class="value-card bg-blue-100 rounded-xl p-6 text-center shadow-lg"
+        >
+          <div class="flex justify-center mb-3">
+            <svg
+              class="w-8 h-8 text-gray-800"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M17 20h5v-2a4 4 0 00-4-4h-1m-4 6v-2a4 4 0 00-4-4H4m13-4a4 4 0 10-8 0 4 4 0 008 0z"
+              ></path>
+            </svg>
+          </div>
+          <h4 class="font-semibold mb-2">Colaboración</h4>
+          <p class="text-sm text-gray-700 font-light">
+            Facilitamos la comunicación efectiva entre profesionales y
+            pacientes.
+          </p>
+        </div>
+
+        <div
+          class="value-card bg-blue-200 rounded-xl p-6 text-center shadow-lg"
+        >
+          <div class="flex justify-center mb-3">
+            <svg
+              class="w-8 h-8 text-gray-800"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M12 2l3 6 6 .9-4.5 4.3 1 6-5.5-3-5.5 3 1-6L3 8.9 9 8z"
+              ></path>
+            </svg>
+          </div>
+          <h4 class="font-semibold mb-2">Excelencia</h4>
+          <p class="text-sm text-gray-700 font-light">
+            Compromiso con la calidad en cada funcionalidad de la plataforma.
+          </p>
+        </div>
+
+        <div
+          class="value-card bg-blue-100 rounded-xl p-6 text-center shadow-lg"
+        >
+          <div class="flex justify-center mb-3">
+            <svg
+              class="w-8 h-8 text-gray-800"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M12 21s-7-4.3-7-10a4 4 0 017-2 4 4 0 017 2c0 5.7-7 10-7 10z"
+              ></path>
+            </svg>
+          </div>
+          <h4 class="font-semibold mb-2">Empatía</h4>
+          <p class="text-sm text-gray-700 font-light">
+            Diseñamos pensando en las necesidades reales de los pacientes.
+          </p>
+        </div>
+
+        <div
+          class="value-card bg-blue-200 rounded-xl p-6 text-center shadow-lg"
+        >
+          <div class="flex justify-center mb-3">
+            <svg
+              class="w-8 h-8 text-gray-800"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M12 3a7 7 0 00-4 12v3h8v-3a7 7 0 00-4-12z"></path>
+            </svg>
+          </div>
+          <h4 class="font-semibold mb-2">Innovación</h4>
+          <p class="text-sm text-gray-700 font-light">
+            Tecnología de vanguardia aplicada a la salud.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Historia y Equipo - Página 4 -->
+  <section
+    class="snap-section min-h-screen flex items-center"
+    data-section="historia-equipo"
+  >
+    <div class="max-w-5xl mx-auto px-6 w-full text-center">
+      <div class="history-section mb-16">
+        <h2 class="history-title text-3xl font-semibold mb-6">
+          Nuestra Historia
+        </h2>
+        <p class="history-text text-gray-700 font-light leading-relaxed">
+          MotionHub surgió para resolver problemas comunes en consultorios de
+          fisioterapia como la gestión manual de expedientes y el poco
+          seguimiento de los pacientes. <br /><br />
+          Desarrolladores y fisioterapeutas colaboraron para crear una herramienta
+          que digitaliza procesos y mejora la experiencia de atención. Actualmente,
+          miles de profesionales en la región utilizan MotionHub para optimizar sus
+          consultas, mejorar sus resultados y mantener a los pacientes motivados en
+          su recuperación.
         </p>
       </div>
 
-      <div class="bg-gray-100 rounded-2xl p-8 shadow-md">
-        <div class="mb-3">
-          <svg
-            class="w-8 h-8 text-gray-800"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-              d="M12 21s-7-4.3-7-10a4 4 0 017-2 4 4 0 017 2c0 5.7-7 10-7 10z"
-            ></path>
-          </svg>
-        </div>
-        <h3 class="text-xl font-semibold mb-2">Nuestra Visión</h3>
-        <p class="text-gray-700 font-light">
-          Ser la plataforma líder en soluciones digitales para fisioterapia en
-          Latinoamérica, transformando la forma en que profesionales y pacientes
-          se conectan, impulsando la recuperación a través de la innovación
-          tecnológica, la excelencia en el servicio y una atención más humana y
-          accesible.
+      <div class="team-section">
+        <h2 class="team-title text-3xl font-semibold mb-6">Nuestro equipo</h2>
+        <p class="team-text text-gray-700 font-light leading-relaxed">
+          Un equipo multidisciplinario de desarrolladores, diseñadores,
+          fisioterapeutas y especialistas en salud digital trabajando juntos
+          para transformar la fisioterapia.
         </p>
       </div>
     </div>
   </section>
 
-  <!-- valores -->
-  <section class="max-w-6xl mx-auto px-6 pb-24">
-    <h2 class="text-3xl font-semibold text-center mb-12">Nuestros valores</h2>
-
-    <div class="grid gap-6 sm:grid-cols-2 md:grid-cols-4">
-      <div class="bg-blue-100 rounded-xl p-6 text-center">
-        <div class="flex justify-center mb-3">
-          <svg
-            class="w-8 h-8 text-gray-800"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-              d="M17 20h5v-2a4 4 0 00-4-4h-1m-4 6v-2a4 4 0 00-4-4H4m13-4a4 4 0 10-8 0 4 4 0 008 0z"
-            ></path>
-          </svg>
-        </div>
-        <h4 class="font-semibold mb-2">Colaboración</h4>
-        <p class="text-sm text-gray-700 font-light">
-          Facilitamos la comunicación efectiva entre profesionales y pacientes.
-        </p>
-      </div>
-
-      <div class="bg-blue-200 rounded-xl p-6 text-center">
-        <div class="flex justify-center mb-3">
-          <svg
-            class="w-8 h-8 text-gray-800"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-              d="M12 2l3 6 6 .9-4.5 4.3 1 6-5.5-3-5.5 3 1-6L3 8.9 9 8z"></path>
-          </svg>
-        </div>
-        <h4 class="font-semibold mb-2">Excelencia</h4>
-        <p class="text-sm text-gray-700 font-light">
-          Compromiso con la calidad en cada funcionalidad de la plataforma.
-        </p>
-      </div>
-
-      <div class="bg-blue-100 rounded-xl p-6 text-center">
-        <div class="flex justify-center mb-3">
-          <svg
-            class="w-8 h-8 text-gray-800"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-              d="M12 21s-7-4.3-7-10a4 4 0 017-2 4 4 0 017 2c0 5.7-7 10-7 10z"
-            ></path>
-          </svg>
-        </div>
-        <h4 class="font-semibold mb-2">Empatía</h4>
-        <p class="text-sm text-gray-700 font-light">
-          Diseñamos pensando en las necesidades reales de los pacientes.
-        </p>
-      </div>
-
-      <div class="bg-blue-200 rounded-xl p-6 text-center">
-        <div class="flex justify-center mb-3">
-          <svg
-            class="w-8 h-8 text-gray-800"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-              d="M12 3a7 7 0 00-4 12v3h8v-3a7 7 0 00-4-12z"></path>
-          </svg>
-        </div>
-        <h4 class="font-semibold mb-2">Innovación</h4>
-        <p class="text-sm text-gray-700 font-light">
-          Tecnología de vanguardia aplicada a la salud.
-        </p>
+  <!-- CTA Final - Página 5 -->
+  <section
+    class="snap-section min-h-screen flex items-center"
+    data-section="cta"
+  >
+    <div class="text-center w-full px-6">
+      <h2 class="cta-title text-3xl md:text-4xl font-semibold mb-4">
+        Únete a la Revolución Digital de la Fisioterapia
+      </h2>
+      <p class="cta-subtitle text-gray-700 mb-10 font-light max-w-2xl mx-auto">
+        Forma parte de la comunidad que está transformando el cuidado de la
+        salud física.
+      </p>
+      <div class="cta-buttons flex flex-wrap justify-center gap-4">
+        <Button text="Comenzar Ahora" href="#" theme="dark" />
+        <Button text="Contactar ventas" href="#" theme="dark" />
       </div>
     </div>
   </section>
 
-  <!-- historia -->
-  <section class="max-w-5xl mx-auto px-6 pb-20 text-center">
-    <h2 class="text-3xl font-semibold mb-6">Nuestra Historia</h2>
-    <p class="text-gray-700 font-light ">
-      MotionHub surgió para resolver problemas comunes en consultorios de
-      fisioterapia como la gestión manual de expedientes y el poco seguimiento
-      de los pacientes. <br />
-      Desarrolladores y fisioterapeutas colaboraron para crear una herramienta que
-      digitaliza procesos y mejora la experiencia de atención. Actualmente, miles
-      de profesionales en la región utilizan MotionHub para optimizar sus consultas,
-      mejorar sus resultados y mantener a los pacientes motivados en su recuperación.
-    </p>
+  <!-- Footer Section -->
+  <section class="snap-section footer-section" data-section="footer">
+    <Footer />
   </section>
-
-  <!-- equipo -->
-  <section class="max-w-5xl mx-auto px-6 pb-24 text-center">
-    <h2 class="text-3xl font-semibold mb-6">Nuestro equipo</h2>
-    <p class="text-gray-700 font-light">
-      Un equipo multidisciplinario de desarrolladores, diseñadores,
-      fisioterapeutas y especialistas en salud digital trabajando juntos para
-      transformar la fisioterapia.
-    </p>
-  </section>
-
-  <!-- revolucion  -->
-  <section class="text-center mb-15">
-    <h2 class="text-3xl md:text-3xl font-semibold mb-4">
-      Únete a la Revolución Digital de la Fisioterapia
-    </h2>
-    <p class="text-gray-700 mb-10 font-light">
-      Forma parte de la comunidad que está transformando el cuidado de la salud
-      física.
-    </p>
-    <div class="flex flex-wrap justify-center gap-4">
-      <Button text="Comenzar Ahora" href="#" theme="dark" />
-      <Button text="Contactar ventas" href="#" theme="dark" />
-    </div>
-  </section>
-
-  <Footer />
 </Layout>
+
+<script>
+  import { gsap } from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  // ======================
+  // HERO SECTION (Página 1)
+  // ======================
+  const heroSection = document.querySelector('[data-section="hero"]');
+  if (heroSection) {
+    gsap.from(".hero-title", {
+      opacity: 0,
+      y: 80,
+      duration: 1.2,
+      ease: "power3.out",
+      delay: 0.3,
+    });
+
+    gsap.from(".hero-subtitle", {
+      opacity: 0,
+      y: 50,
+      duration: 1,
+      ease: "power3.out",
+      delay: 0.7,
+    });
+  }
+
+  // ======================
+  // MISIÓN Y VISIÓN (Página 2)
+  // ======================
+  const misionVisionSection = document.querySelector(
+    '[data-section="mision-vision"]',
+  );
+  if (misionVisionSection) {
+    gsap.from(".mission-card", {
+      scrollTrigger: {
+        trigger: misionVisionSection,
+        start: "top 80%",
+        toggleActions: "play none none reverse",
+      },
+      opacity: 0,
+      x: -100,
+      duration: 1,
+      ease: "power3.out",
+    });
+
+    gsap.from(".vision-card", {
+      scrollTrigger: {
+        trigger: misionVisionSection,
+        start: "top 80%",
+        toggleActions: "play none none reverse",
+      },
+      opacity: 0,
+      x: 100,
+      duration: 1,
+      ease: "power3.out",
+    });
+  }
+
+  // ======================
+  // VALORES (Página 3)
+  // ======================
+  const valoresSection = document.querySelector('[data-section="valores"]');
+  if (valoresSection) {
+    gsap.from(".values-title", {
+      scrollTrigger: {
+        trigger: valoresSection,
+        start: "top 80%",
+        toggleActions: "play none none reverse",
+      },
+      opacity: 0,
+      y: 50,
+      duration: 1,
+      ease: "power3.out",
+    });
+
+    const valuesGrid = valoresSection.querySelector(".values-grid");
+    if (valuesGrid) {
+      gsap.from(".value-card", {
+        scrollTrigger: {
+          trigger: valuesGrid,
+          start: "top 85%",
+          toggleActions: "play none none reverse",
+        },
+        opacity: 0,
+        y: 60,
+        scale: 0.9,
+        duration: 0.8,
+        stagger: 0.15,
+        ease: "back.out(1.2)",
+      });
+    }
+  }
+
+  // ======================
+  // HISTORIA Y EQUIPO (Página 4)
+  // ======================
+  const historiaEquipoSection = document.querySelector(
+    '[data-section="historia-equipo"]',
+  );
+  if (historiaEquipoSection) {
+    gsap.from(".history-title", {
+      scrollTrigger: {
+        trigger: historiaEquipoSection,
+        start: "top 80%",
+        toggleActions: "play none none reverse",
+      },
+      opacity: 0,
+      y: 50,
+      duration: 1,
+      ease: "power3.out",
+    });
+
+    gsap.from(".history-text", {
+      scrollTrigger: {
+        trigger: historiaEquipoSection,
+        start: "top 80%",
+        toggleActions: "play none none reverse",
+      },
+      opacity: 0,
+      y: 40,
+      duration: 1,
+      delay: 0.3,
+      ease: "power3.out",
+    });
+
+    gsap.from(".team-title", {
+      scrollTrigger: {
+        trigger: ".team-section",
+        start: "top 85%",
+        toggleActions: "play none none reverse",
+      },
+      opacity: 0,
+      y: 50,
+      duration: 1,
+      ease: "power3.out",
+    });
+
+    gsap.from(".team-text", {
+      scrollTrigger: {
+        trigger: ".team-section",
+        start: "top 85%",
+        toggleActions: "play none none reverse",
+      },
+      opacity: 0,
+      y: 40,
+      duration: 1,
+      delay: 0.3,
+      ease: "power3.out",
+    });
+  }
+
+  // ======================
+  // CTA FINAL (Página 5)
+  // ======================
+  const ctaSection = document.querySelector('[data-section="cta"]');
+  if (ctaSection) {
+    gsap.from(".cta-title", {
+      scrollTrigger: {
+        trigger: ctaSection,
+        start: "top 80%",
+        toggleActions: "play none none reverse",
+      },
+      opacity: 0,
+      y: 60,
+      duration: 1,
+      ease: "power3.out",
+    });
+
+    gsap.from(".cta-subtitle", {
+      scrollTrigger: {
+        trigger: ctaSection,
+        start: "top 80%",
+        toggleActions: "play none none reverse",
+      },
+      opacity: 0,
+      y: 40,
+      duration: 1,
+      delay: 0.3,
+      ease: "power3.out",
+    });
+
+    gsap.from(".cta-buttons", {
+      scrollTrigger: {
+        trigger: ctaSection,
+        start: "top 80%",
+        toggleActions: "play none none reverse",
+      },
+      opacity: 0,
+      y: 30,
+      duration: 0.8,
+      delay: 0.6,
+      ease: "power2.out",
+    });
+  }
+
+  // ======================
+  // KEYBOARD NAVIGATION
+  // ======================
+  let isAnimating = false;
+
+  document.addEventListener("keydown", (e) => {
+    if (isAnimating) return;
+
+    const sections = document.querySelectorAll(".snap-section");
+    let currentSection = 0;
+
+    sections.forEach((section, index) => {
+      const rect = section.getBoundingClientRect();
+      if (rect.top <= 100 && rect.bottom > 100) {
+        currentSection = index;
+      }
+    });
+
+    if (e.key === "ArrowDown" || e.key === "PageDown") {
+      e.preventDefault();
+      if (currentSection < sections.length - 1) {
+        isAnimating = true;
+        sections[currentSection + 1].scrollIntoView({
+          behavior: "smooth",
+        });
+        setTimeout(() => (isAnimating = false), 1000);
+      }
+    } else if (e.key === "ArrowUp" || e.key === "PageUp") {
+      e.preventDefault();
+      if (currentSection > 0) {
+        isAnimating = true;
+        sections[currentSection - 1].scrollIntoView({
+          behavior: "smooth",
+        });
+        setTimeout(() => (isAnimating = false), 1000);
+      }
+    }
+  });
+
+  // ======================
+  // HOVER EFFECTS ON CARDS
+  // ======================
+  const allCards = document.querySelectorAll(
+    ".mission-card, .vision-card, .value-card",
+  );
+  allCards.forEach((card) => {
+    card.addEventListener("mouseenter", () => {
+      gsap.to(card, {
+        y: -10,
+        scale: 1.02,
+        duration: 0.3,
+        ease: "power2.out",
+      });
+    });
+
+    card.addEventListener("mouseleave", () => {
+      gsap.to(card, {
+        y: 0,
+        scale: 1,
+        duration: 0.3,
+        ease: "power2.out",
+      });
+    });
+  });
+</script>
+
+<style>
+  .snap-section {
+    min-height: 100vh;
+    position: relative;
+  }
+
+  .footer-section {
+    min-height: 0;
+    height: auto;
+  }
+</style>
