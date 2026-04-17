@@ -1,46 +1,51 @@
-# Astro Starter Kit: Basics
+# 🏃 MotionHub – Plataforma de Fisioterapia
 
-```sh
-npm create astro@latest -- --template basics
+Aplicación web para gestión de fisioterapeutas y pacientes con autenticación por roles, rutas protegidas y MongoDB.
+
+## 🗂️ Estructura del Proyecto
+
+```
+src/
+├── lib/
+│   ├── db.ts               # Conexión a MongoDB
+│   ├── session.ts          # JWT – firmar/verificar/cookies
+│   └── email.ts            # Nodemailer – recuperación de contraseña
+├── models/
+│   ├── User.ts             # Usuarios (médico y paciente)
+│   ├── Cita.ts             # Citas / agenda
+│   ├── Rutina.ts           # Rutinas de ejercicio
+│   ├── Expediente.ts       # Expedientes clínicos
+│   └── Progreso.ts         # Registro de sesiones
+├── middleware.ts            # Protección de rutas por rol
+├── pages/
+│   ├── api/auth/           # login, register, logout, forgot/reset-password
+│   ├── api/medico/         # citas, pacientes, rutinas, expediente
+│   ├── api/paciente/       # citas, rutinas, progreso
+│   ├── dashboard/medico/   # 🔒 Solo médicos
+│   └── dashboard/paciente/ # 🔒 Solo pacientes
+└── scripts/seed.js         # Datos de prueba
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## ⚡ Instalación
 
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
-└── package.json
+```bash
+npm install
+cp .env.example .env   # Edita con tus valores
+npm run seed           # Carga datos de prueba
+npm run dev
 ```
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
+## 🔑 Credenciales de prueba
 
-## 🧞 Commands
+| Rol | Email | Contraseña |
+|-----|-------|-----------|
+| Médico | medico@motionhub.com | medico123 |
+| Médico 2 | ana@motionhub.com | medico123 |
+| Paciente | paciente@motionhub.com | paciente123 |
+| Paciente 2 | maria@motionhub.com | paciente123 |
 
-All commands are run from the root of the project, from a terminal:
+## ➕ Agregar páginas
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+- Médico: `src/pages/dashboard/medico/nueva.astro`
+- Paciente: `src/pages/dashboard/paciente/nueva.astro`
+- Agrega el link en `src/components/common/DashboardLayout.astro`

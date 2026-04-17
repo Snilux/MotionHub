@@ -1,0 +1,204 @@
+---
+import DashboardLayout from "../../../components/common/DashboardLayout.astro";
+import { getSessionFromRequest } from "../../../lib/session";
+import connectDB from "../../../lib/db";
+import { Rutina } from "../../../models/Rutina";
+
+const session = getSessionFromRequest(Astro.request);
+if (!session || session.role !== "paciente") return Astro.redirect("/login");
+
+await connectDB();
+
+const rutinas = await Rutina.find({ paciente: session.userId })
+  .populate("medico", "nombre apellido especialidad")
+  .sort({ activa: -1, createdAt: -1 });
+---
+
+<DashboardLayout
+  title="Mis Rutinas"
+  role="paciente"
+  nombre={session.nombre}
+  activeSection="/dashboard/paciente/rutinas"
+>
+  <div class="p-6 lg:p-8">
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold text-gray-900">Mis Rutinas</h1>
+      <p class="text-gray-500 mt-1">{rutinas.filter((r: any) => r.activa).length} activas</p>
+    </div>
+
+    {rutinas.length === 0 ? (
+      <div class="bg-white rounded-2xl border border-gray-100 p-12 text-center text-gray-400">
+        <p class="text-5xl mb-3">🏋️</p>
+        <p class="font-medium">Aún no tienes rutinas asignadas</p>
+        <p class="text-sm mt-1">Tu fisioterapeuta te asignará una rutina personalizada</p>
+      </div>
+    ) : (
+      <div class="space-y-4">
+        {rutinas.map((r: any) => (
+          <div class={`bg-white rounded-2xl border shadow-sm transition-all ${r.activa ? "border-gray-100" : "border-gray-100 opacity-60"}`}>
+            <!-- Cabecera -->
+            <div class="p-5 flex items-start justify-between border-b border-gray-50">
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <h2 class="font-semibold text-gray-900">{r.nombre}</h2>
+                  <span class={`text-xs px-2 py-0.5 rounded-full font-medium ${r.activa ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                    {r.activa ? "Activa" : "Inactiva"}
+                  </span>
+                </div>
+                <p class="text-sm text-gray-500">
+                  Dr. {r.medico.nombre} {r.medico.apellido} · {r.medico.especialidad || "Fisioterapeuta"}
+                </p>
+                {r.objetivo && <p class="text-sm text-blue-600 mt-1">🎯 {r.objetivo}</p>}
+              </div>
+              <div class="text-right text-xs text-gray-400">
+                <p>🔄 {r.frecuencia}</p>
+                <p class="mt-1">📋 {r.ejercicios.length} ejercicios</p>
+              </div>
+            </div>
+
+            <!-- Ejercicios (acordeón) -->
+            <div class="p-5">
+              <button
+                class="toggle-ejercicios text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                data-target={`ej-${r._id}`}
+              >
+                <span class="arrow">▶</span> Ver ejercicios
+              </button>
+              <div id={`ej-${r._id}`} class="hidden mt-4 space-y-3">
+                {r.ejercicios.map((ej: any, i: number) => (
+                  <div class="bg-gray-50 rounded-xl p-4">
+                    <div class="flex items-start justify-between mb-2">
+                      <div>
+                        <span class="text-xs font-medium text-gray-400 uppercase">Ejercicio {i + 1}</span>
+                        <p class="font-medium text-gray-900">{ej.nombre}</p>
+                      </div>
+                      <div class="flex gap-3 text-xs text-center">
+                        <div class="bg-white rounded-lg px-2 py-1">
+                          <p class="font-bold text-blue-700">{ej.series}</p>
+                          <p class="text-gray-400">series</p>
+                        </div>
+                        <div class="bg-white rounded-lg px-2 py-1">
+                          <p class="font-bold text-blue-700">{ej.repeticiones}</p>
+                          <p class="text-gray-400">reps</p>
+                        </div>
+                        {ej.descanso && (
+                          <div class="bg-white rounded-lg px-2 py-1">
+                            <p class="font-bold text-gray-600">{ej.descanso}s</p>
+                            <p class="text-gray-400">descanso</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {ej.descripcion && <p class="text-sm text-gray-600">{ej.descripcion}</p>}
+                    {ej.notas && <p class="text-xs text-gray-400 mt-1 italic">📝 {ej.notas}</p>}
+                  </div>
+                ))}
+
+                {r.activa && (
+                  <button
+                    class="w-full mt-2 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 registrar-sesion"
+                    data-rutina={r._id}
+                    data-total={r.ejercicios.length}
+                  >
+                    ✅ Registrar sesión completada
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+
+  <!-- Modal registrar sesión -->
+  <div id="modalSesion" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+      <h2 class="text-lg font-semibold mb-5">Registrar Sesión</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="text-sm font-medium text-gray-700 block mb-2">Nivel de dolor ANTES (0-10)</label>
+          <input id="dolorAntes" type="range" min="0" max="10" value="5" class="w-full accent-blue-600" />
+          <div class="flex justify-between text-xs text-gray-400 mt-1">
+            <span>Sin dolor</span><span id="dolorAntesVal">5</span><span>Máximo dolor</span>
+          </div>
+        </div>
+        <div>
+          <label class="text-sm font-medium text-gray-700 block mb-2">Nivel de dolor DESPUÉS (0-10)</label>
+          <input id="dolorDespues" type="range" min="0" max="10" value="3" class="w-full accent-blue-600" />
+          <div class="flex justify-between text-xs text-gray-400 mt-1">
+            <span>Sin dolor</span><span id="dolorDespuesVal">3</span><span>Máximo dolor</span>
+          </div>
+        </div>
+        <div>
+          <label class="text-sm font-medium text-gray-700 block mb-1">Notas (opcional)</label>
+          <textarea id="notasSesion" rows="2" placeholder="¿Cómo te sentiste?"
+            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+        </div>
+        <div class="flex gap-3">
+          <button id="cancelarSesion" class="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50">Cancelar</button>
+          <button id="guardarSesion" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  // Acordeón ejercicios
+  document.querySelectorAll(".toggle-ejercicios").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const targetId = btn.getAttribute("data-target")!;
+      const target = document.getElementById(targetId)!;
+      const arrow = btn.querySelector(".arrow")!;
+      target.classList.toggle("hidden");
+      arrow.textContent = target.classList.contains("hidden") ? "▶" : "▼";
+    });
+  });
+
+  // Sliders dolor
+  const dolorAntes = document.getElementById("dolorAntes") as HTMLInputElement;
+  const dolorDespues = document.getElementById("dolorDespues") as HTMLInputElement;
+  dolorAntes?.addEventListener("input", () => {
+    document.getElementById("dolorAntesVal")!.textContent = dolorAntes.value;
+  });
+  dolorDespues?.addEventListener("input", () => {
+    document.getElementById("dolorDespuesVal")!.textContent = dolorDespues.value;
+  });
+
+  // Registrar sesión
+  let rutinaActual: string | null = null;
+  let totalActual = 0;
+
+  document.querySelectorAll(".registrar-sesion").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      rutinaActual = btn.getAttribute("data-rutina");
+      totalActual = Number(btn.getAttribute("data-total")) || 0;
+      document.getElementById("modalSesion")?.classList.remove("hidden");
+    });
+  });
+
+  document.getElementById("cancelarSesion")?.addEventListener("click", () => {
+    document.getElementById("modalSesion")?.classList.add("hidden");
+  });
+
+  document.getElementById("guardarSesion")?.addEventListener("click", async () => {
+    const res = await fetch("/api/paciente/progreso", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rutina: rutinaActual,
+        dolorAntes: Number(dolorAntes.value),
+        dolorDespues: Number(dolorDespues.value),
+        notasPaciente: (document.getElementById("notasSesion") as HTMLTextAreaElement).value,
+        completado: true,
+        totalEjercicios: totalActual,
+        ejerciciosCompletados: totalActual,
+      }),
+    });
+    if (res.ok) {
+      document.getElementById("modalSesion")?.classList.add("hidden");
+      alert("¡Sesión registrada correctamente! 🎉");
+    }
+  });
+</script>

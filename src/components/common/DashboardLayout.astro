@@ -1,0 +1,228 @@
+---
+import "../../styles/global.css";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/baloo-bhaijaan-2";
+import Title from "./Title.astro";
+
+interface Props {
+  title: string;
+  role: "medico" | "paciente";
+  nombre: string;
+  activeSection?: string;
+}
+
+const { title, role, nombre, activeSection = "" } = Astro.props;
+
+const medicoLinks = [
+  { href: "/dashboard/medico", label: "Inicio", icon: "🏠" },
+  { href: "/dashboard/medico/pacientes", label: "Pacientes", icon: "👥" },
+  { href: "/dashboard/medico/citas", label: "Citas", icon: "📅" },
+  { href: "/dashboard/medico/rutinas", label: "Rutinas", icon: "🏋️" },
+  { href: "/dashboard/medico/expedientes", label: "Expedientes", icon: "📋" },
+];
+
+const pacienteLinks = [
+  { href: "/dashboard/paciente", label: "Inicio", icon: "🏠" },
+  { href: "/dashboard/paciente/citas", label: "Mis Citas", icon: "📅" },
+  { href: "/dashboard/paciente/rutinas", label: "Mis Rutinas", icon: "🏋️" },
+  { href: "/dashboard/paciente/progreso", label: "Mi Progreso", icon: "📈" },
+];
+
+const links = role === "medico" ? medicoLinks : pacienteLinks;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/icon.svg" />
+    <title>{title} - MotionHub</title>
+  </head>
+  <body class="bg-gray-50 min-h-screen flex" data-role={role}>
+    <!-- Banner aviso expiración sesión (solo médicos) -->
+    {role === "medico" && (
+      <div
+        id="sessionWarnBanner"
+        class="hidden fixed top-0 left-0 right-0 z-[100] bg-amber-500 text-white text-sm font-medium px-4 py-2 flex items-center justify-between shadow-lg"
+      >
+        <span>⚠️ Tu sesión expirará en <strong><span id="sessionCountdown">60</span>s</strong>. Guarda tu trabajo.</span>
+        <button
+          onclick="document.getElementById('sessionWarnBanner').classList.add('hidden')"
+          class="ml-4 text-white/80 hover:text-white text-lg leading-none"
+        >✕</button>
+      </div>
+    )}
+    <!-- Sidebar -->
+    <aside
+      class="w-64 bg-white border-r border-gray-100 flex flex-col min-h-screen shadow-sm fixed left-0 top-0 bottom-0 z-40 hidden lg:flex"
+    >
+      <div class="p-5 border-b border-gray-100">
+        <a href="/"><Title size="sm" /></a>
+      </div>
+
+      <nav class="flex-1 p-4 space-y-1">
+        {
+          links.map((link) => (
+            <a
+              href={link.href}
+              class={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+              ${activeSection === link.href ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
+            >
+              <span class="text-base">{link.icon}</span>
+              {link.label}
+            </a>
+          ))
+        }
+      </nav>
+
+      <div class="p-4 border-t border-gray-100">
+        <div class="flex items-center gap-3 px-3 py-2 mb-2">
+          <div
+            class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm"
+          >
+            {nombre.charAt(0).toUpperCase()}
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-gray-800 truncate">{nombre}</p>
+            <p class="text-xs text-gray-500 capitalize">{role}</p>
+          </div>
+        </div>
+        <button
+          id="logoutBtn"
+          class="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+        >
+          <span>🚪</span> Cerrar sesión
+        </button>
+      </div>
+    </aside>
+
+    <!-- Mobile header -->
+    <header
+      class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between shadow-sm"
+    >
+      <a href="/"><Title size="sm" /></a>
+      <button id="menuToggle" class="p-2 rounded-lg hover:bg-gray-100">
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Mobile menu overlay -->
+    <div
+      id="mobileMenu"
+      class="lg:hidden hidden fixed inset-0 z-50 bg-black/50"
+    >
+      <aside
+        class="w-64 bg-white h-full flex flex-col shadow-xl"
+      >
+        <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+          <Title size="sm" />
+          <button id="menuClose" class="p-1 rounded-lg hover:bg-gray-100">✕</button>
+        </div>
+        <nav class="flex-1 p-4 space-y-1">
+          {
+            links.map((link) => (
+              <a
+                href={link.href}
+                class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50"
+              >
+                <span>{link.icon}</span>
+                {link.label}
+              </a>
+            ))
+          }
+        </nav>
+        <div class="p-4 border-t border-gray-100">
+          <button
+            id="logoutBtnMobile"
+            class="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-xl"
+          >
+            🚪 Cerrar sesión
+          </button>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Main content -->
+    <main class="flex-1 lg:ml-64 pt-16 lg:pt-0 min-h-screen">
+      <slot />
+    </main>
+
+    <script>
+      async function logout() {
+        await fetch("/api/auth/logout", { method: "POST" });
+        window.location.href = "/login";
+      }
+
+      document.getElementById("logoutBtn")?.addEventListener("click", logout);
+      document.getElementById("logoutBtnMobile")?.addEventListener("click", logout);
+
+      const menuToggle = document.getElementById("menuToggle");
+      const mobileMenu = document.getElementById("mobileMenu");
+      const menuClose  = document.getElementById("menuClose");
+
+      menuToggle?.addEventListener("click", () => mobileMenu?.classList.remove("hidden"));
+      menuClose?.addEventListener("click",  () => mobileMenu?.classList.add("hidden"));
+      mobileMenu?.addEventListener("click", (e) => {
+        if (e.target === mobileMenu) mobileMenu.classList.add("hidden");
+      });
+
+      // ── Auto-logout para médicos (10 min = 600 000 ms) ───────────────────
+      // Si el role es médico, iniciamos un temporizador que hace logout
+      // automático y redirige a login cuando el JWT expira.
+      const ROLE = document.body.dataset.role;
+      if (ROLE === "medico") {
+        const SESSION_MS = 10 * 60 * 1000; // 10 minutos
+        const WARN_MS    =  9 * 60 * 1000; //  9 minutos → aviso 1 min antes
+
+        // Aviso en el minuto 9
+        setTimeout(() => {
+          const banner = document.getElementById("sessionWarnBanner");
+          if (banner) {
+            banner.classList.remove("hidden");
+            // Cuenta regresiva de 60 s
+            let secs = 60;
+            const countdown = document.getElementById("sessionCountdown");
+            const interval = setInterval(() => {
+              secs--;
+              if (countdown) countdown.textContent = String(secs);
+              if (secs <= 0) clearInterval(interval);
+            }, 1000);
+          }
+        }, WARN_MS);
+
+        // Logout automático en el minuto 10
+        setTimeout(async () => {
+          await fetch("/api/auth/logout", { method: "POST" });
+          window.location.href = "/login?razon=expiracion";
+        }, SESSION_MS);
+      }
+
+      // ── Mensaje si fue redirigido por sesión duplicada o expiración ───────
+      const params = new URLSearchParams(window.location.search);
+      const razon  = params.get("razon");
+      if (razon === "sesion_duplicada") {
+        alert("⚠️ Tu sesión fue cerrada porque iniciaste sesión desde otro dispositivo o navegador.");
+      } else if (razon === "expiracion") {
+        // Mostrado en la página de login, no aquí
+      }
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  html {
+    scroll-behavior: smooth;
+  }
+</style>

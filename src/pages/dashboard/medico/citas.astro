@@ -1,0 +1,266 @@
+---
+import DashboardLayout from "../../../components/common/DashboardLayout.astro";
+import { getSessionFromRequest } from "../../../lib/session";
+import connectDB from "../../../lib/db";
+import { Cita } from "../../../models/Cita";
+import { User } from "../../../models/User";
+
+const session = getSessionFromRequest(Astro.request);
+if (!session || session.role !== "medico") return Astro.redirect("/login");
+
+await connectDB();
+
+const hoy = new Date();
+hoy.setHours(0, 0, 0, 0);
+const finSemana = new Date(hoy);
+finSemana.setDate(finSemana.getDate() + 7);
+
+const [citasProximas, pacientes] = await Promise.all([
+  Cita.find({
+    medico: session.userId,
+    fecha: { $gte: hoy, $lte: finSemana },
+    estado: { $ne: "cancelada" },
+  })
+    .populate("paciente", "nombre apellido")
+    .sort({ fecha: 1 }),
+  User.find({ role: "paciente", medicoAsignado: session.userId })
+    .select("_id nombre apellido")
+    .sort({ nombre: 1 }),
+]);
+---
+
+<DashboardLayout
+  title="Citas"
+  role="medico"
+  nombre={session.nombre}
+  activeSection="/dashboard/medico/citas"
+>
+  <div class="p-6 lg:p-8">
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Agenda de Citas</h1>
+        <p class="text-gray-500 mt-1">Próximos 7 días</p>
+      </div>
+      <button
+        id="nuevaCitaBtn"
+        class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
+      >
+        ➕ Nueva Cita
+      </button>
+    </div>
+
+    <!-- Citas de la semana -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {
+        citasProximas.length === 0 ? (
+          <div class="p-12 text-center text-gray-400">
+            <p class="text-5xl mb-3">📅</p>
+            <p class="font-medium">Sin citas esta semana</p>
+          </div>
+        ) : (
+          <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
+                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha y Hora</th>
+                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+              {citasProximas.map((c: any) => (
+                <tr class="hover:bg-gray-50 transition-colors">
+                  <td class="px-5 py-4">
+                    <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm">
+                        {c.paciente.nombre.charAt(0)}
+                      </div>
+                      <span class="text-sm font-medium text-gray-900">{c.paciente.nombre} {c.paciente.apellido}</span>
+                    </div>
+                  </td>
+                  <td class="px-5 py-4 text-sm text-gray-600">
+                    {new Date(c.fecha).toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" })}
+                    {" "}{new Date(c.fecha).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
+                  </td>
+                  <td class="px-5 py-4">
+                    <span class="text-xs capitalize bg-blue-50 text-blue-700 px-2 py-1 rounded-full">{c.tipo}</span>
+                  </td>
+                  <td class="px-5 py-4">
+                    <span class={`text-xs capitalize px-2 py-1 rounded-full font-medium
+                      ${c.estado === "confirmada" ? "bg-green-50 text-green-700" :
+                        c.estado === "pendiente" ? "bg-amber-50 text-amber-700" :
+                        "bg-gray-50 text-gray-600"}`}>
+                      {c.estado}
+                    </span>
+                  </td>
+                  <td class="px-5 py-4">
+                    <div class="flex gap-2">
+                      <button
+                        data-id={c._id}
+                        data-action="confirmar"
+                        class="text-xs px-2 py-1 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 confirm-btn"
+                      >
+                        Confirmar
+                      </button>
+                      <button
+                        data-id={c._id}
+                        data-action="cancelar"
+                        class="text-xs px-2 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 cancel-btn"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )
+      }
+    </div>
+  </div>
+
+  <!-- Modal nueva cita -->
+  <div
+    id="modalCita"
+    class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+  >
+    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
+      <h2 class="text-lg font-semibold mb-5">Nueva Cita</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="text-sm font-medium text-gray-700 block mb-1">Paciente</label>
+          <select
+            id="citaPaciente"
+            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Seleccionar paciente...</option>
+            {
+              pacientes.map((p: any) => (
+                <option value={p._id}>
+                  {p.nombre} {p.apellido}
+                </option>
+              ))
+            }
+          </select>
+        </div>
+        <div>
+          <label class="text-sm font-medium text-gray-700 block mb-1">Fecha y Hora</label>
+          <input
+            id="citaFecha"
+            type="datetime-local"
+            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label class="text-sm font-medium text-gray-700 block mb-1">Tipo</label>
+          <select
+            id="citaTipo"
+            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="evaluacion">Evaluación</option>
+            <option value="tratamiento" selected>Tratamiento</option>
+            <option value="seguimiento">Seguimiento</option>
+            <option value="alta">Alta</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm font-medium text-gray-700 block mb-1">Duración (min)</label>
+          <input
+            id="citaDuracion"
+            type="number"
+            value="60"
+            min="15"
+            max="180"
+            step="15"
+            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label class="text-sm font-medium text-gray-700 block mb-1">Notas (opcional)</label>
+          <textarea
+            id="citaNotas"
+            rows="2"
+            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          ></textarea>
+        </div>
+        <div id="citaError" class="hidden text-sm text-red-500"></div>
+        <div class="flex gap-3 pt-2">
+          <button
+            id="cancelarCita"
+            class="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50"
+          >
+            Cancelar
+          </button>
+          <button
+            id="guardarCita"
+            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700"
+          >
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  document.getElementById("nuevaCitaBtn")?.addEventListener("click", () => {
+    document.getElementById("modalCita")?.classList.remove("hidden");
+  });
+  document.getElementById("cancelarCita")?.addEventListener("click", () => {
+    document.getElementById("modalCita")?.classList.add("hidden");
+  });
+
+  document.getElementById("guardarCita")?.addEventListener("click", async () => {
+    const paciente = (document.getElementById("citaPaciente") as HTMLSelectElement).value;
+    const fecha = (document.getElementById("citaFecha") as HTMLInputElement).value;
+    const tipo = (document.getElementById("citaTipo") as HTMLSelectElement).value;
+    const duracion = (document.getElementById("citaDuracion") as HTMLInputElement).value;
+    const notas = (document.getElementById("citaNotas") as HTMLTextAreaElement).value;
+    const errorEl = document.getElementById("citaError")!;
+
+    if (!paciente || !fecha) {
+      errorEl.textContent = "Selecciona un paciente y una fecha";
+      errorEl.classList.remove("hidden");
+      return;
+    }
+
+    const res = await fetch("/api/medico/citas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paciente, fecha, tipo, duracion: Number(duracion), notas }),
+    });
+
+    if (res.ok) {
+      window.location.reload();
+    } else {
+      const data = await res.json();
+      errorEl.textContent = data.error || "Error al guardar";
+      errorEl.classList.remove("hidden");
+    }
+  });
+
+  // Confirmar / cancelar cita
+  document.querySelectorAll(".confirm-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-id");
+      await fetch(`/api/medico/cita/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado: "confirmada" }),
+      });
+      window.location.reload();
+    });
+  });
+
+  document.querySelectorAll(".cancel-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("¿Cancelar esta cita?")) return;
+      const id = btn.getAttribute("data-id");
+      await fetch(`/api/medico/cita/${id}`, { method: "DELETE" });
+      window.location.reload();
+    });
+  });
+</script>

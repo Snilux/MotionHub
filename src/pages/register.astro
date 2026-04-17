@@ -843,29 +843,28 @@ import Icon from "../components/common/Icons.astro";
             submitButton.textContent = "Creando cuenta...";
 
             try {
-                // Preparar datos para enviar
+                // Enviar al API real
                 const formData = {
-                    name: sanitizeInput(name),
+                    nombre: sanitizeInput(name).split(" ")[0] || sanitizeInput(name),
+                    apellido: sanitizeInput(name).split(" ").slice(1).join(" ") || ".",
                     email: sanitizeInput(email),
-                    password, // No sanitizar la contraseña
-                    userType,
+                    password,
+                    role: userType === "medico" ? "medico" : "paciente",
                 };
 
-                // Aquí iría tu lógica de envío al servidor
-                console.log("Datos del formulario:", formData);
+                const response = await fetch("/api/auth/register", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(formData),
+                });
 
-                // Simulación de envío
-                await new Promise((resolve) => setTimeout(resolve, 2000));
-
-                showFormMessage(
-                    "success",
-                    "¡Cuenta creada exitosamente! Redirigiendo...",
-                );
-
-                // Simular redirección
-                setTimeout(() => {
-                    window.location.href = "/dashboard";
-                }, 1500);
+                const data = await response.json();
+                if (data.redirect) {
+                  window.location.href = data.redirect;
+                } else {
+                  showFormMessage("success", "¡Cuenta creada exitosamente! Redirigiendo...");
+                  setTimeout(() => { window.location.href = "/login"; }, 1500);
+                }
             } catch (error) {
                 showFormMessage(
                     "error",

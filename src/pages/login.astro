@@ -38,7 +38,9 @@ import AnimationBgAuth from "../components/common/AnimationBgAuth.astro";
                     </p>
                 </div>
 
-                <form class="space-y-6">
+                <div id="loginError" class="hidden text-sm text-red-600 bg-red-50 px-3 py-2 rounded-xl mb-2"></div>
+                <div id="loginInfo"  class="hidden text-sm text-amber-700 bg-amber-50 px-3 py-2 rounded-xl mb-2"></div>
+                <form id="loginForm" class="space-y-6">
                     <!-- Email Input -->
                     <div>
                         <label
@@ -144,3 +146,42 @@ import AnimationBgAuth from "../components/common/AnimationBgAuth.astro";
         </div>
     </div>
 </Layout>
+
+<script>
+  // Mostrar mensaje si fue redirigido por expiración o sesión duplicada
+  const razon = new URLSearchParams(window.location.search).get("razon");
+  const info  = document.getElementById("loginInfo");
+  if (info) {
+    if (razon === "expiracion") {
+      info.textContent = "⏱️ Tu sesión expiró por inactividad. Inicia sesión nuevamente.";
+      info.classList.remove("hidden");
+    } else if (razon === "sesion_duplicada") {
+      info.textContent = "⚠️ Tu sesión fue cerrada porque iniciaste sesión desde otro dispositivo.";
+      info.classList.remove("hidden");
+    }
+  }
+
+  document.getElementById("loginForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = (document.getElementById("email") as HTMLInputElement).value;
+    const password = (document.getElementById("password") as HTMLInputElement).value;
+    const errorEl = document.getElementById("loginError")!;
+    const btn = e.submitter as HTMLButtonElement;
+    if (btn) { btn.disabled = true; btn.textContent = "Iniciando sesión..."; }
+
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      window.location.href = data.redirect;
+    } else {
+      errorEl.textContent = data.error || "Error al iniciar sesión";
+      errorEl.classList.remove("hidden");
+      if (btn) { btn.disabled = false; btn.textContent = "Iniciar sesión"; }
+    }
+  });
+</script>

@@ -6,15 +6,23 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "seed": "node src/scripts/seed.js"
   },
   "dependencies": {
     "@astrojs/node": "^10.0.5",
     "@fontsource-variable/baloo-bhaijaan-2": "^5.2.7",
     "@fontsource-variable/inter": "^5.2.8",
     "@tailwindcss/vite": "^4.1.18",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/nodemailer": "^8.0.0",
     "astro": "^6.1.7",
+    "bcryptjs": "^3.0.3",
     "gsap": "^3.14.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.4.1",
+    "nodemailer": "^8.0.5",
     "tailwindcss": "^4.1.18"
   }
 }

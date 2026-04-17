@@ -1,0 +1,96 @@
+---
+import DashboardLayout from "../../../components/common/DashboardLayout.astro";
+import { getSessionFromRequest } from "../../../lib/session";
+import connectDB from "../../../lib/db";
+import { Cita } from "../../../models/Cita";
+
+const session = getSessionFromRequest(Astro.request);
+if (!session || session.role !== "paciente") return Astro.redirect("/login");
+
+await connectDB();
+
+const hoy = new Date();
+const citas = await Cita.find({ paciente: session.userId })
+  .populate("medico", "nombre apellido especialidad")
+  .sort({ fecha: -1 });
+
+const proximas = citas.filter((c: any) => new Date(c.fecha) >= hoy && c.estado !== "cancelada");
+const pasadas = citas.filter((c: any) => new Date(c.fecha) < hoy || c.estado === "completada");
+---
+
+<DashboardLayout
+  title="Mis Citas"
+  role="paciente"
+  nombre={session.nombre}
+  activeSection="/dashboard/paciente/citas"
+>
+  <div class="p-6 lg:p-8">
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold text-gray-900">Mis Citas</h1>
+      <p class="text-gray-500 mt-1">{proximas.length} cita(s) próximas</p>
+    </div>
+
+    <!-- Próximas citas -->
+    <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Próximas</h2>
+    {proximas.length === 0 ? (
+      <div class="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-400 mb-6">
+        <p class="text-4xl mb-2">🗓️</p>
+        <p class="text-sm">No tienes citas próximas</p>
+      </div>
+    ) : (
+      <div class="space-y-3 mb-8">
+        {proximas.map((c: any) => (
+          <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-blue-50 flex flex-col items-center justify-center flex-shrink-0">
+                  <span class="text-xs font-bold text-blue-600">
+                    {new Date(c.fecha).toLocaleDateString("es-MX", { month: "short" }).toUpperCase()}
+                  </span>
+                  <span class="text-lg font-bold text-blue-700">{new Date(c.fecha).getDate()}</span>
+                </div>
+                <div>
+                  <p class="font-semibold text-gray-900 capitalize">{c.tipo}</p>
+                  <p class="text-sm text-gray-500">
+                    Dr. {c.medico.nombre} {c.medico.apellido} · {c.medico.especialidad || "Fisioterapeuta"}
+                  </p>
+                  <p class="text-xs text-gray-400 mt-0.5">
+                    {new Date(c.fecha).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })} · {c.duracion} min
+                  </p>
+                </div>
+              </div>
+              <span class={`text-xs px-3 py-1 rounded-full font-medium flex-shrink-0
+                ${c.estado === "confirmada" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
+                {c.estado}
+              </span>
+            </div>
+            {c.notas && (
+              <p class="mt-3 text-sm text-gray-600 bg-gray-50 rounded-xl px-3 py-2">📝 {c.notas}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    )}
+
+    <!-- Historial -->
+    {pasadas.length > 0 && (
+      <>
+        <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Historial</h2>
+        <div class="space-y-2">
+          {pasadas.slice(0, 10).map((c: any) => (
+            <div class="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between opacity-70">
+              <div>
+                <p class="text-sm font-medium text-gray-700 capitalize">{c.tipo}</p>
+                <p class="text-xs text-gray-400">
+                  {new Date(c.fecha).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })}
+                  · Dr. {c.medico.nombre} {c.medico.apellido}
+                </p>
+              </div>
+              <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500 capitalize">{c.estado}</span>
+            </div>
+          ))}
+        </div>
+      </>
+    )}
+  </div>
+</DashboardLayout>
