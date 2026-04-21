@@ -13,200 +13,206 @@ await connectDB();
 const pacienteId = Astro.url.searchParams.get("paciente");
 const [expedientes, pacientes] = await Promise.all([
   Expediente.find({ medico: session.userId })
-    .populate("paciente", "nombre apellido email fechaNacimiento")
+    .populate("paciente","nombre apellido email fechaNacimiento")
     .sort({ updatedAt: -1 }),
-  User.find({ role: "paciente", medicoAsignado: session.userId })
-    .select("_id nombre apellido"),
+  User.find({ role:"paciente", medicoAsignado: session.userId }).select("_id nombre apellido"),
 ]);
 
 const expedienteSeleccionado = pacienteId
   ? expedientes.find((e: any) => e.paciente._id.toString() === pacienteId)
   : null;
+
+const meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 ---
 
-<DashboardLayout
-  title="Expedientes"
-  role="medico"
-  nombre={session.nombre}
-  activeSection="/dashboard/medico/expedientes"
->
-  <div class="p-6 lg:p-8">
-    <div class="flex items-center justify-between mb-8">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">Expedientes Clínicos</h1>
-        <p class="text-gray-500 mt-1">{expedientes.length} expedientes</p>
-      </div>
-      <button
-        id="nuevoExpBtn"
-        class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
-      >
-        ➕ Nuevo Expediente
-      </button>
-    </div>
+<DashboardLayout title="Expedientes" role="medico" nombre={session.nombre} activeSection="/dashboard/medico/expedientes">
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Lista de expedientes -->
-      <div class="lg:col-span-1 space-y-3">
-        {expedientes.length === 0 ? (
-          <div class="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-400">
-            <p class="text-4xl mb-2">📋</p>
-            <p class="text-sm">Sin expedientes aún</p>
-          </div>
-        ) : (
-          expedientes.map((e: any) => (
-            <a
-              href={`/dashboard/medico/expedientes?paciente=${e.paciente._id}`}
-              class={`block bg-white rounded-2xl border p-4 hover:shadow-md transition-all
-                ${pacienteId === e.paciente._id.toString() ? "border-blue-400 shadow-md" : "border-gray-100"}`}
-            >
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold">
+  <div class="border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+    <div>
+      <p class="text-xs text-gray-400 font-light tracking-widest uppercase">Clínico</p>
+      <h1 class="text-xl font-baloo tracking-wide mt-0.5"><strong>Expedientes</strong></h1>
+    </div>
+    <button id="nuevoExpBtn"
+      class="text-xs border border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white transition-colors duration-200 tracking-wide font-light">
+      + Nuevo expediente
+    </button>
+  </div>
+
+  <div class="flex h-[calc(100vh-65px)]">
+
+    <!-- Lista lateral -->
+    <div class="w-64 border-r border-gray-200 flex flex-col shrink-0 overflow-y-auto">
+      <div class="px-4 py-3 border-b border-gray-100">
+        <p class="text-xs text-gray-400 font-light tracking-wide">{expedientes.length} expediente{expedientes.length!==1?"s":""}</p>
+      </div>
+      {expedientes.length === 0 ? (
+        <div class="px-4 py-8 text-center">
+          <p class="text-xs text-gray-400 font-light">Sin expedientes</p>
+        </div>
+      ) : (
+        <div class="divide-y divide-gray-100">
+          {expedientes.map((e: any) => (
+            <a href={`/dashboard/medico/expedientes?paciente=${e.paciente._id}`}
+              class={`block px-4 py-3.5 hover:bg-gray-50 transition-colors
+                ${pacienteId===e.paciente._id.toString() ? "bg-gray-50 border-l-2 border-black" : ""}`}>
+              <div class="flex items-center gap-2.5">
+                <div class="w-6 h-6 rounded-full bg-black flex items-center justify-center text-white text-xs font-baloo font-bold shrink-0">
                   {e.paciente.nombre.charAt(0)}
                 </div>
-                <div>
-                  <p class="font-medium text-gray-900 text-sm">{e.paciente.nombre} {e.paciente.apellido}</p>
-                  <p class="text-xs text-gray-500 truncate max-w-[160px]">{e.diagnostico}</p>
+                <div class="min-w-0">
+                  <p class="text-xs font-medium text-gray-900 truncate">{e.paciente.nombre} {e.paciente.apellido}</p>
+                  <p class="text-xs text-gray-400 font-light truncate">{e.diagnostico}</p>
                 </div>
               </div>
             </a>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
+    </div>
 
-      <!-- Detalle expediente -->
-      <div class="lg:col-span-2">
-        {!expedienteSeleccionado ? (
-          <div class="bg-white rounded-2xl border border-gray-100 p-12 text-center text-gray-400">
-            <p class="text-5xl mb-3">📋</p>
-            <p class="font-medium">Selecciona un expediente</p>
+    <!-- Detalle -->
+    <div class="flex-1 overflow-y-auto">
+      {!expedienteSeleccionado ? (
+        <div class="flex items-center justify-center h-full">
+          <div class="text-center">
+            <p class="text-5xl font-baloo text-gray-200 mb-3">—</p>
+            <p class="text-sm text-gray-400 font-light">Selecciona un expediente</p>
           </div>
-        ) : (
-          <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
-            <!-- Cabecera -->
-            <div class="flex items-start justify-between border-b border-gray-100 pb-4">
+        </div>
+      ) : (
+        <div class="px-8 py-6 space-y-6 max-w-2xl">
+
+          <!-- Header paciente -->
+          <div class="flex items-start justify-between pb-5 border-b border-gray-200">
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-full bg-black flex items-center justify-center text-white font-baloo font-bold">
+                {(expedienteSeleccionado as any).paciente.nombre.charAt(0)}
+              </div>
               <div>
-                <h2 class="text-lg font-bold text-gray-900">
-                  {(expedienteSeleccionado as any).paciente.nombre} {(expedienteSeleccionado as any).paciente.apellido}
+                <h2 class="font-baloo tracking-wide text-lg">
+                  <strong>{(expedienteSeleccionado as any).paciente.nombre} {(expedienteSeleccionado as any).paciente.apellido}</strong>
                 </h2>
-                <p class="text-sm text-gray-500">{(expedienteSeleccionado as any).paciente.email}</p>
-              </div>
-              <div class="text-right text-xs text-gray-400">
-                <p>Actualizado: {new Date((expedienteSeleccionado as any).updatedAt).toLocaleDateString("es-MX")}</p>
+                <p class="text-xs text-gray-400 font-light">{(expedienteSeleccionado as any).paciente.email}</p>
               </div>
             </div>
+            <p class="text-xs text-gray-400 font-light">
+              Actualizado: {new Date((expedienteSeleccionado as any).updatedAt).getDate()} {meses[new Date((expedienteSeleccionado as any).updatedAt).getMonth()]}
+            </p>
+          </div>
 
-            <!-- Datos -->
-            <div class="grid grid-cols-2 gap-4">
-              {[
-                { label: "Diagnóstico", value: (expedienteSeleccionado as any).diagnostico },
-                { label: "Motivo de Consulta", value: (expedienteSeleccionado as any).motivoConsulta },
-                { label: "Antecedentes", value: (expedienteSeleccionado as any).antecedentes },
-                { label: "Alergias", value: (expedienteSeleccionado as any).alergias },
-                { label: "Medicamentos", value: (expedienteSeleccionado as any).medicamentos },
-                { label: "Presión Arterial", value: (expedienteSeleccionado as any).presionArterial },
-              ].map(({ label, value }) => value ? (
-                <div class="col-span-2 sm:col-span-1">
-                  <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{label}</p>
-                  <p class="text-sm text-gray-800 bg-gray-50 rounded-xl px-3 py-2">{value}</p>
+          <!-- Datos clínicos -->
+          <div class="grid grid-cols-2 gap-4">
+            {[
+              { label:"Diagnóstico",       value:(expedienteSeleccionado as any).diagnostico },
+              { label:"Motivo de consulta", value:(expedienteSeleccionado as any).motivoConsulta },
+              { label:"Antecedentes",      value:(expedienteSeleccionado as any).antecedentes },
+              { label:"Alergias",          value:(expedienteSeleccionado as any).alergias },
+              { label:"Medicamentos",      value:(expedienteSeleccionado as any).medicamentos },
+              { label:"Presión arterial",  value:(expedienteSeleccionado as any).presionArterial },
+            ].map(({label,value}) => value ? (
+              <div>
+                <p class="text-xs text-gray-400 font-light uppercase tracking-widest mb-1">{label}</p>
+                <p class="text-sm font-light text-gray-800 border border-gray-200 rounded-lg px-3 py-2">{value}</p>
+              </div>
+            ) : null)}
+          </div>
+
+          <!-- Datos físicos -->
+          {((expedienteSeleccionado as any).altura || (expedienteSeleccionado as any).peso) && (
+            <div class="flex gap-3">
+              {(expedienteSeleccionado as any).altura && (
+                <div class="border border-gray-200 rounded-lg px-5 py-3 text-center">
+                  <p class="text-xs text-gray-400 font-light uppercase tracking-wide">Altura</p>
+                  <p class="text-xl font-baloo font-bold mt-0.5">{(expedienteSeleccionado as any).altura}<span class="text-xs font-light text-gray-400 ml-1">cm</span></p>
                 </div>
-              ) : null)}
+              )}
+              {(expedienteSeleccionado as any).peso && (
+                <div class="border border-gray-200 rounded-lg px-5 py-3 text-center">
+                  <p class="text-xs text-gray-400 font-light uppercase tracking-wide">Peso</p>
+                  <p class="text-xl font-baloo font-bold mt-0.5">{(expedienteSeleccionado as any).peso}<span class="text-xs font-light text-gray-400 ml-1">kg</span></p>
+                </div>
+              )}
             </div>
+          )}
 
-            <!-- Datos físicos -->
-            {((expedienteSeleccionado as any).altura || (expedienteSeleccionado as any).peso) && (
-              <div class="flex gap-4">
-                {(expedienteSeleccionado as any).altura && (
-                  <div class="bg-blue-50 rounded-xl px-4 py-3 text-center">
-                    <p class="text-xs text-gray-500">Altura</p>
-                    <p class="font-bold text-blue-700">{(expedienteSeleccionado as any).altura} cm</p>
+          <!-- Notas evolución -->
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-xs text-gray-500 font-light uppercase tracking-widest">Notas de evolución</p>
+              <button id="agregarNotaBtn"
+                class="text-xs border border-gray-300 px-2.5 py-1 rounded-lg hover:border-black transition-colors font-light">
+                + Agregar nota
+              </button>
+            </div>
+            <div id="notaForm" class="hidden mb-3 space-y-2">
+              <textarea id="notaTexto" rows="3" placeholder="Nota de evolución..."
+                class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors resize-none"></textarea>
+              <button id="guardarNota" data-paciente={(expedienteSeleccionado as any).paciente._id}
+                class="px-4 py-2 bg-black text-white rounded-lg text-sm font-light hover:bg-gray-800 transition-colors">
+                Guardar nota
+              </button>
+            </div>
+            <div class="space-y-3 max-h-72 overflow-y-auto">
+              {(expedienteSeleccionado as any).evolucion?.length === 0 ? (
+                <p class="text-xs text-gray-400 font-light py-4">Sin notas de evolución</p>
+              ) : (
+                [...(expedienteSeleccionado as any).evolucion].reverse().map((nota: any) => (
+                  <div class="border-l border-gray-300 pl-4 py-1">
+                    <p class="text-xs text-gray-400 font-light mb-1">
+                      {new Date(nota.fecha).getDate()} {meses[new Date(nota.fecha).getMonth()]} {new Date(nota.fecha).getFullYear()}
+                    </p>
+                    <p class="text-sm font-light text-gray-700">{nota.nota}</p>
                   </div>
-                )}
-                {(expedienteSeleccionado as any).peso && (
-                  <div class="bg-blue-50 rounded-xl px-4 py-3 text-center">
-                    <p class="text-xs text-gray-500">Peso</p>
-                    <p class="font-bold text-blue-700">{(expedienteSeleccionado as any).peso} kg</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <!-- Notas de evolución -->
-            <div>
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="font-semibold text-gray-800">Notas de Evolución</h3>
-                <button id="agregarNotaBtn" class="text-xs text-blue-600 hover:text-blue-700 font-medium">
-                  + Agregar nota
-                </button>
-              </div>
-              <div id="notaForm" class="hidden mb-3">
-                <textarea id="notaTexto" rows="3" placeholder="Nota de evolución..."
-                  class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none mb-2"></textarea>
-                <button id="guardarNota" data-paciente={(expedienteSeleccionado as any).paciente._id}
-                  class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
-                  Guardar nota
-                </button>
-              </div>
-              <div class="space-y-3 max-h-64 overflow-y-auto">
-                {(expedienteSeleccionado as any).evolucion?.length === 0 ? (
-                  <p class="text-sm text-gray-400 text-center py-4">Sin notas de evolución</p>
-                ) : (
-                  [...(expedienteSeleccionado as any).evolucion].reverse().map((nota: any) => (
-                    <div class="border-l-2 border-blue-200 pl-3 py-1">
-                      <p class="text-xs text-gray-400 mb-1">{new Date(nota.fecha).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })}</p>
-                      <p class="text-sm text-gray-700">{nota.nota}</p>
-                    </div>
-                  ))
-                )}
-              </div>
+                ))
+              )}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   </div>
 
   <!-- Modal nuevo expediente -->
-  <div id="modalExp" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-      <h2 class="text-lg font-semibold mb-5">Nuevo Expediente</h2>
+  <div id="modalExp" class="hidden fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg border border-gray-200 shadow-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <h2 class="font-baloo tracking-wide text-base mb-1"><strong>Nuevo expediente</strong></h2>
+      <p class="text-xs text-gray-400 font-light mb-5">Historial clínico del paciente</p>
       <div class="space-y-3">
         <div>
-          <label class="text-sm font-medium text-gray-700 block mb-1">Paciente</label>
-          <select id="expPaciente" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <label class="text-xs text-gray-500 font-light block mb-1 uppercase tracking-wide">Paciente</label>
+          <select id="expPaciente" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black">
             <option value="">Seleccionar...</option>
-            {pacientes.map((p: any) => (
-              <option value={p._id}>{p.nombre} {p.apellido}</option>
-            ))}
+            {pacientes.map((p: any) => <option value={p._id}>{p.nombre} {p.apellido}</option>)}
           </select>
         </div>
         {[
-          { id: "expDiagnostico", label: "Diagnóstico", required: true },
-          { id: "expMotivo", label: "Motivo de consulta", required: true },
-          { id: "expAntecedentes", label: "Antecedentes" },
-          { id: "expAlergias", label: "Alergias" },
-          { id: "expMedicamentos", label: "Medicamentos actuales" },
-          { id: "expPresion", label: "Presión arterial" },
-        ].map(({ id, label, required }) => (
+          {id:"expDiagnostico", label:"Diagnóstico *"},
+          {id:"expMotivo",      label:"Motivo de consulta *"},
+          {id:"expAntecedentes",label:"Antecedentes"},
+          {id:"expAlergias",    label:"Alergias"},
+          {id:"expMedicamentos",label:"Medicamentos actuales"},
+          {id:"expPresion",     label:"Presión arterial"},
+        ].map(({id,label}) => (
           <div>
-            <label class="text-sm font-medium text-gray-700 block mb-1">{label}{required ? " *" : ""}</label>
+            <label class="text-xs text-gray-500 font-light block mb-1 uppercase tracking-wide">{label}</label>
             <input id={id} type="text"
-              class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors" />
           </div>
         ))}
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="text-sm font-medium text-gray-700 block mb-1">Altura (cm)</label>
-            <input id="expAltura" type="number" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <label class="text-xs text-gray-500 font-light block mb-1 uppercase tracking-wide">Altura (cm)</label>
+            <input id="expAltura" type="number" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors" />
           </div>
           <div>
-            <label class="text-sm font-medium text-gray-700 block mb-1">Peso (kg)</label>
-            <input id="expPeso" type="number" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <label class="text-xs text-gray-500 font-light block mb-1 uppercase tracking-wide">Peso (kg)</label>
+            <input id="expPeso" type="number" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors" />
           </div>
         </div>
-        <div id="expError" class="hidden text-sm text-red-500"></div>
-        <div class="flex gap-3 pt-2">
-          <button id="cancelarExp" class="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50">Cancelar</button>
-          <button id="guardarExp" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">Guardar</button>
+        <div id="expError" class="hidden text-xs text-gray-500 font-light"></div>
+        <div class="flex gap-2 pt-1">
+          <button id="cancelarExp" class="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-light hover:border-gray-400 transition-colors">Cancelar</button>
+          <button id="guardarExp"  class="flex-1 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-light hover:bg-gray-800 transition-colors">Guardar</button>
         </div>
       </div>
     </div>
@@ -216,54 +222,30 @@ const expedienteSeleccionado = pacienteId
 <script>
   document.getElementById("nuevoExpBtn")?.addEventListener("click", () => document.getElementById("modalExp")?.classList.remove("hidden"));
   document.getElementById("cancelarExp")?.addEventListener("click", () => document.getElementById("modalExp")?.classList.add("hidden"));
-
   document.getElementById("guardarExp")?.addEventListener("click", async () => {
     const paciente = (document.getElementById("expPaciente") as HTMLSelectElement).value;
     const diagnostico = (document.getElementById("expDiagnostico") as HTMLInputElement).value;
     const motivoConsulta = (document.getElementById("expMotivo") as HTMLInputElement).value;
     const errorEl = document.getElementById("expError")!;
-    if (!paciente || !diagnostico || !motivoConsulta) {
-      errorEl.textContent = "Paciente, diagnóstico y motivo son requeridos";
-      errorEl.classList.remove("hidden");
-      return;
-    }
-    const res = await fetch("/api/medico/expediente", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        paciente,
-        diagnostico,
-        motivoConsulta,
-        antecedentes: (document.getElementById("expAntecedentes") as HTMLInputElement).value,
-        alergias: (document.getElementById("expAlergias") as HTMLInputElement).value,
-        medicamentos: (document.getElementById("expMedicamentos") as HTMLInputElement).value,
-        presionArterial: (document.getElementById("expPresion") as HTMLInputElement).value,
-        altura: Number((document.getElementById("expAltura") as HTMLInputElement).value) || undefined,
-        peso: Number((document.getElementById("expPeso") as HTMLInputElement).value) || undefined,
-      }),
-    });
-    if (res.ok) {
-      window.location.href = `/dashboard/medico/expedientes?paciente=${paciente}`;
-    } else {
-      const data = await res.json();
-      errorEl.textContent = data.error || "Error al guardar";
-      errorEl.classList.remove("hidden");
-    }
+    if (!paciente||!diagnostico||!motivoConsulta) { errorEl.textContent="Paciente, diagnóstico y motivo son requeridos"; errorEl.classList.remove("hidden"); return; }
+    const res = await fetch("/api/medico/expediente",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      paciente,diagnostico,motivoConsulta,
+      antecedentes:(document.getElementById("expAntecedentes") as HTMLInputElement).value,
+      alergias:(document.getElementById("expAlergias") as HTMLInputElement).value,
+      medicamentos:(document.getElementById("expMedicamentos") as HTMLInputElement).value,
+      presionArterial:(document.getElementById("expPresion") as HTMLInputElement).value,
+      altura:Number((document.getElementById("expAltura") as HTMLInputElement).value)||undefined,
+      peso:Number((document.getElementById("expPeso") as HTMLInputElement).value)||undefined,
+    })});
+    if (res.ok) { window.location.href=`/dashboard/medico/expedientes?paciente=${paciente}`; }
+    else { const d=await res.json(); errorEl.textContent=d.error||"Error"; errorEl.classList.remove("hidden"); }
   });
-
-  document.getElementById("agregarNotaBtn")?.addEventListener("click", () => {
-    document.getElementById("notaForm")?.classList.toggle("hidden");
-  });
-
+  document.getElementById("agregarNotaBtn")?.addEventListener("click", () => document.getElementById("notaForm")?.classList.toggle("hidden"));
   document.getElementById("guardarNota")?.addEventListener("click", async () => {
     const nota = (document.getElementById("notaTexto") as HTMLTextAreaElement).value;
     const pacienteId = document.getElementById("guardarNota")?.getAttribute("data-paciente");
     if (!nota.trim()) return;
-    const res = await fetch("/api/medico/expediente", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pacienteId, notaEvolucion: nota }),
-    });
+    const res = await fetch("/api/medico/expediente",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({pacienteId,notaEvolucion:nota})});
     if (res.ok) window.location.reload();
   });
 </script>

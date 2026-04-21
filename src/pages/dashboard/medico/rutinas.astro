@@ -9,7 +9,6 @@ const session = getSessionFromRequest(Astro.request);
 if (!session || session.role !== "medico") return Astro.redirect("/login");
 
 await connectDB();
-
 const pacienteId = Astro.url.searchParams.get("paciente");
 const filtro: Record<string, unknown> = { medico: session.userId };
 if (pacienteId) filtro.paciente = pacienteId;
@@ -18,8 +17,9 @@ const [rutinas, pacientes] = await Promise.all([
   Rutina.find(filtro)
     .populate("paciente", "nombre apellido")
     .sort({ createdAt: -1 }),
-  User.find({ role: "paciente", medicoAsignado: session.userId })
-    .select("_id nombre apellido"),
+  User.find({ role: "paciente", medicoAsignado: session.userId }).select(
+    "_id nombre apellido",
+  ),
 ]);
 ---
 
@@ -29,57 +29,93 @@ const [rutinas, pacientes] = await Promise.all([
   nombre={session.nombre}
   activeSection="/dashboard/medico/rutinas"
 >
-  <div class="p-6 lg:p-8">
-    <div class="flex items-center justify-between mb-8">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">Rutinas de Fisioterapia</h1>
-        <p class="text-gray-500 mt-1">{rutinas.length} rutinas creadas</p>
-      </div>
-      <button
-        id="nuevaRutinaBtn"
-        class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
-      >
-        ➕ Nueva Rutina
-      </button>
+  <div
+    class="border-b border-gray-200 px-8 py-4 flex items-center justify-between"
+  >
+    <div>
+      <p class="text-xs text-gray-400 font-light tracking-widest uppercase">
+        Programas
+      </p>
+      <h1 class="text-xl font-baloo tracking-wide mt-0.5">
+        <strong>Rutinas</strong> de fisioterapia
+      </h1>
     </div>
+    <button
+      id="nuevaRutinaBtn"
+      class="text-xs border border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white transition-colors duration-200 tracking-wide font-light"
+    >
+      + Nueva rutina
+    </button>
+  </div>
+
+  <div class="px-8 py-6">
+    <p class="text-xs text-gray-400 font-light mb-5 tracking-wide">
+      {rutinas.length} rutina{rutinas.length !== 1 ? "s" : ""} creada{
+        rutinas.length !== 1 ? "s" : ""
+      }
+    </p>
 
     {
       rutinas.length === 0 ? (
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center text-gray-400">
-          <p class="text-5xl mb-3">🏋️</p>
-          <p class="font-medium">No hay rutinas aún</p>
+        <div class="border border-gray-200 rounded-lg py-16 text-center">
+          <p class="text-4xl font-baloo text-gray-200 mb-2">—</p>
+          <p class="text-sm text-gray-400 font-light">
+            Sin rutinas creadas aún
+          </p>
         </div>
       ) : (
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="border border-gray-200 rounded-lg divide-y divide-gray-100 overflow-hidden">
+          <div class="grid grid-cols-12 px-5 py-2.5 bg-gray-50">
+            <p class="col-span-3 text-xs text-gray-400 font-light uppercase tracking-widest">
+              Rutina
+            </p>
+            <p class="col-span-3 text-xs text-gray-400 font-light uppercase tracking-widest">
+              Paciente
+            </p>
+            <p class="col-span-2 text-xs text-gray-400 font-light uppercase tracking-widest">
+              Ejercicios
+            </p>
+            <p class="col-span-2 text-xs text-gray-400 font-light uppercase tracking-widest">
+              Estado
+            </p>
+            <p class="col-span-2 text-xs text-gray-400 font-light uppercase tracking-widest text-right">
+              Acciones
+            </p>
+          </div>
           {rutinas.map((r: any) => (
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <div class="flex items-start justify-between mb-3">
-                <div>
-                  <h3 class="font-semibold text-gray-900">{r.nombre}</h3>
-                  <p class="text-sm text-gray-500">{r.paciente.nombre} {r.paciente.apellido}</p>
-                </div>
-                <span class={`text-xs px-2 py-1 rounded-full font-medium ${r.activa ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-500"}`}>
+            <div class="grid grid-cols-12 px-5 py-3.5 items-center hover:bg-gray-50 transition-colors">
+              <div class="col-span-3">
+                <p class="text-sm font-medium text-gray-900 truncate">
+                  {r.nombre}
+                </p>
+                {r.objetivo && (
+                  <p class="text-xs text-gray-400 font-light truncate">
+                    {r.objetivo}
+                  </p>
+                )}
+              </div>
+              <p class="col-span-3 text-sm font-light text-gray-600">
+                {r.paciente.nombre} {r.paciente.apellido}
+              </p>
+              <p class="col-span-2 text-xs text-gray-500 font-light">
+                {r.ejercicios.length} ejercicio
+                {r.ejercicios.length !== 1 ? "s" : ""}
+              </p>
+              <div class="col-span-2">
+                <span
+                  class={`text-xs px-2.5 py-1 rounded-full font-light
+                ${r.activa ? "bg-black text-white" : "border border-gray-200 text-gray-400"}`}
+                >
                   {r.activa ? "Activa" : "Inactiva"}
                 </span>
               </div>
-              {r.objetivo && <p class="text-sm text-gray-600 mb-3">🎯 {r.objetivo}</p>}
-              <div class="flex items-center gap-4 text-xs text-gray-500 mb-4">
-                <span>📋 {r.ejercicios.length} ejercicios</span>
-                <span>🔄 {r.frecuencia}</span>
-              </div>
-              <div class="flex gap-2">
-                <a
-                  href={`/dashboard/medico/rutina/${r._id}`}
-                  class="flex-1 text-center text-xs py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg font-medium transition-colors"
-                >
-                  Ver detalle
-                </a>
+              <div class="col-span-2 flex justify-end gap-1.5">
                 <button
                   data-id={r._id}
                   data-activa={r.activa}
-                  class="flex-1 text-xs py-2 bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg font-medium toggle-btn"
+                  class="toggle-btn text-xs border border-gray-300 px-2.5 py-1 rounded-lg hover:border-black hover:text-black transition-colors font-light"
                 >
-                  {r.activa ? "Desactivar" : "Activar"}
+                  {r.activa ? "Pausar" : "Activar"}
                 </button>
               </div>
             </div>
@@ -92,54 +128,106 @@ const [rutinas, pacientes] = await Promise.all([
   <!-- Modal nueva rutina -->
   <div
     id="modalRutina"
-    class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+    class="hidden fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4"
   >
-    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-      <h2 class="text-lg font-semibold mb-5">Nueva Rutina</h2>
-      <div class="space-y-4">
+    <div
+      class="bg-white rounded-lg border border-gray-200 shadow-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+    >
+      <h2 class="font-baloo tracking-wide text-base mb-1">
+        <strong>Nueva rutina</strong>
+      </h2>
+      <p class="text-xs text-gray-400 font-light mb-5">
+        Define el programa de ejercicios
+      </p>
+      <div class="space-y-3">
         <div>
-          <label class="text-sm font-medium text-gray-700 block mb-1">Paciente</label>
-          <select id="rutinaPaciente" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <label
+            class="text-xs text-gray-500 font-light block mb-1 uppercase tracking-wide"
+            >Paciente</label
+          >
+          <select
+            id="rutinaPaciente"
+            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors"
+          >
             <option value="">Seleccionar paciente...</option>
-            {pacientes.map((p: any) => (
-              <option value={p._id}>{p.nombre} {p.apellido}</option>
-            ))}
+            {
+              pacientes.map((p: any) => (
+                <option value={p._id}>
+                  {p.nombre} {p.apellido}
+                </option>
+              ))
+            }
           </select>
         </div>
         <div>
-          <label class="text-sm font-medium text-gray-700 block mb-1">Nombre de la rutina</label>
-          <input id="rutinaNombre" type="text" placeholder="Ej: Rehabilitación rodilla derecha"
-            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <label
+            class="text-xs text-gray-500 font-light block mb-1 uppercase tracking-wide"
+            >Nombre de la rutina</label
+          >
+          <input
+            id="rutinaNombre"
+            type="text"
+            placeholder="Ej: Rehabilitación rodilla derecha"
+            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors"
+          />
         </div>
-        <div>
-          <label class="text-sm font-medium text-gray-700 block mb-1">Objetivo</label>
-          <input id="rutinaObjetivo" type="text" placeholder="Ej: Fortalecer cuádriceps"
-            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label
+              class="text-xs text-gray-500 font-light block mb-1 uppercase tracking-wide"
+              >Objetivo</label
+            >
+            <input
+              id="rutinaObjetivo"
+              type="text"
+              placeholder="Ej: Fortalecer cuádriceps"
+              class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors"
+            />
+          </div>
+          <div>
+            <label
+              class="text-xs text-gray-500 font-light block mb-1 uppercase tracking-wide"
+              >Frecuencia</label
+            >
+            <input
+              id="rutinaFrecuencia"
+              type="text"
+              placeholder="Ej: 3 veces/semana"
+              class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors"
+            />
+          </div>
         </div>
-        <div>
-          <label class="text-sm font-medium text-gray-700 block mb-1">Frecuencia</label>
-          <input id="rutinaFrecuencia" type="text" placeholder="Ej: 3 veces por semana"
-            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-
         <!-- Ejercicios -->
         <div>
           <div class="flex items-center justify-between mb-2">
-            <label class="text-sm font-medium text-gray-700">Ejercicios</label>
-            <button id="agregarEjercicio" type="button" class="text-xs text-blue-600 hover:text-blue-700 font-medium">
-              + Agregar ejercicio
+            <label
+              class="text-xs text-gray-500 font-light uppercase tracking-wide"
+              >Ejercicios</label
+            >
+            <button
+              id="agregarEjercicio"
+              type="button"
+              class="text-xs border border-gray-300 px-2.5 py-1 rounded-lg hover:border-black transition-colors font-light"
+            >
+              + Agregar
             </button>
           </div>
-          <div id="ejerciciosList" class="space-y-3"></div>
+          <div id="ejerciciosList" class="space-y-2"></div>
         </div>
-
-        <div id="rutinaError" class="hidden text-sm text-red-500"></div>
-        <div class="flex gap-3 pt-2">
-          <button id="cancelarRutina" class="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50">
+        <div id="rutinaError" class="hidden text-xs text-gray-500 font-light">
+        </div>
+        <div class="flex gap-2 pt-1">
+          <button
+            id="cancelarRutina"
+            class="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-light hover:border-gray-400 transition-colors"
+          >
             Cancelar
           </button>
-          <button id="guardarRutina" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
-            Guardar Rutina
+          <button
+            id="guardarRutina"
+            class="flex-1 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-light hover:bg-gray-800 transition-colors"
+          >
+            Guardar rutina
           </button>
         </div>
       </div>
@@ -149,80 +237,123 @@ const [rutinas, pacientes] = await Promise.all([
 
 <script>
   let ejercicioCount = 0;
-
   function ejercicioTemplate(idx: number) {
-    return `
-      <div class="border border-gray-100 rounded-xl p-3 space-y-2" id="ej-${idx}">
-        <div class="flex justify-between items-center">
-          <span class="text-xs font-medium text-gray-600">Ejercicio ${idx + 1}</span>
-          <button onclick="document.getElementById('ej-${idx}')?.remove()" class="text-xs text-red-400 hover:text-red-600">✕</button>
-        </div>
-        <input name="ej-nombre-${idx}" type="text" placeholder="Nombre del ejercicio"
-          class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        <textarea name="ej-desc-${idx}" placeholder="Descripción / instrucciones" rows="2"
-          class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
-        <div class="grid grid-cols-3 gap-2">
-          <input name="ej-series-${idx}" type="number" placeholder="Series" min="1" value="3"
-            class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          <input name="ej-reps-${idx}" type="number" placeholder="Reps" min="1" value="10"
-            class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          <input name="ej-descanso-${idx}" type="number" placeholder="Descanso(s)" min="0" value="30"
-            class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-      </div>`;
+    return `<div class="border border-gray-200 rounded-lg p-3 space-y-2" id="ej-${idx}">
+      <div class="flex justify-between items-center">
+        <span class="text-xs text-gray-400 font-light uppercase tracking-wide">Ejercicio ${idx + 1}</span>
+        <button onclick="document.getElementById('ej-${idx}')?.remove()" class="text-xs text-gray-400 hover:text-gray-700">✕</button>
+      </div>
+      <input name="ej-nombre-${idx}" type="text" placeholder="Nombre del ejercicio"
+        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors" />
+      <textarea name="ej-desc-${idx}" placeholder="Descripción / instrucciones" rows="2"
+        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors resize-none"></textarea>
+      <div class="grid grid-cols-3 gap-2">
+        <input name="ej-series-${idx}" type="number" placeholder="Series" min="1" value="3"
+          class="px-3 py-2 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors" />
+        <input name="ej-reps-${idx}" type="number" placeholder="Reps" min="1" value="10"
+          class="px-3 py-2 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors" />
+        <input name="ej-descanso-${idx}" type="number" placeholder="Descanso(s)" min="0" value="30"
+          class="px-3 py-2 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors" />
+      </div>
+    </div>`;
   }
 
-  document.getElementById("nuevaRutinaBtn")?.addEventListener("click", () => {
-    document.getElementById("modalRutina")?.classList.remove("hidden");
-  });
-  document.getElementById("cancelarRutina")?.addEventListener("click", () => {
-    document.getElementById("modalRutina")?.classList.add("hidden");
-  });
+  document
+    .getElementById("nuevaRutinaBtn")
+    ?.addEventListener("click", () =>
+      document.getElementById("modalRutina")?.classList.remove("hidden"),
+    );
+  document
+    .getElementById("cancelarRutina")
+    ?.addEventListener("click", () =>
+      document.getElementById("modalRutina")?.classList.add("hidden"),
+    );
   document.getElementById("agregarEjercicio")?.addEventListener("click", () => {
-    const list = document.getElementById("ejerciciosList")!;
-    list.insertAdjacentHTML("beforeend", ejercicioTemplate(ejercicioCount++));
+    document
+      .getElementById("ejerciciosList")!
+      .insertAdjacentHTML("beforeend", ejercicioTemplate(ejercicioCount++));
   });
 
-  document.getElementById("guardarRutina")?.addEventListener("click", async () => {
-    const paciente = (document.getElementById("rutinaPaciente") as HTMLSelectElement).value;
-    const nombre = (document.getElementById("rutinaNombre") as HTMLInputElement).value;
-    const objetivo = (document.getElementById("rutinaObjetivo") as HTMLInputElement).value;
-    const frecuencia = (document.getElementById("rutinaFrecuencia") as HTMLInputElement).value;
-    const errorEl = document.getElementById("rutinaError")!;
-
-    if (!paciente || !nombre || !frecuencia) {
-      errorEl.textContent = "Paciente, nombre y frecuencia son requeridos";
-      errorEl.classList.remove("hidden");
-      return;
-    }
-
-    const ejercicios = [];
-    for (let i = 0; i < ejercicioCount; i++) {
-      const nombreEl = document.querySelector(`[name="ej-nombre-${i}"]`) as HTMLInputElement;
-      if (!nombreEl) continue;
-      ejercicios.push({
-        nombre: nombreEl.value,
-        descripcion: (document.querySelector(`[name="ej-desc-${i}"]`) as HTMLTextAreaElement)?.value || "",
-        series: Number((document.querySelector(`[name="ej-series-${i}"]`) as HTMLInputElement)?.value) || 3,
-        repeticiones: Number((document.querySelector(`[name="ej-reps-${i}"]`) as HTMLInputElement)?.value) || 10,
-        descanso: Number((document.querySelector(`[name="ej-descanso-${i}"]`) as HTMLInputElement)?.value) || 30,
+  document
+    .getElementById("guardarRutina")
+    ?.addEventListener("click", async () => {
+      const paciente = (
+        document.getElementById("rutinaPaciente") as HTMLSelectElement
+      ).value;
+      const nombre = (
+        document.getElementById("rutinaNombre") as HTMLInputElement
+      ).value;
+      const objetivo = (
+        document.getElementById("rutinaObjetivo") as HTMLInputElement
+      ).value;
+      const frecuencia = (
+        document.getElementById("rutinaFrecuencia") as HTMLInputElement
+      ).value;
+      const errorEl = document.getElementById("rutinaError")!;
+      if (!paciente || !nombre || !frecuencia) {
+        errorEl.textContent = "Paciente, nombre y frecuencia son requeridos";
+        errorEl.classList.remove("hidden");
+        return;
+      }
+      const ejercicios = [];
+      for (let i = 0; i < ejercicioCount; i++) {
+        const n = document.querySelector(
+          `[name="ej-nombre-${i}"]`,
+        ) as HTMLInputElement;
+        if (!n) continue;
+        ejercicios.push({
+          nombre: n.value,
+          descripcion:
+            (
+              document.querySelector(
+                `[name="ej-desc-${i}"]`,
+              ) as HTMLTextAreaElement
+            )?.value || "",
+          series:
+            Number(
+              (
+                document.querySelector(
+                  `[name="ej-series-${i}"]`,
+                ) as HTMLInputElement
+              )?.value,
+            ) || 3,
+          repeticiones:
+            Number(
+              (
+                document.querySelector(
+                  `[name="ej-reps-${i}"]`,
+                ) as HTMLInputElement
+              )?.value,
+            ) || 10,
+          descanso:
+            Number(
+              (
+                document.querySelector(
+                  `[name="ej-descanso-${i}"]`,
+                ) as HTMLInputElement
+              )?.value,
+            ) || 30,
+        });
+      }
+      const res = await fetch("/api/medico/rutinas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paciente,
+          nombre,
+          objetivo,
+          frecuencia,
+          ejercicios,
+        }),
       });
-    }
-
-    const res = await fetch("/api/medico/rutinas", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paciente, nombre, objetivo, frecuencia, ejercicios }),
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const d = await res.json();
+        errorEl.textContent = d.error || "Error";
+        errorEl.classList.remove("hidden");
+      }
     });
-
-    if (res.ok) {
-      window.location.reload();
-    } else {
-      const data = await res.json();
-      errorEl.textContent = data.error || "Error al guardar";
-      errorEl.classList.remove("hidden");
-    }
-  });
 
   document.querySelectorAll(".toggle-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {

@@ -10,101 +10,102 @@ if (!session || session.role !== "paciente") return Astro.redirect("/login");
 await connectDB();
 
 const rutinas = await Rutina.find({ paciente: session.userId })
-  .populate("medico", "nombre apellido especialidad")
+  .populate("medico","nombre apellido especialidad")
   .sort({ activa: -1, createdAt: -1 });
 ---
 
-<DashboardLayout
-  title="Mis Rutinas"
-  role="paciente"
-  nombre={session.nombre}
-  activeSection="/dashboard/paciente/rutinas"
->
-  <div class="p-6 lg:p-8">
-    <div class="mb-8">
-      <h1 class="text-2xl font-bold text-gray-900">Mis Rutinas</h1>
-      <p class="text-gray-500 mt-1">{rutinas.filter((r: any) => r.activa).length} activas</p>
-    </div>
+<DashboardLayout title="Mis Rutinas" role="paciente" nombre={session.nombre} activeSection="/dashboard/paciente/rutinas">
 
+  <div class="border-b border-gray-200 px-8 py-4">
+    <p class="text-xs text-gray-400 font-light tracking-widest uppercase">Programas</p>
+    <h1 class="text-xl font-baloo tracking-wide mt-0.5">
+      <strong>Mis Rutinas</strong>
+      <span class="text-sm font-light text-gray-400 ml-2">{rutinas.filter((r:any)=>r.activa).length} activas</span>
+    </h1>
+  </div>
+
+  <div class="px-8 py-6">
     {rutinas.length === 0 ? (
-      <div class="bg-white rounded-2xl border border-gray-100 p-12 text-center text-gray-400">
-        <p class="text-5xl mb-3">🏋️</p>
-        <p class="font-medium">Aún no tienes rutinas asignadas</p>
-        <p class="text-sm mt-1">Tu fisioterapeuta te asignará una rutina personalizada</p>
+      <div class="border border-gray-200 rounded-lg py-16 text-center">
+        <p class="text-4xl font-baloo text-gray-200 mb-2">—</p>
+        <p class="text-sm text-gray-400 font-light">Aún no tienes rutinas asignadas</p>
+        <p class="text-xs text-gray-400 font-light mt-1">Tu fisioterapeuta te asignará un programa personalizado</p>
       </div>
     ) : (
       <div class="space-y-4">
         {rutinas.map((r: any) => (
-          <div class={`bg-white rounded-2xl border shadow-sm transition-all ${r.activa ? "border-gray-100" : "border-gray-100 opacity-60"}`}>
-            <!-- Cabecera -->
-            <div class="p-5 flex items-start justify-between border-b border-gray-50">
+          <div class={`border rounded-lg overflow-hidden transition-opacity ${r.activa ? "border-gray-200" : "border-gray-100 opacity-60"}`}>
+
+            <!-- Cabecera rutina -->
+            <div class="px-5 py-4 flex items-start justify-between border-b border-gray-100">
               <div>
-                <div class="flex items-center gap-2 mb-1">
-                  <h2 class="font-semibold text-gray-900">{r.nombre}</h2>
-                  <span class={`text-xs px-2 py-0.5 rounded-full font-medium ${r.activa ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                <div class="flex items-center gap-2.5 mb-1">
+                  <h2 class="text-sm font-medium text-gray-900">{r.nombre}</h2>
+                  <span class={`text-xs px-2 py-0.5 rounded-full font-light
+                    ${r.activa ? "bg-black text-white" : "border border-gray-200 text-gray-400"}`}>
                     {r.activa ? "Activa" : "Inactiva"}
                   </span>
                 </div>
-                <p class="text-sm text-gray-500">
-                  Dr. {r.medico.nombre} {r.medico.apellido} · {r.medico.especialidad || "Fisioterapeuta"}
+                <p class="text-xs text-gray-400 font-light">
+                  Dr. {r.medico.nombre} {r.medico.apellido}
+                  {r.medico.especialidad ? ` · ${r.medico.especialidad}` : ""}
                 </p>
-                {r.objetivo && <p class="text-sm text-blue-600 mt-1">🎯 {r.objetivo}</p>}
+                {r.objetivo && <p class="text-xs text-gray-500 font-light mt-1">Objetivo: {r.objetivo}</p>}
               </div>
-              <div class="text-right text-xs text-gray-400">
-                <p>🔄 {r.frecuencia}</p>
-                <p class="mt-1">📋 {r.ejercicios.length} ejercicios</p>
+              <div class="text-right shrink-0 ml-4">
+                <p class="text-xs text-gray-400 font-light">{r.frecuencia}</p>
+                <p class="text-xs text-gray-400 font-light mt-0.5">{r.ejercicios.length} ejercicio{r.ejercicios.length!==1?"s":""}</p>
               </div>
             </div>
 
-            <!-- Ejercicios (acordeón) -->
-            <div class="p-5">
+            <!-- Toggle ejercicios -->
+            <div class="px-5 py-3">
               <button
-                class="toggle-ejercicios text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                class="toggle-ejercicios text-xs text-gray-500 hover:text-gray-900 font-light flex items-center gap-1.5 transition-colors"
                 data-target={`ej-${r._id}`}
               >
-                <span class="arrow">▶</span> Ver ejercicios
+                <span class="arrow text-gray-300">▶</span>
+                Ver ejercicios
               </button>
-              <div id={`ej-${r._id}`} class="hidden mt-4 space-y-3">
+
+              <div id={`ej-${r._id}`} class="hidden mt-4 space-y-2">
                 {r.ejercicios.map((ej: any, i: number) => (
-                  <div class="bg-gray-50 rounded-xl p-4">
+                  <div class="border border-gray-100 rounded-lg p-4">
                     <div class="flex items-start justify-between mb-2">
                       <div>
-                        <span class="text-xs font-medium text-gray-400 uppercase">Ejercicio {i + 1}</span>
-                        <p class="font-medium text-gray-900">{ej.nombre}</p>
+                        <p class="text-xs text-gray-400 font-light uppercase tracking-wide mb-0.5">Ejercicio {i+1}</p>
+                        <p class="text-sm font-medium text-gray-900">{ej.nombre}</p>
                       </div>
-                      <div class="flex gap-3 text-xs text-center">
-                        <div class="bg-white rounded-lg px-2 py-1">
-                          <p class="font-bold text-blue-700">{ej.series}</p>
-                          <p class="text-gray-400">series</p>
-                        </div>
-                        <div class="bg-white rounded-lg px-2 py-1">
-                          <p class="font-bold text-blue-700">{ej.repeticiones}</p>
-                          <p class="text-gray-400">reps</p>
-                        </div>
-                        {ej.descanso && (
-                          <div class="bg-white rounded-lg px-2 py-1">
-                            <p class="font-bold text-gray-600">{ej.descanso}s</p>
-                            <p class="text-gray-400">descanso</p>
+                      <div class="flex gap-2 shrink-0 ml-4">
+                        {[
+                          { val: ej.series,       lbl: "series" },
+                          { val: ej.repeticiones, lbl: "reps" },
+                          { val: ej.descanso,     lbl: "seg" },
+                        ].map(({ val, lbl }) => (
+                          <div class="border border-gray-200 rounded-lg px-2.5 py-1.5 text-center min-w-[42px]">
+                            <p class="text-sm font-baloo font-bold leading-tight">{val}</p>
+                            <p class="text-xs text-gray-400 font-light">{lbl}</p>
                           </div>
-                        )}
+                        ))}
                       </div>
                     </div>
-                    {ej.descripcion && <p class="text-sm text-gray-600">{ej.descripcion}</p>}
-                    {ej.notas && <p class="text-xs text-gray-400 mt-1 italic">📝 {ej.notas}</p>}
+                    {ej.descripcion && <p class="text-xs text-gray-500 font-light">{ej.descripcion}</p>}
+                    {ej.notas && <p class="text-xs text-gray-400 font-light italic mt-1">{ej.notas}</p>}
                   </div>
                 ))}
 
                 {r.activa && (
                   <button
-                    class="w-full mt-2 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 registrar-sesion"
+                    class="registrar-sesion w-full mt-2 py-2.5 border border-black rounded-lg text-sm font-light hover:bg-black hover:text-white transition-colors duration-200"
                     data-rutina={r._id}
                     data-total={r.ejercicios.length}
                   >
-                    ✅ Registrar sesión completada
+                    Registrar sesión completada
                   </button>
                 )}
               </div>
             </div>
+
           </div>
         ))}
       </div>
@@ -112,32 +113,47 @@ const rutinas = await Rutina.find({ paciente: session.userId })
   </div>
 
   <!-- Modal registrar sesión -->
-  <div id="modalSesion" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
-      <h2 class="text-lg font-semibold mb-5">Registrar Sesión</h2>
-      <div class="space-y-4">
+  <div id="modalSesion" class="hidden fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg border border-gray-200 shadow-lg p-6 w-full max-w-sm">
+      <h2 class="font-baloo tracking-wide text-base mb-1"><strong>Registrar sesión</strong></h2>
+      <p class="text-xs text-gray-400 font-light mb-5">Anota cómo te sentiste hoy</p>
+      <div class="space-y-5">
         <div>
-          <label class="text-sm font-medium text-gray-700 block mb-2">Nivel de dolor ANTES (0-10)</label>
-          <input id="dolorAntes" type="range" min="0" max="10" value="5" class="w-full accent-blue-600" />
-          <div class="flex justify-between text-xs text-gray-400 mt-1">
-            <span>Sin dolor</span><span id="dolorAntesVal">5</span><span>Máximo dolor</span>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs text-gray-500 font-light uppercase tracking-wide">Dolor antes</label>
+            <span id="dolorAntesVal" class="text-sm font-baloo font-bold">5</span>
+          </div>
+          <input id="dolorAntes" type="range" min="0" max="10" value="5"
+            class="w-full accent-black" />
+          <div class="flex justify-between text-xs text-gray-300 font-light mt-1">
+            <span>Sin dolor</span><span>Máximo</span>
           </div>
         </div>
         <div>
-          <label class="text-sm font-medium text-gray-700 block mb-2">Nivel de dolor DESPUÉS (0-10)</label>
-          <input id="dolorDespues" type="range" min="0" max="10" value="3" class="w-full accent-blue-600" />
-          <div class="flex justify-between text-xs text-gray-400 mt-1">
-            <span>Sin dolor</span><span id="dolorDespuesVal">3</span><span>Máximo dolor</span>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs text-gray-500 font-light uppercase tracking-wide">Dolor después</label>
+            <span id="dolorDespuesVal" class="text-sm font-baloo font-bold">3</span>
+          </div>
+          <input id="dolorDespues" type="range" min="0" max="10" value="3"
+            class="w-full accent-black" />
+          <div class="flex justify-between text-xs text-gray-300 font-light mt-1">
+            <span>Sin dolor</span><span>Máximo</span>
           </div>
         </div>
         <div>
-          <label class="text-sm font-medium text-gray-700 block mb-1">Notas (opcional)</label>
-          <textarea id="notasSesion" rows="2" placeholder="¿Cómo te sentiste?"
-            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+          <label class="text-xs text-gray-500 font-light uppercase tracking-wide block mb-1">Notas (opcional)</label>
+          <textarea id="notasSesion" rows="2" placeholder="¿Cómo te sentiste hoy?"
+            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors resize-none"></textarea>
         </div>
-        <div class="flex gap-3">
-          <button id="cancelarSesion" class="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50">Cancelar</button>
-          <button id="guardarSesion" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">Guardar</button>
+        <div class="flex gap-2 pt-1">
+          <button id="cancelarSesion"
+            class="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-light hover:border-gray-400 transition-colors">
+            Cancelar
+          </button>
+          <button id="guardarSesion"
+            class="flex-1 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-light hover:bg-gray-800 transition-colors">
+            Guardar
+          </button>
         </div>
       </div>
     </div>
@@ -145,26 +161,22 @@ const rutinas = await Rutina.find({ paciente: session.userId })
 </DashboardLayout>
 
 <script>
-  // Acordeón ejercicios
+  // Acordeón
   document.querySelectorAll(".toggle-ejercicios").forEach((btn) => {
     btn.addEventListener("click", () => {
       const targetId = btn.getAttribute("data-target")!;
-      const target = document.getElementById(targetId)!;
-      const arrow = btn.querySelector(".arrow")!;
+      const target   = document.getElementById(targetId)!;
+      const arrow    = btn.querySelector(".arrow")!;
       target.classList.toggle("hidden");
       arrow.textContent = target.classList.contains("hidden") ? "▶" : "▼";
     });
   });
 
-  // Sliders dolor
-  const dolorAntes = document.getElementById("dolorAntes") as HTMLInputElement;
-  const dolorDespues = document.getElementById("dolorDespues") as HTMLInputElement;
-  dolorAntes?.addEventListener("input", () => {
-    document.getElementById("dolorAntesVal")!.textContent = dolorAntes.value;
-  });
-  dolorDespues?.addEventListener("input", () => {
-    document.getElementById("dolorDespuesVal")!.textContent = dolorDespues.value;
-  });
+  // Sliders
+  const sliderAntes   = document.getElementById("dolorAntes")   as HTMLInputElement;
+  const sliderDespues = document.getElementById("dolorDespues") as HTMLInputElement;
+  sliderAntes?.addEventListener("input",   () => { document.getElementById("dolorAntesVal")!.textContent   = sliderAntes.value; });
+  sliderDespues?.addEventListener("input", () => { document.getElementById("dolorDespuesVal")!.textContent = sliderDespues.value; });
 
   // Registrar sesión
   let rutinaActual: string | null = null;
@@ -173,7 +185,7 @@ const rutinas = await Rutina.find({ paciente: session.userId })
   document.querySelectorAll(".registrar-sesion").forEach((btn) => {
     btn.addEventListener("click", () => {
       rutinaActual = btn.getAttribute("data-rutina");
-      totalActual = Number(btn.getAttribute("data-total")) || 0;
+      totalActual  = Number(btn.getAttribute("data-total")) || 0;
       document.getElementById("modalSesion")?.classList.remove("hidden");
     });
   });
@@ -187,18 +199,21 @@ const rutinas = await Rutina.find({ paciente: session.userId })
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        rutina: rutinaActual,
-        dolorAntes: Number(dolorAntes.value),
-        dolorDespues: Number(dolorDespues.value),
-        notasPaciente: (document.getElementById("notasSesion") as HTMLTextAreaElement).value,
-        completado: true,
-        totalEjercicios: totalActual,
+        rutina:               rutinaActual,
+        dolorAntes:           Number(sliderAntes.value),
+        dolorDespues:         Number(sliderDespues.value),
+        notasPaciente:        (document.getElementById("notasSesion") as HTMLTextAreaElement).value,
+        completado:           true,
+        totalEjercicios:      totalActual,
         ejerciciosCompletados: totalActual,
       }),
     });
     if (res.ok) {
       document.getElementById("modalSesion")?.classList.add("hidden");
-      alert("¡Sesión registrada correctamente! 🎉");
+      // Feedback visual sin alert
+      const btn = document.getElementById("guardarSesion")!;
+      btn.textContent = "¡Guardado!";
+      setTimeout(() => { btn.textContent = "Guardar"; }, 2000);
     }
   });
 </script>

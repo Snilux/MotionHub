@@ -13,11 +13,10 @@ if (!session || session.role !== "paciente") return Astro.redirect("/login");
 await connectDB();
 
 const hoy = new Date();
-const manana = new Date(hoy);
-manana.setDate(manana.getDate() + 1);
-
-const paciente = await User.findById(session.userId)
-  .populate("medicoAsignado", "nombre apellido especialidad");
+const paciente = await User.findById(session.userId).populate(
+  "medicoAsignado",
+  "nombre apellido especialidad",
+);
 
 const [proximaCita, rutinasActivas, sesionesEstaSemana] = await Promise.all([
   Cita.findOne({
@@ -33,6 +32,22 @@ const [proximaCita, rutinasActivas, sesionesEstaSemana] = await Promise.all([
     fecha: { $gte: new Date(Date.now() - 7 * 24 * 3600 * 1000) },
   }),
 ]);
+
+const diasSemana = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const meses = [
+  "ene",
+  "feb",
+  "mar",
+  "abr",
+  "may",
+  "jun",
+  "jul",
+  "ago",
+  "sep",
+  "oct",
+  "nov",
+  "dic",
+];
 ---
 
 <DashboardLayout
@@ -41,123 +56,169 @@ const [proximaCita, rutinasActivas, sesionesEstaSemana] = await Promise.all([
   nombre={session.nombre}
   activeSection="/dashboard/paciente"
 >
-  <div class="p-6 lg:p-8">
-    <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-2xl font-bold text-gray-900">
-        Hola, {session.nombre} 👋
-      </h1>
-      <p class="text-gray-500 mt-1">
-        {hoy.toLocaleDateString("es-MX", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-      </p>
-    </div>
+  <!-- Top bar -->
+  <div class="border-b border-gray-200 px-8 py-4">
+    <p class="text-xs text-gray-400 font-light tracking-widest uppercase">
+      {diasSemana[hoy.getDay()]}, {hoy.getDate()}
+      {meses[hoy.getMonth()]}
+      {hoy.getFullYear()}
+    </p>
+    <h1 class="text-xl font-baloo tracking-wide mt-0.5">
+      Hola, <strong>{session.nombre}</strong>
+    </h1>
+  </div>
 
+  <div class="px-8 py-6 space-y-8">
     <!-- Stats -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-      <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-gray-500 text-sm font-medium">Rutinas Activas</span>
-          <span class="text-2xl">🏋️</span>
-        </div>
-        <p class="text-3xl font-bold text-gray-900">{rutinasActivas}</p>
-      </div>
-      <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-gray-500 text-sm font-medium">Sesiones Esta Semana</span>
-          <span class="text-2xl">✅</span>
-        </div>
-        <p class="text-3xl font-bold text-green-600">{sesionesEstaSemana}</p>
-      </div>
-      <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-gray-500 text-sm font-medium">Próxima Cita</span>
-          <span class="text-2xl">📅</span>
-        </div>
-        {proximaCita ? (
-          <p class="text-lg font-bold text-blue-600">
-            {new Date((proximaCita as any).fecha).toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
-          </p>
-        ) : (
-          <p class="text-sm text-gray-400">Sin citas próximas</p>
-        )}
-      </div>
+    <div class="grid grid-cols-3 gap-4">
+      {
+        [
+          { label: "Rutinas activas", value: rutinasActivas, sub: "asignadas" },
+          {
+            label: "Sesiones esta semana",
+            value: sesionesEstaSemana,
+            sub: "completadas",
+          },
+          {
+            label: "Próxima cita",
+            value: proximaCita
+              ? `${new Date((proximaCita as any).fecha).getDate()} ${meses[new Date((proximaCita as any).fecha).getMonth()]}`
+              : "—",
+            sub: proximaCita ? (proximaCita as any).estado : "sin citas",
+          },
+        ].map(({ label, value, sub }) => (
+          <div class="border border-gray-200 rounded-lg p-5">
+            <p class="text-xs text-gray-400 font-light tracking-widest uppercase mb-3">
+              {label}
+            </p>
+            <p class="text-4xl font-baloo font-bold">{value}</p>
+            <p class="text-xs text-gray-400 font-light mt-1 capitalize">
+              {sub}
+            </p>
+          </div>
+        ))
+      }
     </div>
 
-    <!-- Médico asignado + próxima cita -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-      <!-- Médico -->
-      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <h2 class="text-base font-semibold text-gray-900 mb-4">Mi Fisioterapeuta</h2>
-        {!(paciente as any)?.medicoAsignado ? (
-          <div class="text-center py-6 text-gray-400">
-            <p class="text-3xl mb-2">👨‍⚕️</p>
-            <p class="text-sm">Aún no tienes un médico asignado</p>
-          </div>
-        ) : (
-          <div class="flex items-center gap-4">
-            <div class="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xl">
-              {(paciente as any).medicoAsignado.nombre.charAt(0)}
-            </div>
-            <div>
-              <p class="font-semibold text-gray-900">
-                Dr. {(paciente as any).medicoAsignado.nombre} {(paciente as any).medicoAsignado.apellido}
-              </p>
-              <p class="text-sm text-gray-500">{(paciente as any).medicoAsignado.especialidad || "Fisioterapeuta"}</p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <!-- Próxima cita -->
-      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <h2 class="text-base font-semibold text-gray-900 mb-4">Próxima Cita</h2>
-        {!proximaCita ? (
-          <div class="text-center py-6 text-gray-400">
-            <p class="text-3xl mb-2">🗓️</p>
-            <p class="text-sm">No hay citas programadas</p>
-          </div>
-        ) : (
-          <div class="space-y-3">
-            <div class="flex items-center gap-3">
-              <div class="w-12 h-12 rounded-xl bg-blue-50 flex flex-col items-center justify-center">
-                <span class="text-xs font-bold text-blue-700">
-                  {new Date((proximaCita as any).fecha).toLocaleDateString("es-MX", { month: "short" }).toUpperCase()}
-                </span>
-                <span class="text-lg font-bold text-blue-700">
-                  {new Date((proximaCita as any).fecha).getDate()}
-                </span>
-              </div>
-              <div>
-                <p class="font-medium text-gray-900 capitalize">{(proximaCita as any).tipo}</p>
-                <p class="text-sm text-gray-500">
-                  {new Date((proximaCita as any).fecha).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
+    <!-- Two columns -->
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <!-- Mi fisioterapeuta + próxima cita -->
+      <div class="lg:col-span-3 space-y-4">
+        <!-- Fisioterapeuta -->
+        <div class="border border-gray-200 rounded-lg p-5">
+          <p
+            class="text-xs text-gray-400 font-light tracking-widest uppercase mb-4"
+          >
+            Mi fisioterapeuta
+          </p>
+          {
+            !(paciente as any)?.medicoAsignado ? (
+              <div class="py-4 text-center">
+                <p class="text-sm text-gray-400 font-light">
+                  Aún no tienes un fisioterapeuta asignado
                 </p>
               </div>
-            </div>
-            <span class={`inline-block text-xs px-2 py-1 rounded-full font-medium
-              ${(proximaCita as any).estado === "confirmada" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
-              {(proximaCita as any).estado}
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
+            ) : (
+              <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-black flex items-center justify-center text-white font-baloo font-bold text-lg shrink-0">
+                  {(paciente as any).medicoAsignado.nombre.charAt(0)}
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-gray-900">
+                    Dr. {(paciente as any).medicoAsignado.nombre}{" "}
+                    {(paciente as any).medicoAsignado.apellido}
+                  </p>
+                  <p class="text-xs text-gray-400 font-light">
+                    {(paciente as any).medicoAsignado.especialidad ||
+                      "Fisioterapeuta"}
+                  </p>
+                </div>
+              </div>
+            )
+          }
+        </div>
 
-    <!-- Accesos rápidos -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-      {[
-        { href: "/dashboard/paciente/citas", label: "Ver mis citas", icon: "📅" },
-        { href: "/dashboard/paciente/rutinas", label: "Mis rutinas", icon: "🏋️" },
-        { href: "/dashboard/paciente/progreso", label: "Registrar progreso", icon: "📈" },
-      ].map((item) => (
-        <a
-          href={item.href}
-          class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow text-center group"
-        >
-          <div class="text-3xl mb-2">{item.icon}</div>
-          <p class="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">{item.label}</p>
-        </a>
-      ))}
+        <!-- Próxima cita -->
+        <div class="border border-gray-200 rounded-lg p-5">
+          <p
+            class="text-xs text-gray-400 font-light tracking-widest uppercase mb-4"
+          >
+            Próxima cita
+          </p>
+          {
+            !proximaCita ? (
+              <p class="text-sm text-gray-400 font-light py-2">
+                No hay citas programadas
+              </p>
+            ) : (
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 text-center border border-gray-200 rounded-lg py-2 px-3 shrink-0">
+                    <p class="text-xs text-gray-400 font-light uppercase">
+                      {meses[new Date((proximaCita as any).fecha).getMonth()]}
+                    </p>
+                    <p class="text-xl font-baloo font-bold leading-tight">
+                      {new Date((proximaCita as any).fecha).getDate()}
+                    </p>
+                  </div>
+                  <div>
+                    <p class="text-sm font-medium text-gray-900 capitalize">
+                      {(proximaCita as any).tipo}
+                    </p>
+                    <p class="text-xs text-gray-400 font-light">
+                      {new Date((proximaCita as any).fecha).toLocaleTimeString(
+                        "es-MX",
+                        { hour: "2-digit", minute: "2-digit" },
+                      )}
+                      · {(proximaCita as any).duracion} min
+                    </p>
+                  </div>
+                </div>
+                <span
+                  class={`text-xs px-2.5 py-1 rounded-full font-light
+                ${(proximaCita as any).estado === "confirmada" ? "bg-black text-white" : "border border-gray-300 text-gray-500"}`}
+                >
+                  {(proximaCita as any).estado}
+                </span>
+              </div>
+            )
+          }
+        </div>
+      </div>
+
+      <!-- Accesos rápidos -->
+      <div class="lg:col-span-2 space-y-3">
+        <h2 class="text-sm font-medium tracking-wide px-0.5">
+          Accesos rápidos
+        </h2>
+        {
+          [
+            {
+              href: "/dashboard/paciente/citas",
+              label: "Ver mis citas",
+              desc: "Próximas y pasadas",
+            },
+            {
+              href: "/dashboard/paciente/rutinas",
+              label: "Mis rutinas",
+              desc: "Ejercicios asignados",
+            },
+            {
+              href: "/dashboard/paciente/progreso",
+              label: "Registrar progreso",
+              desc: "Anotar sesión de hoy",
+            },
+          ].map(({ href, label, desc }) => (
+            <a
+              href={href}
+              class="block border border-gray-200 rounded-lg px-4 py-3.5 hover:border-black hover:shadow-sm transition-all duration-200 group"
+            >
+              <p class="text-sm font-medium group-hover:text-black">{label}</p>
+              <p class="text-xs text-gray-400 font-light mt-0.5">{desc}</p>
+            </a>
+          ))
+        }
+      </div>
     </div>
   </div>
 </DashboardLayout>

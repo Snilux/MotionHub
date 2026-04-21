@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
-import connectDB from "../../../lib/db";
-import { Cita } from "../../../models/Cita";
-import { getSessionFromRequest } from "../../../lib/session";
+import connectDB from "../../../../lib/db";
+import { Cita } from "../../../../models/Cita";
+import { getSessionFromRequest } from "../../../../lib/session";
 
 // PUT /api/medico/cita/[id] - Actualizar cita
 export const PUT: APIRoute = async ({ request, params }) => {

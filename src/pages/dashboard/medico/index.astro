@@ -6,9 +6,7 @@ import { Cita } from "../../../models/Cita";
 import { getSessionFromRequest } from "../../../lib/session";
 
 const session = getSessionFromRequest(Astro.request);
-if (!session || session.role !== "medico") {
-  return Astro.redirect("/login");
-}
+if (!session || session.role !== "medico") return Astro.redirect("/login");
 
 await connectDB();
 
@@ -18,16 +16,8 @@ manana.setDate(manana.getDate() + 1);
 
 const [totalPacientes, citasHoy, citasPendientes] = await Promise.all([
   User.countDocuments({ role: "paciente", medicoAsignado: session.userId }),
-  Cita.countDocuments({
-    medico: session.userId,
-    fecha: { $gte: hoy, $lt: manana },
-    estado: { $ne: "cancelada" },
-  }),
-  Cita.countDocuments({
-    medico: session.userId,
-    estado: "pendiente",
-    fecha: { $gte: hoy },
-  }),
+  Cita.countDocuments({ medico: session.userId, fecha: { $gte: hoy, $lt: manana }, estado: { $ne: "cancelada" } }),
+  Cita.countDocuments({ medico: session.userId, estado: "pendiente", fecha: { $gte: hoy } }),
 ]);
 
 const proximasCitas = await Cita.find({
@@ -38,116 +28,105 @@ const proximasCitas = await Cita.find({
   .populate("paciente", "nombre apellido")
   .sort({ fecha: 1 })
   .limit(5);
+
+const diasSemana = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+const meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 ---
 
-<DashboardLayout
-  title="Dashboard Médico"
-  role="medico"
-  nombre={session.nombre}
-  activeSection="/dashboard/medico"
->
-  <div class="p-6 lg:p-8">
-    <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-2xl font-bold text-gray-900">
-        Bienvenido, Dr. {session.nombre} 👋
-      </h1>
-      <p class="text-gray-500 mt-1">
-        {hoy.toLocaleDateString("es-MX", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+<DashboardLayout title="Dashboard" role="medico" nombre={session.nombre} activeSection="/dashboard/medico">
+
+  <!-- Top bar -->
+  <div class="border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+    <div>
+      <p class="text-xs text-gray-400 font-light tracking-widest uppercase">
+        {diasSemana[hoy.getDay()]}, {hoy.getDate()} {meses[hoy.getMonth()]} {hoy.getFullYear()}
       </p>
+      <h1 class="text-xl font-baloo tracking-wide mt-0.5">
+        Bienvenido, Dr. <strong>{session.nombre}</strong>
+      </h1>
+    </div>
+    <a href="/dashboard/medico/citas"
+      class="text-xs border border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white transition-colors duration-200 tracking-wide font-light">
+      + Nueva cita
+    </a>
+  </div>
+
+  <div class="px-8 py-6 space-y-8">
+
+    <!-- Stats row -->
+    <div class="grid grid-cols-3 gap-4">
+      {[
+        { label: "Pacientes",        value: totalPacientes, sub: "asignados" },
+        { label: "Citas hoy",        value: citasHoy,       sub: "programadas" },
+        { label: "Por confirmar",    value: citasPendientes, sub: "pendientes" },
+      ].map(({ label, value, sub }) => (
+        <div class="border border-gray-200 rounded-lg p-5">
+          <p class="text-xs text-gray-400 font-light tracking-widest uppercase mb-3">{label}</p>
+          <p class="text-4xl font-baloo font-bold">{value}</p>
+          <p class="text-xs text-gray-400 font-light mt-1">{sub}</p>
+        </div>
+      ))}
     </div>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-      <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-gray-500 text-sm font-medium">Mis Pacientes</span>
-          <span class="text-2xl">👥</span>
-        </div>
-        <p class="text-3xl font-bold text-gray-900">{totalPacientes}</p>
-      </div>
-      <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-gray-500 text-sm font-medium">Citas Hoy</span>
-          <span class="text-2xl">📅</span>
-        </div>
-        <p class="text-3xl font-bold text-blue-600">{citasHoy}</p>
-      </div>
-      <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-gray-500 text-sm font-medium">Citas Pendientes</span>
-          <span class="text-2xl">⏳</span>
-        </div>
-        <p class="text-3xl font-bold text-amber-500">{citasPendientes}</p>
-      </div>
-    </div>
+    <!-- Two columns -->
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
-    <!-- Próximas citas -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-      <div class="flex items-center justify-between mb-5">
-        <h2 class="text-lg font-semibold text-gray-900">Próximas Citas</h2>
-        <a
-          href="/dashboard/medico/citas"
-          class="text-sm text-blue-600 hover:text-blue-700 font-medium"
-        >
-          Ver todas →
-        </a>
-      </div>
+      <!-- Próximas citas (wider) -->
+      <div class="lg:col-span-3 border border-gray-200 rounded-lg">
+        <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h2 class="text-sm font-medium tracking-wide">Próximas citas</h2>
+          <a href="/dashboard/medico/citas" class="text-xs text-gray-400 hover:text-gray-700 font-light">Ver todas →</a>
+        </div>
 
-      {
-        proximasCitas.length === 0 ? (
-          <div class="text-center py-10 text-gray-400">
-            <p class="text-4xl mb-2">🗓️</p>
-            <p>No tienes citas próximas</p>
+        {proximasCitas.length === 0 ? (
+          <div class="px-5 py-12 text-center">
+            <p class="text-gray-300 text-3xl mb-2">—</p>
+            <p class="text-sm text-gray-400 font-light">Sin citas próximas</p>
           </div>
         ) : (
-          <div class="space-y-3">
-            {proximasCitas.map((cita: any) => (
-              <div class="flex items-center justify-between p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold">
-                    {cita.paciente.nombre.charAt(0)}
+          <div class="divide-y divide-gray-100">
+            {proximasCitas.map((c: any) => {
+              const fecha = new Date(c.fecha);
+              return (
+                <div class="px-5 py-3.5 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div class="flex items-center gap-4">
+                    <!-- Mini fecha -->
+                    <div class="w-10 text-center shrink-0">
+                      <p class="text-xs text-gray-400 font-light uppercase">{meses[fecha.getMonth()]}</p>
+                      <p class="text-lg font-baloo font-bold leading-tight">{fecha.getDate()}</p>
+                    </div>
+                    <div>
+                      <p class="text-sm font-medium text-gray-900">{c.paciente.nombre} {c.paciente.apellido}</p>
+                      <p class="text-xs text-gray-400 font-light capitalize">{c.tipo} · {fecha.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p class="font-medium text-gray-900">
-                      {cita.paciente.nombre} {cita.paciente.apellido}
-                    </p>
-                    <p class="text-sm text-gray-500 capitalize">{cita.tipo}</p>
-                  </div>
+                  <span class={`text-xs px-2.5 py-1 rounded-full font-light
+                    ${c.estado==="confirmada" ? "bg-black text-white" : "border border-gray-300 text-gray-500"}`}>
+                    {c.estado}
+                  </span>
                 </div>
-                <div class="text-right">
-                  <p class="text-sm font-medium text-gray-700">
-                    {new Date(cita.fecha).toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
-                  </p>
-                  <p class="text-xs text-gray-400">
-                    {new Date(cita.fecha).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
-                  </p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
-        )
-      }
-    </div>
+        )}
+      </div>
 
-    <!-- Accesos rápidos -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
-      {[
-        { href: "/dashboard/medico/pacientes", label: "Agregar Paciente", icon: "➕" },
-        { href: "/dashboard/medico/citas", label: "Nueva Cita", icon: "📅" },
-        { href: "/dashboard/medico/rutinas", label: "Nueva Rutina", icon: "🏋️" },
-        { href: "/dashboard/medico/expedientes", label: "Expedientes", icon: "📋" },
-      ].map((item) => (
-        <a
-          href={item.href}
-          class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow text-center group"
-        >
-          <div class="text-3xl mb-2">{item.icon}</div>
-          <p class="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
-            {item.label}
-          </p>
-        </a>
-      ))}
+      <!-- Accesos rápidos -->
+      <div class="lg:col-span-2 space-y-3">
+        <h2 class="text-sm font-medium tracking-wide px-0.5">Accesos rápidos</h2>
+        {[
+          { href: "/dashboard/medico/pacientes",   label: "Agregar paciente",   desc: "Asigna un nuevo paciente" },
+          { href: "/dashboard/medico/rutinas",      label: "Crear rutina",        desc: "Diseña un programa de ejercicio" },
+          { href: "/dashboard/medico/expedientes",  label: "Ver expedientes",     desc: "Historial clínico completo" },
+        ].map(({ href, label, desc }) => (
+          <a href={href}
+            class="block border border-gray-200 rounded-lg px-4 py-3.5 hover:border-black hover:shadow-sm transition-all duration-200 group">
+            <p class="text-sm font-medium group-hover:text-black">{label}</p>
+            <p class="text-xs text-gray-400 font-light mt-0.5">{desc}</p>
+          </a>
+        ))}
+      </div>
+
     </div>
   </div>
 </DashboardLayout>

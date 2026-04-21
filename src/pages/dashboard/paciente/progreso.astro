@@ -2,196 +2,178 @@
 import DashboardLayout from "../../../components/common/DashboardLayout.astro";
 import { getSessionFromRequest } from "../../../lib/session";
 import connectDB from "../../../lib/db";
-import { Progreso } from "../../../models/Progreso";
+import { Progreso as ProgresoModel } from "../../../models/Progreso";
 
 const session = getSessionFromRequest(Astro.request);
 if (!session || session.role !== "paciente") return Astro.redirect("/login");
 
 await connectDB();
 
-const registros = await Progreso.find({ paciente: session.userId })
-  .populate("rutina", "nombre")
+const registros = await ProgresoModel.find({ paciente: session.userId })
+  .populate("rutina","nombre")
   .sort({ fecha: -1 })
   .limit(30);
 
-const totalSesiones = registros.length;
+const totalSesiones       = registros.length;
 const sesionesCompletadas = registros.filter((r: any) => r.completado).length;
-const promedioDolorAntes = registros.length
-  ? Math.round(registros.reduce((s: number, r: any) => s + r.dolorAntes, 0) / registros.length * 10) / 10
-  : 0;
-const promedioDolorDespues = registros.length
-  ? Math.round(registros.reduce((s: number, r: any) => s + r.dolorDespues, 0) / registros.length * 10) / 10
-  : 0;
+const promedioAntes   = registros.length
+  ? Math.round(registros.reduce((s: number, r: any) => s + r.dolorAntes, 0) / registros.length * 10) / 10 : 0;
+const promedioDespues = registros.length
+  ? Math.round(registros.reduce((s: number, r: any) => s + r.dolorDespues, 0) / registros.length * 10) / 10 : 0;
 
-// Datos para gráfica (últimos 10)
+const meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+
+// Últimos 10 para la gráfica
 const chartData = [...registros].reverse().slice(-10).map((r: any) => ({
-  fecha: new Date(r.fecha).toLocaleDateString("es-MX", { day: "numeric", month: "short" }),
-  antes: r.dolorAntes,
+  fecha:   `${new Date(r.fecha).getDate()} ${meses[new Date(r.fecha).getMonth()]}`,
+  antes:   r.dolorAntes,
   despues: r.dolorDespues,
 }));
 ---
 
-<DashboardLayout
-  title="Mi Progreso"
-  role="paciente"
-  nombre={session.nombre}
-  activeSection="/dashboard/paciente/progreso"
->
-  <div class="p-6 lg:p-8">
-    <div class="mb-8">
-      <h1 class="text-2xl font-bold text-gray-900">Mi Progreso</h1>
-      <p class="text-gray-500 mt-1">Seguimiento de tu recuperación</p>
-    </div>
+<DashboardLayout title="Mi Progreso" role="paciente" nombre={session.nombre} activeSection="/dashboard/paciente/progreso">
+
+  <div class="border-b border-gray-200 px-8 py-4">
+    <p class="text-xs text-gray-400 font-light tracking-widest uppercase">Seguimiento</p>
+    <h1 class="text-xl font-baloo tracking-wide mt-0.5"><strong>Mi Progreso</strong></h1>
+  </div>
+
+  <div class="px-8 py-6 space-y-8">
 
     <!-- Stats -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+    <div class="grid grid-cols-4 gap-4">
       {[
-        { label: "Total Sesiones", value: totalSesiones, icon: "📊", color: "text-gray-900" },
-        { label: "Completadas", value: sesionesCompletadas, icon: "✅", color: "text-green-600" },
-        { label: "Dolor promedio antes", value: promedioDolorAntes, icon: "📈", color: "text-red-500" },
-        { label: "Dolor promedio después", value: promedioDolorDespues, icon: "📉", color: "text-blue-600" },
-      ].map(({ label, value, icon, color }) => (
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-gray-500 text-xs font-medium">{label}</span>
-            <span>{icon}</span>
-          </div>
-          <p class={`text-2xl font-bold ${color}`}>{value}</p>
+        { label: "Total sesiones",     value: totalSesiones },
+        { label: "Completadas",        value: sesionesCompletadas },
+        { label: "Dolor prom. antes",  value: promedioAntes },
+        { label: "Dolor prom. después",value: promedioDespues },
+      ].map(({ label, value }) => (
+        <div class="border border-gray-200 rounded-lg p-5">
+          <p class="text-xs text-gray-400 font-light tracking-widest uppercase mb-3">{label}</p>
+          <p class="text-4xl font-baloo font-bold">{value}</p>
         </div>
       ))}
     </div>
 
-    <!-- Gráfica de dolor -->
-    {chartData.length > 0 && (
-      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
-        <h2 class="text-base font-semibold text-gray-900 mb-5">Evolución del Dolor</h2>
-        <div class="overflow-x-auto">
-          <canvas id="dolorChart" height="200"></canvas>
+    <!-- Gráfica evolución dolor -->
+    {chartData.length > 1 && (
+      <div class="border border-gray-200 rounded-lg p-6">
+        <div class="flex items-center justify-between mb-5">
+          <p class="text-xs text-gray-400 font-light tracking-widest uppercase">Evolución del dolor</p>
+          <div class="flex items-center gap-5 text-xs text-gray-400 font-light">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-px bg-gray-800 inline-block"></span> Antes</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-px bg-gray-400 inline-block"></span> Después</span>
+          </div>
         </div>
-        <div class="flex items-center gap-6 mt-4 text-xs text-gray-500">
-          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-red-400 inline-block"></span> Antes de sesión</div>
-          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-blue-400 inline-block"></span> Después de sesión</div>
-        </div>
+        <canvas id="dolorChart" height="160"></canvas>
         <script define:vars={{ chartData }}>
           setTimeout(() => {
-            const ctx = document.getElementById("dolorChart");
-            if (!ctx) return;
-            const labels = chartData.map(d => d.fecha);
-            const antes = chartData.map(d => d.antes);
-            const despues = chartData.map(d => d.despues);
-
-            // Simple SVG chart
-            const canvas = ctx;
-            const W = canvas.offsetWidth || 600;
-            const H = 200;
+            const canvas = document.getElementById("dolorChart");
+            if (!canvas) return;
+            const W = canvas.offsetWidth || 700;
+            const H = 160;
             canvas.setAttribute("width", W);
             canvas.setAttribute("height", H);
-            const ctx2d = canvas.getContext("2d");
-            if (!ctx2d) return;
-
-            const pad = 40;
-            const w = W - pad * 2;
-            const h = H - pad * 2;
-            const n = labels.length;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return;
+            const pad = { top: 10, bottom: 28, left: 28, right: 10 };
+            const w = W - pad.left - pad.right;
+            const h = H - pad.top - pad.bottom;
+            const n = chartData.length;
             const step = n > 1 ? w / (n - 1) : w;
 
-            ctx2d.clearRect(0, 0, W, H);
-
-            // Grid
+            // Grid lines
             for (let i = 0; i <= 10; i += 2) {
-              const y = pad + h - (i / 10) * h;
-              ctx2d.strokeStyle = "#f3f4f6";
-              ctx2d.beginPath();
-              ctx2d.moveTo(pad, y);
-              ctx2d.lineTo(W - pad, y);
-              ctx2d.stroke();
-              ctx2d.fillStyle = "#9ca3af";
-              ctx2d.font = "10px sans-serif";
-              ctx2d.fillText(String(i), 4, y + 4);
+              const y = pad.top + h - (i / 10) * h;
+              ctx.strokeStyle = "#f3f4f6";
+              ctx.lineWidth = 1;
+              ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+              ctx.fillStyle = "#d1d5db";
+              ctx.font = "10px sans-serif";
+              ctx.textAlign = "right";
+              ctx.fillText(String(i), pad.left - 4, y + 3);
             }
 
-            // Draw lines
-            function drawLine(data, color) {
-              ctx2d.beginPath();
-              ctx2d.strokeStyle = color;
-              ctx2d.lineWidth = 2;
+            function drawLine(data, color, lineWidth) {
+              ctx.beginPath();
+              ctx.strokeStyle = color;
+              ctx.lineWidth = lineWidth;
+              ctx.lineJoin = "round";
               data.forEach((v, i) => {
-                const x = pad + i * step;
-                const y = pad + h - (v / 10) * h;
-                i === 0 ? ctx2d.moveTo(x, y) : ctx2d.lineTo(x, y);
+                const x = pad.left + i * step;
+                const y = pad.top + h - (v / 10) * h;
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
               });
-              ctx2d.stroke();
-
+              ctx.stroke();
+              // Dots
               data.forEach((v, i) => {
-                const x = pad + i * step;
-                const y = pad + h - (v / 10) * h;
-                ctx2d.beginPath();
-                ctx2d.arc(x, y, 4, 0, Math.PI * 2);
-                ctx2d.fillStyle = color;
-                ctx2d.fill();
+                const x = pad.left + i * step;
+                const y = pad.top + h - (v / 10) * h;
+                ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2);
+                ctx.fillStyle = color; ctx.fill();
               });
             }
 
-            drawLine(antes, "#f87171");
-            drawLine(despues, "#60a5fa");
+            drawLine(chartData.map(d => d.antes),   "#111827", 2);
+            drawLine(chartData.map(d => d.despues), "#9ca3af", 1.5);
 
-            // Labels
-            labels.forEach((label, i) => {
-              const x = pad + i * step;
-              ctx2d.fillStyle = "#9ca3af";
-              ctx2d.font = "9px sans-serif";
-              ctx2d.textAlign = "center";
-              ctx2d.fillText(label, x, H - 8);
+            // X labels
+            ctx.fillStyle = "#9ca3af"; ctx.font = "9px sans-serif"; ctx.textAlign = "center";
+            chartData.forEach((d, i) => {
+              ctx.fillText(d.fecha, pad.left + i * step, H - 6);
             });
           }, 100);
         </script>
       </div>
     )}
 
-    <!-- Historial de sesiones -->
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm">
-      <div class="p-5 border-b border-gray-100">
-        <h2 class="text-base font-semibold text-gray-900">Historial de Sesiones</h2>
+    <!-- Historial -->
+    <div class="border border-gray-200 rounded-lg overflow-hidden">
+      <div class="px-5 py-3 border-b border-gray-100 bg-gray-50">
+        <p class="text-xs text-gray-400 font-light tracking-widest uppercase">Historial de sesiones</p>
       </div>
       {registros.length === 0 ? (
-        <div class="p-12 text-center text-gray-400">
-          <p class="text-4xl mb-2">📊</p>
-          <p class="text-sm">Aún no hay sesiones registradas</p>
-          <p class="text-xs mt-1">Registra tu progreso desde "Mis Rutinas"</p>
+        <div class="py-12 text-center">
+          <p class="text-4xl font-baloo text-gray-200 mb-2">—</p>
+          <p class="text-sm text-gray-400 font-light">Sin sesiones registradas</p>
+          <p class="text-xs text-gray-400 font-light mt-1">Registra tu progreso desde "Mis Rutinas"</p>
         </div>
       ) : (
-        <div class="divide-y divide-gray-50">
-          {registros.map((r: any) => (
-            <div class="px-5 py-4 flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-gray-900">
-                  {(r.rutina as any)?.nombre || "Sesión libre"}
-                </p>
-                <p class="text-xs text-gray-400">
-                  {new Date(r.fecha).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })}
-                </p>
-                {r.notasPaciente && (
-                  <p class="text-xs text-gray-500 mt-1 italic">"{r.notasPaciente}"</p>
-                )}
-              </div>
-              <div class="flex items-center gap-4 text-xs">
-                <div class="text-center">
-                  <p class="font-bold text-red-400">{r.dolorAntes}</p>
-                  <p class="text-gray-400">antes</p>
-                </div>
-                <span class="text-gray-300">→</span>
-                <div class="text-center">
-                  <p class={`font-bold ${r.dolorDespues < r.dolorAntes ? "text-green-500" : "text-red-400"}`}>
-                    {r.dolorDespues}
+        <>
+          <div class="grid grid-cols-12 px-5 py-2.5 bg-gray-50 border-b border-gray-100">
+            <p class="col-span-3 text-xs text-gray-400 font-light uppercase tracking-widest">Fecha</p>
+            <p class="col-span-4 text-xs text-gray-400 font-light uppercase tracking-widest">Rutina</p>
+            <p class="col-span-2 text-xs text-gray-400 font-light uppercase tracking-widest text-center">Antes</p>
+            <p class="col-span-2 text-xs text-gray-400 font-light uppercase tracking-widest text-center">Después</p>
+            <p class="col-span-1 text-xs text-gray-400 font-light uppercase tracking-widest text-center">✓</p>
+          </div>
+          <div class="divide-y divide-gray-100">
+            {registros.map((r: any) => {
+              const f = new Date(r.fecha);
+              const mejora = r.dolorDespues < r.dolorAntes;
+              return (
+                <div class="grid grid-cols-12 px-5 py-3.5 items-center hover:bg-gray-50 transition-colors">
+                  <div class="col-span-3">
+                    <p class="text-xs font-light text-gray-700">
+                      {f.getDate()} {meses[f.getMonth()]} {f.getFullYear()}
+                    </p>
+                  </div>
+                  <p class="col-span-4 text-xs text-gray-500 font-light truncate pr-2">
+                    {(r.rutina as any)?.nombre || "Sesión libre"}
                   </p>
-                  <p class="text-gray-400">después</p>
+                  <p class="col-span-2 text-sm font-baloo font-bold text-center text-gray-700">{r.dolorAntes}</p>
+                  <p class={`col-span-2 text-sm font-baloo font-bold text-center ${mejora ? "text-gray-900" : "text-gray-500"}`}>
+                    {r.dolorDespues}
+                    {mejora && <span class="text-xs ml-0.5">↓</span>}
+                  </p>
+                  <p class="col-span-1 text-center text-xs">{r.completado ? "✓" : "—"}</p>
                 </div>
-                {r.completado && <span class="text-green-500">✅</span>}
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
+
   </div>
 </DashboardLayout>

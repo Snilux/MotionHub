@@ -1,8 +1,8 @@
-# 🏃 MotionHub – Plataforma de Fisioterapia
+#    MotionHub – Plataforma de Fisioterapia
 
 Aplicación web para gestión de fisioterapeutas y pacientes con autenticación por roles, rutas protegidas y MongoDB.
 
-## 🗂️ Estructura del Proyecto
+##   Estructura del Proyecto
 
 ```
 src/
@@ -21,8 +21,8 @@ src/
 │   ├── api/auth/           # login, register, logout, forgot/reset-password
 │   ├── api/medico/         # citas, pacientes, rutinas, expediente
 │   ├── api/paciente/       # citas, rutinas, progreso
-│   ├── dashboard/medico/   # 🔒 Solo médicos
-│   └── dashboard/paciente/ # 🔒 Solo pacientes
+│   ├── dashboard/medico/   # Solo médicos
+│   └── dashboard/paciente/ # Solo pacientes
 └── scripts/seed.js         # Datos de prueba
 ```
 
@@ -30,21 +30,11 @@ src/
 
 ```bash
 npm install
-cp .env.example .env   # Edita con tus valores
-npm run seed           # Carga datos de prueba
+npm run seed           
 npm run dev
 ```
 
-## 🔑 Credenciales de prueba
-
-| Rol | Email | Contraseña |
-|-----|-------|-----------|
-| Médico | medico@motionhub.com | medico123 |
-| Médico 2 | ana@motionhub.com | medico123 |
-| Paciente | paciente@motionhub.com | paciente123 |
-| Paciente 2 | maria@motionhub.com | paciente123 |
-
-## ➕ Agregar páginas
+##   Agregar páginas
 
 - Médico: `src/pages/dashboard/medico/nueva.astro`
 - Paciente: `src/pages/dashboard/paciente/nueva.astro`

@@ -27,6 +27,23 @@ const [citasProximas, pacientes] = await Promise.all([
     .select("_id nombre apellido")
     .sort({ nombre: 1 }),
 ]);
+
+const tipos = ["evaluacion", "tratamiento", "seguimiento", "alta"];
+const meses = [
+  "ene",
+  "feb",
+  "mar",
+  "abr",
+  "may",
+  "jun",
+  "jul",
+  "ago",
+  "sep",
+  "oct",
+  "nov",
+  "dic",
+];
+const dias = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 ---
 
 <DashboardLayout
@@ -35,105 +52,139 @@ const [citasProximas, pacientes] = await Promise.all([
   nombre={session.nombre}
   activeSection="/dashboard/medico/citas"
 >
-  <div class="p-6 lg:p-8">
-    <div class="flex items-center justify-between mb-8">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">Agenda de Citas</h1>
-        <p class="text-gray-500 mt-1">Próximos 7 días</p>
-      </div>
-      <button
-        id="nuevaCitaBtn"
-        class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
-      >
-        ➕ Nueva Cita
-      </button>
+  <div
+    class="border-b border-gray-200 px-8 py-4 flex items-center justify-between"
+  >
+    <div>
+      <p class="text-xs text-gray-400 font-light tracking-widest uppercase">
+        Agenda
+      </p>
+      <h1 class="text-xl font-baloo tracking-wide mt-0.5">
+        <strong>Citas</strong> — próximos 7 días
+      </h1>
     </div>
+    <button
+      id="nuevaCitaBtn"
+      class="text-xs border border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white transition-colors duration-200 tracking-wide font-light"
+    >
+      + Nueva cita
+    </button>
+  </div>
 
-    <!-- Citas de la semana -->
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      {
-        citasProximas.length === 0 ? (
-          <div class="p-12 text-center text-gray-400">
-            <p class="text-5xl mb-3">📅</p>
-            <p class="font-medium">Sin citas esta semana</p>
+  <div class="px-8 py-6">
+    {
+      citasProximas.length === 0 ? (
+        <div class="border border-gray-200 rounded-lg py-16 text-center">
+          <p class="text-4xl font-baloo text-gray-200 mb-2">—</p>
+          <p class="text-sm text-gray-400 font-light">Sin citas esta semana</p>
+        </div>
+      ) : (
+        <div class="border border-gray-200 rounded-lg overflow-hidden">
+          <div class="grid grid-cols-12 px-5 py-2.5 bg-gray-50">
+            <p class="col-span-1 text-xs text-gray-400 font-light uppercase tracking-widest">
+              Día
+            </p>
+            <p class="col-span-3 text-xs text-gray-400 font-light uppercase tracking-widest">
+              Paciente
+            </p>
+            <p class="col-span-2 text-xs text-gray-400 font-light uppercase tracking-widest">
+              Hora
+            </p>
+            <p class="col-span-2 text-xs text-gray-400 font-light uppercase tracking-widest">
+              Tipo
+            </p>
+            <p class="col-span-2 text-xs text-gray-400 font-light uppercase tracking-widest">
+              Estado
+            </p>
+            <p class="col-span-2 text-xs text-gray-400 font-light uppercase tracking-widest text-right">
+              Acciones
+            </p>
           </div>
-        ) : (
-          <table class="w-full">
-            <thead class="bg-gray-50 border-b border-gray-100">
-              <tr>
-                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
-                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha y Hora</th>
-                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-50">
-              {citasProximas.map((c: any) => (
-                <tr class="hover:bg-gray-50 transition-colors">
-                  <td class="px-5 py-4">
-                    <div class="flex items-center gap-3">
-                      <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm">
-                        {c.paciente.nombre.charAt(0)}
-                      </div>
-                      <span class="text-sm font-medium text-gray-900">{c.paciente.nombre} {c.paciente.apellido}</span>
+          <div class="divide-y divide-gray-100">
+            {citasProximas.map((c: any) => {
+              const f = new Date(c.fecha);
+              return (
+                <div class="grid grid-cols-12 px-5 py-3.5 items-center hover:bg-gray-50 transition-colors">
+                  <div class="col-span-1">
+                    <p class="text-xs text-gray-400 font-light">
+                      {dias[f.getDay()]}
+                    </p>
+                    <p class="text-sm font-baloo font-bold">{f.getDate()}</p>
+                  </div>
+                  <div class="col-span-3 flex items-center gap-2.5">
+                    <div class="w-6 h-6 rounded-full bg-black flex items-center justify-center text-white text-xs font-baloo font-bold shrink-0">
+                      {c.paciente.nombre.charAt(0)}
                     </div>
-                  </td>
-                  <td class="px-5 py-4 text-sm text-gray-600">
-                    {new Date(c.fecha).toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" })}
-                    {" "}{new Date(c.fecha).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
-                  </td>
-                  <td class="px-5 py-4">
-                    <span class="text-xs capitalize bg-blue-50 text-blue-700 px-2 py-1 rounded-full">{c.tipo}</span>
-                  </td>
-                  <td class="px-5 py-4">
-                    <span class={`text-xs capitalize px-2 py-1 rounded-full font-medium
-                      ${c.estado === "confirmada" ? "bg-green-50 text-green-700" :
-                        c.estado === "pendiente" ? "bg-amber-50 text-amber-700" :
-                        "bg-gray-50 text-gray-600"}`}>
+                    <p class="text-sm font-light text-gray-800">
+                      {c.paciente.nombre} {c.paciente.apellido}
+                    </p>
+                  </div>
+                  <p class="col-span-2 text-xs text-gray-500 font-light">
+                    {f.toLocaleTimeString("es-MX", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}{" "}
+                    · {c.duracion}min
+                  </p>
+                  <p class="col-span-2 text-xs text-gray-500 font-light capitalize">
+                    {c.tipo}
+                  </p>
+                  <div class="col-span-2">
+                    <span
+                      class={`text-xs px-2.5 py-1 rounded-full font-light
+                    ${c.estado === "confirmada" ? "bg-black text-white" : "border border-gray-300 text-gray-500"}`}
+                    >
                       {c.estado}
                     </span>
-                  </td>
-                  <td class="px-5 py-4">
-                    <div class="flex gap-2">
-                      <button
-                        data-id={c._id}
-                        data-action="confirmar"
-                        class="text-xs px-2 py-1 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 confirm-btn"
-                      >
-                        Confirmar
-                      </button>
-                      <button
-                        data-id={c._id}
-                        data-action="cancelar"
-                        class="text-xs px-2 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 cancel-btn"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )
-      }
-    </div>
+                  </div>
+                  <div class="col-span-2 flex justify-end gap-1.5">
+                    <button
+                      data-id={c._id}
+                      data-action="confirmar"
+                      class="confirm-btn text-xs border border-gray-300 px-2.5 py-1 rounded-lg hover:border-black hover:text-black transition-colors font-light"
+                    >
+                      Confirmar
+                    </button>
+                    <button
+                      data-id={c._id}
+                      data-action="cancelar"
+                      class="cancel-btn text-xs border border-gray-300 px-2.5 py-1 rounded-lg hover:border-black hover:text-black transition-colors font-light"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )
+    }
   </div>
 
   <!-- Modal nueva cita -->
   <div
     id="modalCita"
-    class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+    class="hidden fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4"
   >
-    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
-      <h2 class="text-lg font-semibold mb-5">Nueva Cita</h2>
-      <div class="space-y-4">
+    <div
+      class="bg-white rounded-lg border border-gray-200 shadow-lg p-6 w-full max-w-md"
+    >
+      <h2 class="font-baloo tracking-wide text-base mb-1">
+        <strong>Nueva cita</strong>
+      </h2>
+      <p class="text-xs text-gray-400 font-light mb-5">
+        Completa los datos de la cita
+      </p>
+      <div class="space-y-3">
         <div>
-          <label class="text-sm font-medium text-gray-700 block mb-1">Paciente</label>
+          <label
+            class="text-xs text-gray-500 font-light block mb-1 uppercase tracking-wide"
+            >Paciente</label
+          >
           <select
             id="citaPaciente"
-            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors"
           >
             <option value="">Seleccionar paciente...</option>
             {
@@ -146,58 +197,76 @@ const [citasProximas, pacientes] = await Promise.all([
           </select>
         </div>
         <div>
-          <label class="text-sm font-medium text-gray-700 block mb-1">Fecha y Hora</label>
+          <label
+            class="text-xs text-gray-500 font-light block mb-1 uppercase tracking-wide"
+            >Fecha y hora</label
+          >
           <input
             id="citaFecha"
             type="datetime-local"
-            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors"
           />
         </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label
+              class="text-xs text-gray-500 font-light block mb-1 uppercase tracking-wide"
+              >Tipo</label
+            >
+            <select
+              id="citaTipo"
+              class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors"
+            >
+              {
+                tipos.map((t) => (
+                  <option value={t}>
+                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                  </option>
+                ))
+              }
+            </select>
+          </div>
+          <div>
+            <label
+              class="text-xs text-gray-500 font-light block mb-1 uppercase tracking-wide"
+              >Duración (min)</label
+            >
+            <input
+              id="citaDuracion"
+              type="number"
+              value="60"
+              min="15"
+              max="180"
+              step="15"
+              class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors"
+            />
+          </div>
+        </div>
         <div>
-          <label class="text-sm font-medium text-gray-700 block mb-1">Tipo</label>
-          <select
-            id="citaTipo"
-            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <label
+            class="text-xs text-gray-500 font-light block mb-1 uppercase tracking-wide"
+            >Notas</label
           >
-            <option value="evaluacion">Evaluación</option>
-            <option value="tratamiento" selected>Tratamiento</option>
-            <option value="seguimiento">Seguimiento</option>
-            <option value="alta">Alta</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-sm font-medium text-gray-700 block mb-1">Duración (min)</label>
-          <input
-            id="citaDuracion"
-            type="number"
-            value="60"
-            min="15"
-            max="180"
-            step="15"
-            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label class="text-sm font-medium text-gray-700 block mb-1">Notas (opcional)</label>
           <textarea
             id="citaNotas"
             rows="2"
-            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-light focus:outline-none focus:border-black transition-colors resize-none"
           ></textarea>
         </div>
-        <div id="citaError" class="hidden text-sm text-red-500"></div>
-        <div class="flex gap-3 pt-2">
+        <div id="citaError" class="hidden text-xs text-gray-500 font-light">
+        </div>
+        <div class="flex gap-2 pt-1">
           <button
             id="cancelarCita"
-            class="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50"
+            class="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-light hover:border-gray-400 transition-colors"
           >
             Cancelar
           </button>
           <button
             id="guardarCita"
-            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700"
+            class="flex-1 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-light hover:bg-gray-800 transition-colors"
           >
-            Guardar
+            Guardar cita
           </button>
         </div>
       </div>
@@ -206,43 +275,59 @@ const [citasProximas, pacientes] = await Promise.all([
 </DashboardLayout>
 
 <script>
-  document.getElementById("nuevaCitaBtn")?.addEventListener("click", () => {
-    document.getElementById("modalCita")?.classList.remove("hidden");
-  });
-  document.getElementById("cancelarCita")?.addEventListener("click", () => {
-    document.getElementById("modalCita")?.classList.add("hidden");
-  });
+  document
+    .getElementById("nuevaCitaBtn")
+    ?.addEventListener("click", () =>
+      document.getElementById("modalCita")?.classList.remove("hidden"),
+    );
+  document
+    .getElementById("cancelarCita")
+    ?.addEventListener("click", () =>
+      document.getElementById("modalCita")?.classList.add("hidden"),
+    );
 
-  document.getElementById("guardarCita")?.addEventListener("click", async () => {
-    const paciente = (document.getElementById("citaPaciente") as HTMLSelectElement).value;
-    const fecha = (document.getElementById("citaFecha") as HTMLInputElement).value;
-    const tipo = (document.getElementById("citaTipo") as HTMLSelectElement).value;
-    const duracion = (document.getElementById("citaDuracion") as HTMLInputElement).value;
-    const notas = (document.getElementById("citaNotas") as HTMLTextAreaElement).value;
-    const errorEl = document.getElementById("citaError")!;
-
-    if (!paciente || !fecha) {
-      errorEl.textContent = "Selecciona un paciente y una fecha";
-      errorEl.classList.remove("hidden");
-      return;
-    }
-
-    const res = await fetch("/api/medico/citas", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paciente, fecha, tipo, duracion: Number(duracion), notas }),
+  document
+    .getElementById("guardarCita")
+    ?.addEventListener("click", async () => {
+      const paciente = (
+        document.getElementById("citaPaciente") as HTMLSelectElement
+      ).value;
+      const fecha = (document.getElementById("citaFecha") as HTMLInputElement)
+        .value;
+      const tipo = (document.getElementById("citaTipo") as HTMLSelectElement)
+        .value;
+      const duracion = (
+        document.getElementById("citaDuracion") as HTMLInputElement
+      ).value;
+      const notas = (
+        document.getElementById("citaNotas") as HTMLTextAreaElement
+      ).value;
+      const errorEl = document.getElementById("citaError")!;
+      if (!paciente || !fecha) {
+        errorEl.textContent = "Selecciona un paciente y una fecha.";
+        errorEl.classList.remove("hidden");
+        return;
+      }
+      const res = await fetch("/api/medico/citas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paciente,
+          fecha,
+          tipo,
+          duracion: Number(duracion),
+          notas,
+        }),
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const d = await res.json();
+        errorEl.textContent = d.error || "Error al guardar";
+        errorEl.classList.remove("hidden");
+      }
     });
 
-    if (res.ok) {
-      window.location.reload();
-    } else {
-      const data = await res.json();
-      errorEl.textContent = data.error || "Error al guardar";
-      errorEl.classList.remove("hidden");
-    }
-  });
-
-  // Confirmar / cancelar cita
   document.querySelectorAll(".confirm-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.getAttribute("data-id");
@@ -254,12 +339,12 @@ const [citasProximas, pacientes] = await Promise.all([
       window.location.reload();
     });
   });
-
   document.querySelectorAll(".cancel-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       if (!confirm("¿Cancelar esta cita?")) return;
-      const id = btn.getAttribute("data-id");
-      await fetch(`/api/medico/cita/${id}`, { method: "DELETE" });
+      await fetch(`/api/medico/cita/${btn.getAttribute("data-id")}`, {
+        method: "DELETE",
+      });
       window.location.reload();
     });
   });

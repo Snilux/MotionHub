@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
-import connectDB from "../../../lib/db";
-import { Rutina } from "../../../models/Rutina";
-import { getSessionFromRequest } from "../../../lib/session";
+import connectDB from "../../../../lib/db";
+import { Rutina } from "../../../../models/Rutina";
+import { getSessionFromRequest } from "../../../../lib/session";
 
 export const GET: APIRoute = async ({ request, params }) => {
   try {
