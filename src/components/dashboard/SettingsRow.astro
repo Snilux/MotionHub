@@ -1,0 +1,24 @@
+---
+// Fila de ajustes: título + descripción a la izquierda, contenido a la derecha.
+// Incluye la línea divisora superior para separar cada fila.
+import SectionHeader from "./SectionHeader.astro";
+
+interface Props {
+  title: string;
+  desc: string;
+}
+
+const { title, desc } = Astro.props;
+---
+
+<hr class="border-stone-300" />
+
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
+  <div class="lg:col-span-4">
+    <SectionHeader title={title} />
+    <p class="text-base text-gray-600">{desc}</p>
+  </div>
+  <div class="lg:col-span-8">
+    <slot />
+  </div>
+</section>

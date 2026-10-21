@@ -1,0 +1,15 @@
+---
+// Recuadro punteado para secciones sin datos. El slot admite un botón de acción.
+interface Props {
+  title: string;
+  text?: string;
+}
+
+const { title, text } = Astro.props;
+---
+
+<div class="flex-1 flex flex-col items-center justify-center border border-dashed border-stone-300 rounded-2xl px-8 py-14 text-center">
+  <p class="text-xl font-baloo">{title}</p>
+  {text && <p class="text-base text-gray-500 font-light mt-1">{text}</p>}
+  <slot />
+</div>

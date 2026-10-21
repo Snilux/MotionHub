@@ -1,0 +1,54 @@
+---
+import DashboardLayout from "../../../components/common/DashboardLayout.astro";
+import ProfileView from "../../../components/dashboard/ProfileView.astro";
+import SettingsRow from "../../../components/dashboard/SettingsRow.astro";
+import EmptyState from "../../../components/dashboard/EmptyState.astro";
+import { card, label } from "../../../components/dashboard/styles";
+import { getSessionFromRequest } from "../../../lib/session";
+import connectDB from "../../../lib/db";
+import { User } from "../../../models/User";
+
+const session = getSessionFromRequest(Astro.request);
+if (!session || session.role !== "paciente") return Astro.redirect("/login");
+
+await connectDB();
+const paciente: any = await User.findById(session.userId)
+  .select("nombre apellido email telefono fechaNacimiento diagnostico medicoAsignado createdAt")
+  .populate("medicoAsignado", "nombre apellido email especialidad");
+if (!paciente) return Astro.redirect("/login");
+
+const medico = paciente.medicoAsignado;
+---
+
+<DashboardLayout title="Mi perfil" role="paciente" nombre={session.nombre} activeSection="/dashboard/paciente/perfil">
+  <ProfileView
+    usuario={paciente}
+    subtitulo="Paciente"
+    identidad={[{ label: "Fisioterapeuta", value: medico ? `Dr. ${medico.nombre} ${medico.apellido}` : "—" }]}
+    fotoDesc="Tu fisioterapeuta la verá en tu expediente y en tus citas."
+  >
+    <SettingsRow title="Mi fisioterapeuta" desc="El profesional que acompaña tu recuperación.">
+      {medico ? (
+        <div class={`${card} flex items-center gap-5`}>
+          <div class="w-16 h-16 rounded-full bg-black text-white flex items-center justify-center text-2xl font-baloo font-bold shrink-0">
+            {medico.nombre.charAt(0).toUpperCase()}
+          </div>
+          <div class="min-w-0">
+            <p class="text-xl font-semibold text-gray-900 truncate">Dr. {medico.nombre} {medico.apellido}</p>
+            <p class="text-base text-gray-600">{medico.especialidad || "Fisioterapeuta"}</p>
+            <p class="text-base text-gray-600 truncate">{medico.email}</p>
+          </div>
+        </div>
+      ) : (
+        <EmptyState title="Sin fisioterapeuta asignado" text="Cuando un fisioterapeuta te asigne, aparecerá aquí." />
+      )}
+    </SettingsRow>
+
+    <SettingsRow title="Información médica" desc="Solo tu fisioterapeuta puede modificar estos datos.">
+      <dl class={card}>
+        <dt class={label}>Diagnóstico</dt>
+        <dd class="text-lg font-medium text-gray-900 mt-1">{paciente.diagnostico || "Sin diagnóstico registrado"}</dd>
+      </dl>
+    </SettingsRow>
+  </ProfileView>
+</DashboardLayout>

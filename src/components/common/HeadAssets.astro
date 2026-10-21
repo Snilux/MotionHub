@@ -1,0 +1,99 @@
+---
+// Recursos comunes del <head> para evitar el "corte" al cambiar de página:
+// 1. Precarga de fuentes (sin esperar a que el CSS las pida).
+// 2. Tema claro/oscuro aplicado antes del primer pintado.
+// 3. Contenido oculto hasta que fuentes y scripts (GSAP) estén listos, con fundido.
+// 4. Transición suave entre páginas (View Transitions entre documentos).
+import interUrl from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
+import balooUrl from "@fontsource-variable/baloo-bhaijaan-2/files/baloo-bhaijaan-2-latin-wght-normal.woff2?url";
+---
+
+<link rel="preload" href={interUrl} as="font" type="font/woff2" crossorigin />
+<link rel="preload" href={balooUrl} as="font" type="font/woff2" crossorigin />
+
+<script is:inline>
+  (() => {
+    const html = document.documentElement;
+
+    // Tema guardado o el del sistema
+    let tema = null;
+    try {
+      tema = localStorage.getItem("theme");
+    } catch {}
+    const oscuro = tema
+      ? tema === "dark"
+      : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    html.classList.toggle("dark", oscuro);
+
+    // Oculta el contenido hasta que todo esté listo
+    html.classList.add("is-loading");
+
+    let mostrado = false;
+    const mostrar = () => {
+      if (mostrado) return;
+      mostrado = true;
+      html.classList.add("is-revealing");
+      html.classList.remove("is-loading");
+      setTimeout(() => html.classList.remove("is-revealing"), 400);
+    };
+
+    // Los scripts de la página (módulos) ya se ejecutaron en DOMContentLoaded;
+    // además esperamos a las fuentes, pero nunca más de 500 ms.
+    document.addEventListener("DOMContentLoaded", () => {
+      const fuentes = document.fonts ? document.fonts.ready : Promise.resolve();
+      Promise.race([fuentes, new Promise((r) => setTimeout(r, 500))]).then(() =>
+        requestAnimationFrame(mostrar),
+      );
+    });
+
+    // Red de seguridad por si algo falla
+    setTimeout(mostrar, 2500);
+  })();
+</script>
+
+<noscript>
+  <style>
+    html.is-loading body > * { opacity: 1 !important; }
+  </style>
+</noscript>
+
+<style is:global>
+  /* Solo las páginas públicas (las que tienen <nav>) usan GSAP al cargar:
+     se oculta su contenido, pero nunca el nav, que participa en la transición */
+  html.is-loading body:has(> nav) > *:not(nav) {
+    opacity: 0;
+  }
+
+  html.is-revealing body > * {
+    transition: opacity 0.3s ease;
+  }
+
+  /* Fondo del documento en oscuro (visible mientras el contenido aparece) */
+  html.dark {
+    background-color: var(--color-white);
+  }
+
+  /* Fundido entre páginas en navegadores compatibles */
+  @view-transition {
+    navigation: auto;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.25s;
+  }
+
+  /* Elementos compartidos entre páginas (transition:name): se desplazan y transforman */
+  ::view-transition-group(*) {
+    animation-duration: 0.45s;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation: none !important;
+    }
+  }
+</style>

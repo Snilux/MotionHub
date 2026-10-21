@@ -1,0 +1,201 @@
+---
+import DashboardLayout from "../../../components/common/DashboardLayout.astro";
+import PageHeader from "../../../components/dashboard/PageHeader.astro";
+import SectionHeader from "../../../components/dashboard/SectionHeader.astro";
+import EmptyState from "../../../components/dashboard/EmptyState.astro";
+import { card, chip, meses, plural, fechaLarga } from "../../../components/dashboard/styles";
+import { getSessionFromRequest } from "../../../lib/session";
+import connectDB from "../../../lib/db";
+import { Progreso as ProgresoModel } from "../../../models/Progreso";
+
+const session = getSessionFromRequest(Astro.request);
+if (!session || session.role !== "paciente") return Astro.redirect("/login");
+
+await connectDB();
+
+const registros = await ProgresoModel.find({ paciente: session.userId })
+  .populate("rutina","nombre")
+  .sort({ fecha: -1 })
+  .limit(30);
+
+const totalSesiones       = registros.length;
+const sesionesCompletadas = registros.filter((r: any) => r.completado).length;
+const promedioAntes   = registros.length
+  ? Math.round(registros.reduce((s: number, r: any) => s + r.dolorAntes, 0) / registros.length * 10) / 10 : 0;
+const promedioDespues = registros.length
+  ? Math.round(registros.reduce((s: number, r: any) => s + r.dolorDespues, 0) / registros.length * 10) / 10 : 0;
+
+// Últimos 10 para la gráfica
+const chartData = [...registros].reverse().slice(-10).map((r: any) => ({
+  fecha:   `${new Date(r.fecha).getDate()} ${meses[new Date(r.fecha).getMonth()]}`,
+  antes:   r.dolorAntes,
+  despues: r.dolorDespues,
+}));
+
+const resumen = [
+  { label: "Sesiones registradas", value: totalSesiones },
+  { label: "Completadas",          value: sesionesCompletadas },
+  { label: "Dolor promedio antes", value: promedioAntes,   sufijo: "/10" },
+  { label: "Dolor promedio después", value: promedioDespues, sufijo: "/10" },
+];
+---
+
+<DashboardLayout title="Mi Progreso" role="paciente" nombre={session.nombre} activeSection="/dashboard/paciente/progreso">
+
+  <div class="max-w-6xl px-6 sm:px-10 py-10 lg:py-14 space-y-12">
+
+    <PageHeader eyebrow="Seguimiento">
+      <Fragment slot="title"><strong>Mi Progreso</strong></Fragment>
+      {totalSesiones === 0 ? (
+        <>Aún no has registrado sesiones. Hazlo desde <strong>Mis Rutinas</strong> al terminar tus ejercicios.</>
+      ) : (
+        <>
+          Has registrado <strong>{plural(totalSesiones, "sesión", "sesiones")}</strong>. En promedio, tu dolor pasa de
+          <strong>{promedioAntes}</strong> a <strong>{promedioDespues}</strong> después de cada sesión.
+        </>
+      )}
+    </PageHeader>
+
+    <!-- Fila 1: gráfica | resumen -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div class="lg:col-span-8 flex flex-col">
+        <SectionHeader title="Evolución del dolor">
+          <div class="flex items-center gap-5 text-base text-gray-600">
+            <span class="flex items-center gap-2"><span class="w-4 h-0.5 bg-gray-900 inline-block"></span> Antes</span>
+            <span class="flex items-center gap-2"><span class="w-4 h-0.5 bg-stone-400 inline-block"></span> Después</span>
+          </div>
+        </SectionHeader>
+
+        {chartData.length > 1 ? (
+          <div class={`${card} flex-1`}>
+            <canvas id="dolorChart" height="220" class="w-full"></canvas>
+            <script define:vars={{ chartData }}>
+              // Colores de la gráfica según el tema (el canvas no usa las clases de Tailwind)
+              const temas = {
+                claro:  { guia: "#e7e5e4", texto: "#57534e", antes: "#111827", despues: "#a8a29e" },
+                oscuro: { guia: "#3f3f46", texto: "#d4d4d8", antes: "#f4f4f5", despues: "#a1a1aa" },
+              };
+
+              function dibujar() {
+                const canvas = document.getElementById("dolorChart");
+                if (!canvas) return;
+                const c = document.documentElement.classList.contains("dark") ? temas.oscuro : temas.claro;
+                const W = canvas.offsetWidth || 700;
+                const H = 220;
+                canvas.setAttribute("width", W);
+                canvas.setAttribute("height", H);
+                const ctx = canvas.getContext("2d");
+                if (!ctx) return;
+                const pad = { top: 12, bottom: 32, left: 32, right: 12 };
+                const w = W - pad.left - pad.right;
+                const h = H - pad.top - pad.bottom;
+                const n = chartData.length;
+                const step = n > 1 ? w / (n - 1) : w;
+
+                // Líneas guía
+                for (let i = 0; i <= 10; i += 2) {
+                  const y = pad.top + h - (i / 10) * h;
+                  ctx.strokeStyle = c.guia;
+                  ctx.lineWidth = 1;
+                  ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+                  ctx.fillStyle = c.texto;
+                  ctx.font = "13px sans-serif";
+                  ctx.textAlign = "right";
+                  ctx.fillText(String(i), pad.left - 8, y + 4);
+                }
+
+                function drawLine(data, color, lineWidth) {
+                  ctx.beginPath();
+                  ctx.strokeStyle = color;
+                  ctx.lineWidth = lineWidth;
+                  ctx.lineJoin = "round";
+                  data.forEach((v, i) => {
+                    const x = pad.left + i * step;
+                    const y = pad.top + h - (v / 10) * h;
+                    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+                  });
+                  ctx.stroke();
+                  data.forEach((v, i) => {
+                    const x = pad.left + i * step;
+                    const y = pad.top + h - (v / 10) * h;
+                    ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = color; ctx.fill();
+                  });
+                }
+
+                drawLine(chartData.map(d => d.antes),   c.antes, 2.5);
+                drawLine(chartData.map(d => d.despues), c.despues, 2);
+
+                // Etiquetas de fecha
+                ctx.fillStyle = c.texto; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+                chartData.forEach((d, i) => {
+                  ctx.fillText(d.fecha, pad.left + i * step, H - 8);
+                });
+              }
+
+              setTimeout(dibujar, 100);
+              // Redibuja al cambiar de tema
+              new MutationObserver(dibujar).observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ["class"],
+              });
+            </script>
+          </div>
+        ) : (
+          <EmptyState title="Aún no hay suficientes datos" text="Registra al menos dos sesiones para ver tu evolución." />
+        )}
+      </div>
+
+      <div class="lg:col-span-4 flex flex-col">
+        <SectionHeader title="Resumen" />
+        <dl class="flex-1 divide-y divide-stone-300 border-y border-stone-300">
+          {resumen.map(({ label, value, sufijo }) => (
+            <div class="flex items-baseline justify-between gap-4 py-5">
+              <dt class="text-lg text-gray-700">{label}</dt>
+              <dd>
+                <span class="text-4xl font-baloo font-bold">{value}</span>
+                {sufijo && <span class="text-base text-gray-500 ml-0.5">{sufijo}</span>}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+
+    <hr class="border-stone-300" />
+
+    <!-- Historial -->
+    <section>
+      <SectionHeader title={`Historial de sesiones · ${totalSesiones}`} />
+      {registros.length === 0 ? (
+        <EmptyState title="Sin sesiones registradas" text='Registra tu progreso desde "Mis Rutinas".' />
+      ) : (
+        <ul class="divide-y divide-stone-300 border-y border-stone-300">
+          {registros.map((r: any) => {
+            const mejora = r.dolorDespues < r.dolorAntes;
+            return (
+              <li class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 py-5">
+                <p class="sm:w-40 shrink-0 text-lg font-baloo font-bold text-gray-700">{fechaLarga(new Date(r.fecha))}</p>
+                <p class="flex-1 min-w-0 text-lg font-medium text-gray-900 truncate">
+                  {(r.rutina as any)?.nombre || "Sesión libre"}
+                </p>
+                <!-- Dolor antes → después -->
+                <p class="flex items-baseline gap-2 text-base text-gray-600">
+                  Dolor
+                  <span class="text-2xl font-baloo font-bold text-gray-500">{r.dolorAntes}</span>
+                  →
+                  <span class={`text-2xl font-baloo font-bold ${mejora ? "text-gray-900" : "text-gray-500"}`}>{r.dolorDespues}</span>
+                  {mejora && <span class="text-base font-semibold text-gray-900">↓</span>}
+                </p>
+                <span class={`${chip(r.completado)} self-start sm:self-auto`}>
+                  {r.completado ? "Completada" : "Parcial"}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+
+  </div>
+</DashboardLayout>

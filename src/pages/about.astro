@@ -1,0 +1,571 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Nav from "../components/home/Nav.astro";
+import Button from "../components/common/Button.astro";
+import Footer from "../components/common/Footer.astro";
+import AnimationBgProduct from "../components/common/AnimationBgProduct.astro";
+
+// Íconos (paths SVG) reutilizados en las cards
+const icons = {
+  bulb: "M12 3a7 7 0 00-4 12v3h8v-3a7 7 0 00-4-12z",
+  heart: "M12 21s-7-4.3-7-10a4 4 0 017-2 4 4 0 017 2c0 5.7-7 10-7 10z",
+  users:
+    "M17 20h5v-2a4 4 0 00-4-4h-1m-4 6v-2a4 4 0 00-4-4H4m13-4a4 4 0 10-8 0 4 4 0 008 0z",
+  star: "M12 2l3 6 6 .9-4.5 4.3 1 6-5.5-3-5.5 3 1-6L3 8.9 9 8z",
+  code: "M8 9l-4 3 4 3m8-6l4 3-4 3M14 5l-4 14",
+  pen: "M15.2 5.2l3.6 3.6M4 20l4.5-1 10-10a2.5 2.5 0 00-3.5-3.5l-10 10L4 20z",
+  activity: "M3 12h4l3-8 4 16 3-8h4",
+  shield: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z",
+  folder: "M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z",
+  chart: "M4 20V10m6 10V4m6 16v-7m4 7H2",
+  clock: "M12 7v5l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
+  phone: "M8 3h8a2 2 0 012 2v14a2 2 0 01-2 2H8a2 2 0 01-2-2V5a2 2 0 012-2zm3 15h2",
+};
+
+const mission = [
+  {
+    cls: "mission-card",
+    icon: icons.bulb,
+    title: "Nuestra Misión",
+    text: "Brindar a los profesionales de la fisioterapia una plataforma digital innovadora que optimice la gestión de sus consultas y potencie el seguimiento de los pacientes, mejorando la calidad de la atención mediante tecnología confiable, empática y centrada en las necesidades reales de la salud.",
+    points: [
+      "Gestión de consultas optimizada",
+      "Seguimiento continuo del paciente",
+      "Atención de mayor calidad",
+    ],
+  },
+  {
+    cls: "vision-card",
+    icon: icons.heart,
+    title: "Nuestra Visión",
+    text: "Ser la plataforma líder en soluciones digitales para fisioterapia en Latinoamérica, transformando la forma en que profesionales y pacientes se conectan, impulsando la recuperación a través de la innovación tecnológica, la excelencia en el servicio y una atención más humana y accesible.",
+    points: [
+      "Referente en Latinoamérica",
+      "Conexión profesional–paciente",
+      "Atención humana y accesible",
+    ],
+  },
+];
+
+const values = [
+  {
+    icon: icons.users,
+    title: "Colaboración",
+    text: "Facilitamos la comunicación efectiva entre profesionales y pacientes.",
+  },
+  {
+    icon: icons.star,
+    title: "Excelencia",
+    text: "Compromiso con la calidad en cada funcionalidad de la plataforma.",
+  },
+  {
+    icon: icons.heart,
+    title: "Empatía",
+    text: "Diseñamos pensando en las necesidades reales de los pacientes.",
+  },
+  {
+    icon: icons.bulb,
+    title: "Innovación",
+    text: "Tecnología de vanguardia aplicada a la salud.",
+  },
+  {
+    icon: icons.shield,
+    title: "Confianza",
+    text: "Protegemos la información clínica con seguridad y responsabilidad.",
+  },
+  {
+    icon: icons.activity,
+    title: "Compromiso",
+    text: "Acompañamos cada etapa de la recuperación del paciente.",
+  },
+  {
+    icon: icons.phone,
+    title: "Accesibilidad",
+    text: "Una herramienta simple, disponible desde cualquier dispositivo.",
+  },
+  {
+    icon: icons.chart,
+    title: "Mejora continua",
+    text: "Evolucionamos con la retroalimentación de nuestros usuarios.",
+  },
+];
+
+const history = [
+  {
+  
+    icon: icons.folder,
+    title: "El problema",
+    text: "Consultorios con expedientes manuales, citas desorganizadas y poco seguimiento de los pacientes fuera de la consulta.",
+  },
+  {
+
+    icon: icons.users,
+    title: "La colaboración",
+    text: "Desarrolladores y fisioterapeutas se unieron para entender el día a día de la consulta y sus verdaderas necesidades.",
+  },
+  {
+
+    icon: icons.code,
+    title: "La solución",
+    text: "Nace MotionHub: una plataforma que digitaliza expedientes, agenda y rutinas, y mejora la experiencia de atención.",
+  },
+  {
+
+    icon: icons.chart,
+    title: "Hoy",
+    text: "Miles de profesionales optimizan sus consultas, mejoran sus resultados y mantienen motivados a sus pacientes.",
+  },
+];
+
+const team = [
+  {
+    icon: icons.code,
+    title: "Desarrolladores",
+    text: "Construyen una plataforma estable, rápida y segura.",
+  },
+  {
+    icon: icons.pen,
+    title: "Diseñadores",
+    text: "Crean experiencias simples e intuitivas para todos.",
+  },
+  {
+    icon: icons.activity,
+    title: "Fisioterapeutas",
+    text: "Aportan la experiencia clínica real detrás de cada función.",
+  },
+  {
+    icon: icons.shield,
+    title: "Salud digital",
+    text: "Aseguran buenas prácticas y el cuidado de la información.",
+  },
+];
+
+const audiences = [
+  {
+    href: "/use/admin",
+    icon: icons.folder,
+    title: "Para fisioterapeutas",
+    text: "Gestiona expedientes, agenda y rutinas personalizadas, y monitorea la evolución de tus pacientes desde un solo lugar.",
+  },
+  {
+    href: "/use/user",
+    icon: icons.clock,
+    title: "Para pacientes",
+    text: "Consulta tus rutinas, registra tu progreso y mantente en contacto con tu fisioterapeuta desde cualquier lugar.",
+  },
+];
+---
+
+<Layout title="MotionHub">
+  <Nav />
+
+  <!-- Hero Section - Página 1 -->
+  <section
+    class="snap-section min-h-screen flex items-center isolate overflow-hidden"
+    data-section="hero"
+  >
+    <AnimationBgProduct />
+    <div class="text-center px-6 w-full max-w-6xl mx-auto pt-24 pb-12">
+      <h1
+        class="hero-title text-4xl md:text-5xl font-bold tracking-tight leading-tight"
+      >
+        Conectando Profesionales<br />
+        y Pacientes para una<br />
+        Mejor Recuperación
+      </h1>
+      <p class="hero-subtitle mt-4 max-w-2xl mx-auto text-gray-700 font-light">
+        MotionHub nació con la misión de digitalizar y optimizar la práctica de
+        la fisioterapia, mejorando la comunicación entre terapeutas y pacientes.
+      </p>
+    </div>
+  </section>
+
+  <!-- Misión y Visión - Página 2 -->
+  <section
+    class="snap-section min-h-screen flex items-center"
+    data-section="mision-vision"
+  >
+    <div class="max-w-6xl mx-auto px-6 w-full py-20">
+      <div class="divider w-full h-0.5 bg-gray-800/20 mb-10"></div>
+      <h2 class="section-title text-3xl font-semibold text-center mb-12">
+        Lo que nos mueve
+      </h2>
+
+      <div class="grid gap-8 md:grid-cols-2">
+        {
+          mission.map((card) => (
+            <div class={`${card.cls} hover-card bg-gray-100 rounded-2xl p-8 shadow-lg`}>
+              <div class="mb-3">
+                <svg
+                  class="w-8 h-8 text-gray-800"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d={card.icon}
+                  />
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold mb-2">{card.title}</h3>
+              <p class="text-gray-700 font-light">{card.text}</p>
+              <ul class="mt-6 space-y-2 border-t border-gray-800/10 pt-6">
+                {card.points.map((point) => (
+                  <li class="flex items-center gap-3 text-sm text-gray-800">
+                    <span class="w-2 h-2 rounded-full bg-blue-300" />
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Valores - Página 3 -->
+  <section
+    class="snap-section min-h-screen flex items-center"
+    data-section="valores"
+  >
+    <div class="max-w-6xl mx-auto px-6 w-full py-20">
+      <div class="divider w-full h-0.5 bg-gray-800/20 mb-10"></div>
+      <h2 class="section-title text-3xl font-semibold text-center mb-12">
+        Nuestros valores
+      </h2>
+
+      <div class="values-grid grid gap-6 sm:grid-cols-2 md:grid-cols-4">
+        {
+          values.map((value, i) => (
+            <div
+              class={`value-card hover-card ${i % 2 === 0 ? "bg-blue-100" : "bg-blue-200"} rounded-xl p-6 text-center shadow-lg`}
+            >
+              <div class="flex justify-center mb-3">
+                <svg
+                  class="w-8 h-8 text-gray-800"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d={value.icon}
+                  />
+                </svg>
+              </div>
+              <h4 class="font-semibold mb-2">{value.title}</h4>
+              <p class="text-sm text-gray-700 font-light">{value.text}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Historia - Página 4 -->
+  <section
+    class="snap-section min-h-screen flex items-center"
+    data-section="historia"
+  >
+    <div class="max-w-6xl mx-auto px-6 w-full py-20">
+      <div class="divider w-full h-0.5 bg-gray-800/20 mb-10"></div>
+      <h2 class="section-title text-3xl font-semibold text-center mb-4">
+        Nuestra Historia
+      </h2>
+      <p
+        class="section-subtitle text-center text-gray-700 font-light max-w-2xl mx-auto mb-12"
+      >
+        MotionHub surgió para resolver problemas comunes en consultorios de
+        fisioterapia.
+      </p>
+
+      <div class="history-grid grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {
+          history.map((item) => (
+            <div class="history-card hover-card bg-gray-100 rounded-2xl p-6 shadow-lg">
+              <div class="flex items-center justify-between mb-4">
+            
+                <svg
+                  class="w-7 h-7 text-gray-800"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d={item.icon}
+                  />
+                </svg>
+              </div>
+              <h3 class="text-lg font-semibold mb-2">{item.title}</h3>
+              <p class="text-sm text-gray-700 font-light leading-relaxed">
+                {item.text}
+              </p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Equipo - Página 5 -->
+  <section
+    class="snap-section min-h-screen flex items-center"
+    data-section="equipo"
+  >
+    <div class="max-w-6xl mx-auto px-6 w-full py-20">
+      <div class="divider w-full h-0.5 bg-gray-800/20 mb-10"></div>
+      <h2 class="section-title text-3xl font-semibold text-center mb-4">
+        Nuestro equipo
+      </h2>
+      <p
+        class="section-subtitle text-center text-gray-700 font-light max-w-2xl mx-auto mb-12"
+      >
+        Un equipo multidisciplinario trabajando juntos para transformar la
+        fisioterapia.
+      </p>
+
+      <div class="team-grid grid gap-6 sm:grid-cols-2 md:grid-cols-4">
+        {
+          team.map((member, i) => (
+            <div
+              class={`team-card hover-card ${i % 2 === 0 ? "bg-blue-100" : "bg-blue-200"} rounded-xl p-6 text-center shadow-lg`}
+            >
+              <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white/70">
+                <svg
+                  class="w-7 h-7 text-gray-800"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d={member.icon}
+                  />
+                </svg>
+              </div>
+              <h4 class="font-semibold mb-2">{member.title}</h4>
+              <p class="text-sm text-gray-700 font-light">{member.text}</p>
+            </div>
+          ))
+        }
+      </div>
+
+      <!-- Para quién -->
+      <div class="audience-grid mt-12 grid gap-6 md:grid-cols-2">
+        {
+          audiences.map((item) => (
+            <a
+              href={item.href}
+              class="audience-card hover-card group flex items-start gap-5 bg-gray-100 rounded-2xl p-8 shadow-lg"
+            >
+              <svg
+                class="w-8 h-8 shrink-0 text-gray-800"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d={item.icon}
+                />
+              </svg>
+              <div>
+                <h3 class="text-xl font-semibold mb-2">
+                  {item.title}
+                  <span class="inline-block transition-transform duration-300 group-hover:translate-x-1">
+                    →
+                  </span>
+                </h3>
+                <p class="text-gray-700 font-light">{item.text}</p>
+              </div>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Final - Página 6 -->
+  <section
+    class="snap-section min-h-screen flex items-center"
+    data-section="cta"
+  >
+    <div class="text-center w-full px-6">
+      <h2 class="cta-title text-3xl md:text-4xl font-semibold mb-4">
+        Únete a la Revolución Digital de la Fisioterapia
+      </h2>
+      <p class="cta-subtitle text-gray-700 mb-10 font-light max-w-2xl mx-auto">
+        Forma parte de la comunidad que está transformando el cuidado de la
+        salud física.
+      </p>
+      <div class="cta-buttons flex flex-wrap justify-center gap-4">
+        <Button text="Comenzar Ahora" href="/login" theme="dark" class="inline-block w-40" />
+        <Button text="Para ti" href="/use/user" theme="dark" class="inline-block w-40" />
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer Section -->
+  <section class="snap-section footer-section" data-section="footer">
+    <Footer />
+  </section>
+</Layout>
+
+<script>
+  import { gsap } from "gsap";
+  import { reveal, revealSectionHeader } from "../scripts/reveal";
+
+  // ======================
+  // HERO SECTION (Página 1)
+  // ======================
+  gsap.from(".hero-title", {
+    opacity: 0,
+    y: 80,
+    duration: 1.2,
+    ease: "power3.out",
+    delay: 0.3,
+  });
+
+  gsap.from(".hero-subtitle", {
+    opacity: 0,
+    y: 50,
+    duration: 1,
+    ease: "power3.out",
+    delay: 0.7,
+  });
+
+  // ======================
+  // DIVISORES Y TÍTULOS DE SECCIÓN
+  // ======================
+  ["mision-vision", "valores", "historia", "equipo"].forEach((name) =>
+    revealSectionHeader(`[data-section="${name}"]`),
+  );
+
+  // ======================
+  // MISIÓN Y VISIÓN (Página 2)
+  // ======================
+  reveal('[data-section="mision-vision"]', ".mission-card", { x: -100 });
+  reveal('[data-section="mision-vision"]', ".vision-card", { x: 100 });
+
+  // ======================
+  // CARDS EN GRID (Páginas 3, 4 y 5)
+  // ======================
+  const gridCards = {
+    ".values-grid": ".value-card",
+    ".history-grid": ".history-card",
+    ".team-grid": ".team-card",
+    ".audience-grid": ".audience-card",
+  };
+
+  Object.entries(gridCards).forEach(([grid, card]) => {
+    reveal(
+      grid,
+      card,
+      { y: 60, scale: 0.9, duration: 0.8, stagger: 0.15, ease: "back.out(1.2)" },
+      "top 85%",
+    );
+  });
+
+  // ======================
+  // CTA FINAL (Página 6)
+  // ======================
+  reveal('[data-section="cta"]', ".cta-title", { y: 60 });
+  reveal('[data-section="cta"]', ".cta-subtitle", { y: 40, delay: 0.3 });
+  reveal('[data-section="cta"]', ".cta-buttons", {
+    y: 30,
+    duration: 0.8,
+    delay: 0.6,
+    ease: "power2.out",
+  });
+
+  // ======================
+  // KEYBOARD NAVIGATION
+  // ======================
+  let isAnimating = false;
+
+  document.addEventListener("keydown", (e) => {
+    if (isAnimating) return;
+
+    const sections = document.querySelectorAll(".snap-section");
+    let currentSection = 0;
+
+    sections.forEach((section, index) => {
+      const rect = section.getBoundingClientRect();
+      if (rect.top <= 100 && rect.bottom > 100) {
+        currentSection = index;
+      }
+    });
+
+    if (e.key === "ArrowDown" || e.key === "PageDown") {
+      e.preventDefault();
+      if (currentSection < sections.length - 1) {
+        isAnimating = true;
+        sections[currentSection + 1].scrollIntoView({
+          behavior: "smooth",
+        });
+        setTimeout(() => (isAnimating = false), 1000);
+      }
+    } else if (e.key === "ArrowUp" || e.key === "PageUp") {
+      e.preventDefault();
+      if (currentSection > 0) {
+        isAnimating = true;
+        sections[currentSection - 1].scrollIntoView({
+          behavior: "smooth",
+        });
+        setTimeout(() => (isAnimating = false), 1000);
+      }
+    }
+  });
+
+  // ======================
+  // HOVER EFFECTS ON CARDS
+  // ======================
+  document.querySelectorAll(".hover-card").forEach((card) => {
+    card.addEventListener("mouseenter", () => {
+      gsap.to(card, {
+        y: -10,
+        scale: 1.02,
+        duration: 0.3,
+        ease: "power2.out",
+      });
+    });
+
+    card.addEventListener("mouseleave", () => {
+      gsap.to(card, {
+        y: 0,
+        scale: 1,
+        duration: 0.3,
+        ease: "power2.out",
+      });
+    });
+  });
+</script>
+
+<style>
+  .snap-section {
+    min-height: 100vh;
+    position: relative;
+  }
+
+  .footer-section {
+    min-height: 0;
+    height: auto;
+  }
+
+  .divider {
+    transform-origin: center;
+  }
+</style>

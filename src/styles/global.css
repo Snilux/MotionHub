@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+/* Variante `dark:` controlada por la clase .dark en <html> (no por el sistema) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --font-sans: "Inter Variable", "sans-serif";
+    --font-baloo: "Baloo Bhaijaan 2 Variable", "sans-serif";
+}
+
+/*
+ * MODO OSCURO
+ * En lugar de añadir `dark:` a cada clase, se invierte la paleta neutra:
+ * Tailwind v4 genera sus utilidades con variables (bg-white -> var(--color-white)),
+ * así que basta con redefinirlas dentro de .dark para que todas las páginas cambien.
+ */
+@layer base {
+    .dark {
+        color-scheme: dark;
+
+        /* Fondo gris carbón (no negro puro) para no perder contraste */
+        --color-white: oklch(23% 0.012 260);
+        --color-black: oklch(97% 0.003 260);
+
+        /* Fondos y bordes (50-400) un poco más claros; textos (500-950) más luminosos */
+        --color-gray-50: oklch(25.5% 0.014 260);
+        --color-gray-100: oklch(29% 0.016 260);
+        --color-gray-200: oklch(34% 0.018 260);
+        --color-gray-300: oklch(42% 0.02 260);
+        --color-gray-400: oklch(56% 0.022 260);
+        --color-gray-500: oklch(73% 0.018 260);
+        --color-gray-600: oklch(81% 0.012 260);
+        --color-gray-700: oklch(89% 0.008 260);
+        --color-gray-800: oklch(93.5% 0.005 260);
+        --color-gray-900: oklch(96.7% 0.003 260);
+        --color-gray-950: oklch(98.5% 0.002 260);
+
+        --color-neutral-50: oklch(25.5% 0 0);
+        --color-neutral-100: oklch(29% 0 0);
+        --color-neutral-200: oklch(34% 0 0);
+        --color-neutral-300: oklch(42% 0 0);
+        --color-neutral-400: oklch(56% 0 0);
+        --color-neutral-500: oklch(73% 0 0);
+        --color-neutral-600: oklch(81% 0 0);
+        --color-neutral-700: oklch(89% 0 0);
+        --color-neutral-800: oklch(93.5% 0 0);
+        --color-neutral-900: oklch(96.7% 0 0);
+        --color-neutral-950: oklch(98.5% 0 0);
+
+        /* Cards azules claras -> azules medios */
+        --color-blue-100: oklch(33% 0.06 258);
+        --color-blue-200: oklch(38% 0.08 258);
+        --color-blue-50: oklch(30% 0.05 258);
+
+        /* Paleta del dashboard: casi negro neutro (sin tinte); fondo (100) más oscuro que las cards (50) */
+        --color-stone-50: oklch(21% 0 0);
+        --color-stone-100: oklch(16.5% 0 0);
+        --color-stone-200: oklch(28% 0 0);
+        --color-stone-300: oklch(34% 0 0);
+        --color-stone-400: oklch(52% 0 0);
+
+        /* Avisos (error / éxito / advertencia): fondos oscuros tintados y texto claro */
+        --color-red-50: oklch(30% 0.06 25);
+        --color-red-200: oklch(42% 0.1 25);
+        --color-red-500: oklch(72% 0.17 25);
+        --color-red-600: oklch(78% 0.14 25);
+        --color-green-50: oklch(30% 0.05 150);
+        --color-green-200: oklch(42% 0.08 150);
+        --color-green-600: oklch(78% 0.15 150);
+        --color-green-700: oklch(82% 0.13 150);
+        --color-amber-50: oklch(30% 0.05 75);
+        --color-amber-700: oklch(82% 0.13 75);
+    }
+
+    .dark body {
+        background-color: var(--color-white);
+        color: var(--color-black);
+    }
+
+    /* Mantiene los colores originales dentro de un bloque (p. ej. sobre un fondo oscuro fijo) */
+    .dark .keep-light {
+        --color-white: #fff;
+        --color-black: #000;
+    }
+}
+
+/* Logos, íconos e ilustraciones SVG con colores fijos: se invierten conservando el tono */
+.dark .dark-invert {
+    /* 0.86 en vez de 1: el blanco pasa a gris carbón, igual que el fondo */
+    filter: invert(0.86) hue-rotate(180deg);
+}

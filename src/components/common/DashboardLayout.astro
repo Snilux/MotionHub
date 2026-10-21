@@ -1,0 +1,342 @@
+---
+import "../../styles/global.css";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/baloo-bhaijaan-2";
+import Title from "./Title.astro";
+import HeadAssets from "./HeadAssets.astro";
+import ThemeToggle from "./ThemeToggle.astro";
+
+interface Props {
+  title: string;
+  role: "medico" | "paciente";
+  nombre: string;
+  activeSection?: string;
+}
+
+const { title, role, nombre, activeSection = "" } = Astro.props;
+
+const medicoLinks = [
+  {
+    href: "/dashboard/medico",
+    label: "Inicio",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  },
+  {
+    href: "/dashboard/medico/pacientes",
+    label: "Pacientes",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  },
+  {
+    href: "/dashboard/medico/citas",
+    label: "Citas",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+  },
+  {
+    href: "/dashboard/medico/rutinas",
+    label: "Rutinas",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
+  },
+  {
+    href: "/dashboard/medico/expedientes",
+    label: "Expedientes",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
+  },
+];
+
+const pacienteLinks = [
+  {
+    href: "/dashboard/paciente",
+    label: "Inicio",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  },
+  {
+    href: "/dashboard/paciente/citas",
+    label: "Mis Citas",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+  },
+  {
+    href: "/dashboard/paciente/rutinas",
+    label: "Mis Rutinas",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
+  },
+  {
+    href: "/dashboard/paciente/progreso",
+    label: "Mi Progreso",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+  },
+];
+
+const links = role === "medico" ? medicoLinks : pacienteLinks;
+
+const perfilHref = `/dashboard/${role}/perfil`;
+
+// Fondo cálido no blanco (menos fatiga visual) y texto más grande
+const ui = {
+  body: "bg-stone-100",
+  panel: "bg-stone-50 border-stone-200",
+  link: "text-base py-2.5",
+  name: "text-sm",
+  meta: "text-sm",
+};
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/icon.svg" />
+    <title>{title} – MotionHub</title>
+    <HeadAssets />
+  </head>
+  <body class={`${ui.body} min-h-screen flex font-sans`} data-role={role}>
+    <!-- Banner expiración sesión médico -->
+    {
+      role === "medico" && (
+        <div
+          id="sessionWarnBanner"
+          class="hidden fixed top-0 left-0 right-0 z-[100] bg-black text-white text-xs tracking-wide px-5 py-2.5 flex items-center justify-between"
+        >
+          <span>
+            Tu sesión expirará en{" "}
+            <strong>
+              <span id="sessionCountdown">60</span>s
+            </strong>
+            . Guarda tu trabajo.
+          </span>
+          <button
+            onclick="document.getElementById('sessionWarnBanner').classList.add('hidden')"
+            class="ml-4 opacity-60 hover:opacity-100 text-base leading-none"
+          >
+            ✕
+          </button>
+        </div>
+      )
+    }
+
+    <!-- ── SIDEBAR ── -->
+    <aside transition:name="dash-sidebar"
+      class={`w-56 ${ui.panel} border-r flex flex-col min-h-screen fixed left-0 top-0 bottom-0 z-40 hidden lg:flex`}
+    >
+      <!-- Logo -->
+      <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+        <a href="/" transition:name="brand-logo"><Title size="sm" /></a>
+        <ThemeToggle />
+      </div>
+
+      <!-- Nav links -->
+      <nav class="flex-1 px-3 py-4 space-y-0.5">
+        {
+          links.map((link) => (
+            <a
+              href={link.href}
+              class={`flex items-center gap-3 px-3 ${ui.link} rounded-lg transition-colors duration-150
+              ${
+                activeSection === link.href
+                  ? "bg-black text-white font-medium"
+                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+              }`}
+              style={activeSection === link.href ? "view-transition-name: dash-active-link" : undefined}
+            >
+              <span class="shrink-0" set:html={link.icon} />
+              <span class="font-light tracking-wide">{link.label}</span>
+            </a>
+          ))
+        }
+      </nav>
+
+      <!-- User + logout -->
+      <div class="px-3 py-4 border-t border-gray-200 space-y-1">
+        <a
+          href={perfilHref}
+          class={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-150
+            ${activeSection === perfilHref ? "bg-black/5" : "hover:bg-gray-100"}`}
+        >
+          <div
+            class="w-7 h-7 rounded-full bg-black flex items-center justify-center text-white text-xs font-baloo font-bold shrink-0"
+          >
+            {nombre.charAt(0).toUpperCase()}
+          </div>
+          <div class="min-w-0">
+            <p class={`${ui.name} font-medium text-gray-900 truncate`}>{nombre}</p>
+            <p class={`${ui.meta} text-gray-400 font-light`}>Ver perfil</p>
+          </div>
+        </a>
+        <button
+          id="logoutBtn"
+          class={`w-full flex items-center gap-2.5 px-3 ${ui.link} text-gray-500 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors font-light`}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="15"
+            height="15"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            viewBox="0 0 24 24"
+            ><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline
+              points="16 17 21 12 16 7"></polyline><line
+              x1="21"
+              y1="12"
+              x2="9"
+              y2="12"></line></svg
+          >
+          Cerrar sesión
+        </button>
+      </div>
+    </aside>
+
+    <!-- ── MOBILE HEADER ── -->
+    <header transition:name="dash-header"
+      class={`lg:hidden fixed top-0 left-0 right-0 z-30 ${ui.panel} border-b px-4 py-3 flex items-center justify-between`}
+    >
+      <a href="/" transition:name="brand-logo"><Title size="sm" /></a>
+      <ThemeToggle class="ml-auto mr-1" />
+      <button
+        id="menuToggle"
+        class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600"
+      >
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Mobile drawer -->
+    <div
+      id="mobileMenu"
+      class="lg:hidden hidden fixed inset-0 z-50 bg-black/40 dark:bg-[#000]/60"
+    >
+      <aside
+        class={`w-56 ${ui.panel} h-full flex flex-col border-r`}
+      >
+        <div
+          class="px-5 py-4 border-b border-gray-200 flex items-center justify-between"
+        >
+          <Title size="sm" />
+          <button
+            id="menuClose"
+            class="text-gray-400 hover:text-gray-700 text-lg leading-none"
+            >✕</button
+          >
+        </div>
+        <nav class="flex-1 px-3 py-4 space-y-0.5">
+          {
+            links.map((link) => (
+              <a
+                href={link.href}
+                class={`flex items-center gap-3 px-3 ${ui.link} rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 font-light`}
+              >
+                <span class="shrink-0" set:html={link.icon} />
+                {link.label}
+              </a>
+            ))
+          }
+        </nav>
+        <div class="px-3 py-4 border-t border-gray-200 space-y-1">
+          <a
+            href={perfilHref}
+            class={`flex items-center gap-3 px-3 ${ui.link} rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 font-light`}
+          >
+            <span class="w-4 h-4 rounded-full bg-black text-white text-[10px] font-baloo font-bold flex items-center justify-center shrink-0">
+              {nombre.charAt(0).toUpperCase()}
+            </span>
+            Mi perfil
+          </a>
+          <button
+            id="logoutBtnMobile"
+            class={`w-full flex items-center gap-2.5 px-3 ${ui.link} text-gray-500 hover:bg-gray-100 rounded-lg font-light`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="15"
+              height="15"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              viewBox="0 0 24 24"
+              ><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
+              ></path><polyline points="16 17 21 12 16 7"></polyline><line
+                x1="21"
+                y1="12"
+                x2="9"
+                y2="12"></line></svg
+            >
+            Cerrar sesión
+          </button>
+        </div>
+      </aside>
+    </div>
+
+    <!-- ── MAIN ── -->
+    <main transition:animate="slide" class={`flex-1 lg:ml-56 pt-14 lg:pt-0 min-h-screen ${ui.body}`}>
+      <slot />
+    </main>
+
+    <script>
+      async function logout() {
+        await fetch("/api/auth/logout", { method: "POST" });
+        window.location.href = "/login";
+      }
+      document.getElementById("logoutBtn")?.addEventListener("click", logout);
+      document
+        .getElementById("logoutBtnMobile")
+        ?.addEventListener("click", logout);
+
+      const menuToggle = document.getElementById("menuToggle");
+      const mobileMenu = document.getElementById("mobileMenu");
+      const menuClose = document.getElementById("menuClose");
+      menuToggle?.addEventListener("click", () =>
+        mobileMenu?.classList.remove("hidden"),
+      );
+      menuClose?.addEventListener("click", () =>
+        mobileMenu?.classList.add("hidden"),
+      );
+      mobileMenu?.addEventListener("click", (e) => {
+        if (e.target === mobileMenu) mobileMenu.classList.add("hidden");
+      });
+
+      const ROLE = document.body.dataset.role;
+      if (ROLE === "medico") {
+        const SESSION_MS = 10 * 60 * 1000;
+        const WARN_MS = 9 * 60 * 1000;
+        setTimeout(() => {
+          const banner = document.getElementById("sessionWarnBanner");
+          if (banner) {
+            banner.classList.remove("hidden");
+            let secs = 60;
+            const countdown = document.getElementById("sessionCountdown");
+            const iv = setInterval(() => {
+              secs--;
+              if (countdown) countdown.textContent = String(secs);
+              if (secs <= 0) clearInterval(iv);
+            }, 1000);
+          }
+        }, WARN_MS);
+        setTimeout(async () => {
+          await fetch("/api/auth/logout", { method: "POST" });
+          window.location.href = "/login?razon=expiracion";
+        }, SESSION_MS);
+      }
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  html {
+    scroll-behavior: smooth;
+  }
+</style>

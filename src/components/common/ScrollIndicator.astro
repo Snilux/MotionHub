@@ -1,0 +1,41 @@
+<!-- Flecha animada que invita a bajar; se oculta al hacer scroll -->
+<button
+    id="scroll-indicator"
+    type="button"
+    aria-label="Desplázate hacia abajo"
+    class="fixed inset-x-0 bottom-6 z-40 mx-auto w-fit p-2 text-gray-800 transition-opacity duration-500 cursor-pointer"
+>
+    <svg
+        class="w-8 h-8 animate-bounce"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+    >
+        <path d="M6 9l6 6 6-6"></path>
+    </svg>
+</button>
+
+<script>
+    const indicator = document.getElementById("scroll-indicator");
+
+    if (indicator) {
+        const update = () => {
+            const canScroll =
+                document.documentElement.scrollHeight > window.innerHeight + 50;
+            const hidden = !canScroll || window.scrollY > 50;
+            indicator.classList.toggle("opacity-0", hidden);
+            indicator.classList.toggle("pointer-events-none", hidden);
+        };
+
+        indicator.addEventListener("click", () => {
+            window.scrollBy({ top: window.innerHeight, behavior: "smooth" });
+        });
+
+        window.addEventListener("scroll", update, { passive: true });
+        window.addEventListener("resize", update);
+        update();
+    }
+</script>

@@ -1,0 +1,41 @@
+---
+// Botón de regreso: va a la página anterior del sitio o, si no hay, al inicio.
+interface Props {
+    href?: string;
+    // Clases de posición; por defecto queda en el flujo con margen inferior
+    class?: string;
+}
+
+const { href = "/", class: className = "mb-4" } = Astro.props;
+---
+
+<a
+    href={href}
+    data-back-button
+    aria-label="Regresar"
+    class={`group ${className} inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/70 text-gray-800 shadow-md transition-colors duration-300 hover:bg-black hover:text-white`}
+>
+    <svg
+        class="h-5 w-5 transition-transform duration-300 group-hover:-translate-x-0.5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+    >
+        <path d="M15 18l-6-6 6-6"></path>
+    </svg>
+</a>
+
+<script>
+    document.querySelectorAll<HTMLAnchorElement>("[data-back-button]").forEach((button) => {
+        button.addEventListener("click", (e) => {
+            // Solo usamos el historial si venimos de una página del mismo sitio
+            if (document.referrer.startsWith(location.origin) && history.length > 1) {
+                e.preventDefault();
+                history.back();
+            }
+        });
+    });
+</script>

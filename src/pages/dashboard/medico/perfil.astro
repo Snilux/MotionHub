@@ -1,0 +1,49 @@
+---
+import DashboardLayout from "../../../components/common/DashboardLayout.astro";
+import ProfileView from "../../../components/dashboard/ProfileView.astro";
+import SettingsRow from "../../../components/dashboard/SettingsRow.astro";
+import { card, btnPrimary, input, label } from "../../../components/dashboard/styles";
+import { getSessionFromRequest } from "../../../lib/session";
+import connectDB from "../../../lib/db";
+import { User } from "../../../models/User";
+
+const session = getSessionFromRequest(Astro.request);
+if (!session || session.role !== "medico") return Astro.redirect("/login");
+
+await connectDB();
+const medico: any = await User.findById(session.userId).select(
+  "nombre apellido email telefono fechaNacimiento cedulaProfesional especialidad createdAt",
+);
+if (!medico) return Astro.redirect("/login");
+
+const datosProfesionales = [
+  { id: "perfilEspecialidad", label: "Especialidad",       value: medico.especialidad ?? "",      placeholder: "Ej: Fisioterapia deportiva" },
+  { id: "perfilCedula",       label: "Cédula profesional", value: medico.cedulaProfesional ?? "", placeholder: "Ej: 12345678" },
+];
+---
+
+<DashboardLayout title="Mi perfil" role="medico" nombre={session.nombre} activeSection="/dashboard/medico/perfil">
+  <ProfileView
+    usuario={medico}
+    prefijo="Dr. "
+    subtitulo={medico.especialidad || "Fisioterapeuta"}
+    identidad={[{ label: "Cédula", value: medico.cedulaProfesional || "—" }]}
+    fotoDesc="Tus pacientes la verán junto a tus citas y rutinas."
+  >
+    <SettingsRow title="Información profesional" desc="Datos que acreditan tu práctica como fisioterapeuta.">
+      <form class={`${card} space-y-6`} onsubmit="return false">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {datosProfesionales.map((campo) => (
+            <div>
+              <label for={campo.id} class={`${label} block mb-2`}>{campo.label}</label>
+              <input id={campo.id} type="text" value={campo.value} placeholder={campo.placeholder} class={input} />
+            </div>
+          ))}
+        </div>
+        <div class="flex justify-end border-t border-stone-200 pt-6">
+          <button type="button" class={btnPrimary}>Guardar cambios</button>
+        </div>
+      </form>
+    </SettingsRow>
+  </ProfileView>
+</DashboardLayout>

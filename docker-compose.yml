@@ -1,0 +1,41 @@
+services:
+
+  # ── Aplicación Astro (SSR + Node) ──────────────────────────
+  app:
+    build: .
+    container_name: motionhub-dev
+    ports:
+      - "4321:4321"
+    volumes:
+      - .:/app                  # código local ↔ contenedor en vivo
+      - /app/node_modules       # aísla node_modules del contenedor
+    env_file:
+      - .env
+    environment:
+      - HOST=0.0.0.0
+      # La URL usa el nombre del servicio "mongo" como hostname
+      - MONGODB_URI=mongodb://mongo:27017/motionhub
+    depends_on:
+      mongo:
+        condition: service_healthy
+    stdin_open: true
+    tty: true                   # necesario para Claude Code interactivo
+
+  # ── MongoDB 7 ───────────────────────────────────────────────
+  mongo:
+    image: mongo:7
+    container_name: motionhub-mongo
+    ports:
+      - "27017:27017"           # opcional: acceso con Compass desde tu PC
+    volumes:
+      - mongo-data:/data/db     # datos persisten entre reinicios
+    environment:
+      - MONGO_INITDB_DATABASE=motionhub
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongo-data:

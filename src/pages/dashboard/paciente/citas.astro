@@ -1,0 +1,117 @@
+---
+import DashboardLayout from "../../../components/common/DashboardLayout.astro";
+import PageHeader from "../../../components/dashboard/PageHeader.astro";
+import SectionHeader from "../../../components/dashboard/SectionHeader.astro";
+import EmptyState from "../../../components/dashboard/EmptyState.astro";
+import SearchInput from "../../../components/dashboard/SearchInput.astro";
+import { card, chip, hora, plural, diaRelativo, fechaLarga } from "../../../components/dashboard/styles";
+import { getSessionFromRequest } from "../../../lib/session";
+import connectDB from "../../../lib/db";
+import { Cita } from "../../../models/Cita";
+
+const session = getSessionFromRequest(Astro.request);
+if (!session || session.role !== "paciente") return Astro.redirect("/login");
+
+await connectDB();
+
+const hoy = new Date();
+const citas = await Cita.find({ paciente: session.userId })
+  .populate("medico","nombre apellido especialidad")
+  .sort({ fecha: -1 });
+
+const proximas = citas
+  .filter((c: any) => new Date(c.fecha) >= hoy && c.estado !== "cancelada")
+  .reverse(); // de la más cercana a la más lejana
+const pasadas  = citas.filter((c: any) => new Date(c.fecha) <  hoy || c.estado === "completada" || c.estado === "cancelada");
+
+// Agrupa las próximas citas por día
+const porDia = new Map<string, any[]>();
+for (const c of proximas as any[]) {
+  const clave = new Date(c.fecha).toDateString();
+  if (!porDia.has(clave)) porDia.set(clave, []);
+  porDia.get(clave)!.push(c);
+}
+const dias = [...porDia.values()];
+---
+
+<DashboardLayout title="Mis Citas" role="paciente" nombre={session.nombre} activeSection="/dashboard/paciente/citas">
+
+  <div class="max-w-6xl px-6 sm:px-10 py-10 lg:py-14 space-y-12">
+
+    <PageHeader eyebrow="Agenda">
+      <Fragment slot="title"><strong>Mis Citas</strong></Fragment>
+      Tienes <strong>{plural(proximas.length, "cita próxima", "citas próximas")}</strong> y
+      <strong>{plural(pasadas.length, "cita", "citas")}</strong> en tu historial.
+    </PageHeader>
+
+    <SearchInput placeholder="Buscar cita por tipo o fisioterapeuta..." />
+
+    {dias.length === 0 ? (
+      <>
+        <hr class="border-stone-300" />
+        <EmptyState title="No tienes citas próximas" text="Tu fisioterapeuta te agendará la siguiente." />
+      </>
+    ) : (
+      dias.map((citasDia) => (
+        <>
+          <hr class="border-stone-300" />
+          <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
+            <div class="lg:col-span-3">
+              <p class="text-3xl font-baloo font-bold">{diaRelativo(new Date(citasDia[0].fecha))}</p>
+              <p class="text-base text-gray-600 mt-1">{plural(citasDia.length, "cita", "citas")}</p>
+            </div>
+
+            <div class="lg:col-span-9 space-y-4">
+              {citasDia.map((c: any) => {
+                const f = new Date(c.fecha);
+                return (
+                  <article class={`${card} space-y-4`}>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-5">
+                      <div class="sm:w-28 shrink-0">
+                        <p class="text-3xl font-baloo font-bold leading-none">{hora(f)}</p>
+                        <p class="text-base text-gray-600 mt-1">{c.duracion} min</p>
+                      </div>
+                      <div class="flex-1 min-w-0 sm:border-l sm:border-stone-200 sm:pl-5">
+                        <p class="text-xl font-semibold text-gray-900 capitalize">{c.tipo}</p>
+                        <p class="text-base text-gray-600 truncate">
+                          Dr. {c.medico.nombre} {c.medico.apellido}
+                          {c.medico.especialidad ? ` · ${c.medico.especialidad}` : ""}
+                        </p>
+                      </div>
+                      <span class={`${chip(c.estado === "confirmada")} self-start sm:self-auto`}>{c.estado}</span>
+                    </div>
+                    {c.notas && (
+                      <p class="text-base text-gray-700 border-t border-stone-200 pt-4">{c.notas}</p>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        </>
+      ))
+    )}
+
+    {pasadas.length > 0 && (
+      <>
+        <hr class="border-stone-300" />
+        <section>
+          <SectionHeader title={`Historial · ${pasadas.length}`} />
+          <ul class="divide-y divide-stone-300 border-y border-stone-300">
+            {pasadas.slice(0, 10).map((c: any) => (
+              <li class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 py-5">
+                <p class="sm:w-40 shrink-0 text-lg font-baloo font-bold text-gray-700">{fechaLarga(new Date(c.fecha))}</p>
+                <div class="flex-1 min-w-0">
+                  <p class="text-lg font-medium text-gray-900 capitalize">{c.tipo}</p>
+                  <p class="text-base text-gray-600 truncate">Dr. {c.medico.nombre} {c.medico.apellido}</p>
+                </div>
+                <span class={`${chip(false)} self-start sm:self-auto`}>{c.estado}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </>
+    )}
+
+  </div>
+</DashboardLayout>

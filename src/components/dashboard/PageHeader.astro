@@ -1,0 +1,24 @@
+---
+// Encabezado de página del dashboard: etiqueta, título (slot "title"),
+// resumen en texto (slot por defecto) y acción opcional (slot "action").
+interface Props {
+  eyebrow: string;
+}
+
+const { eyebrow } = Astro.props;
+---
+
+<header class="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+  <div>
+    <p class="text-sm text-gray-500 font-light tracking-widest uppercase">{eyebrow}</p>
+    <h1 transition:name="dash-title" class="text-4xl sm:text-5xl font-baloo tracking-wide mt-2">
+      <slot name="title" />
+    </h1>
+    {Astro.slots.has("default") && (
+      <p class="text-lg sm:text-xl text-gray-600 font-light mt-4 max-w-3xl leading-relaxed [&_strong]:font-semibold [&_strong]:text-gray-900">
+        <slot />
+      </p>
+    )}
+  </div>
+  <slot name="action" />
+</header>

@@ -1,0 +1,14 @@
+---
+// Título de sección con altura fija para que las columnas queden alineadas.
+// El slot por defecto se coloca a la derecha (p. ej. un enlace "Ver todo →").
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<div class="h-8 flex items-center justify-between mb-4">
+  <h2 class="text-sm text-gray-500 font-light tracking-widest uppercase">{title}</h2>
+  <slot />
+</div>

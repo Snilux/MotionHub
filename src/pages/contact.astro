@@ -1,0 +1,606 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Nav from "../components/home/Nav.astro";
+import Button from "../components/common/Button.astro";
+import Footer from "../components/common/Footer.astro";
+import searchIcon from "../assets/icons/buscar-icon.svg";
+import whatsappIcon from "../assets/icons/whatsapp-icon.svg";
+import mailIcon from "../assets/icons/mail-icon.svg";
+import phoneIcon from "../assets/icons/phone-icon.svg";
+
+const channels = [
+  {
+    icon: whatsappIcon,
+    title: "WhatsApp",
+    text: "Respuesta rápida en horario laboral.",
+    button: "Enviar mensaje",
+    href: "https://wa.me/522412221133",
+    bg: "bg-blue-100",
+  },
+  {
+    icon: mailIcon,
+    title: "Email",
+    text: "Escríbenos y te respondemos en menos de 24 h.",
+    button: "soporte@motionhub.com",
+    href: "mailto:soporte@motionhub.com",
+    bg: "bg-gray-100",
+  },
+  {
+    icon: phoneIcon,
+    title: "Teléfono",
+    text: "Atención directa de lunes a viernes.",
+    button: "+52 241 222 11 33",
+    href: "tel:+522412221133",
+    bg: "bg-blue-100",
+  },
+];
+
+const faqs = [
+  {
+    question: "¿Cómo creo una cuenta en MotionHub?",
+    answer:
+      "Puedes registrarte desde nuestra página principal. Completa el formulario con tus datos y verifica tu correo electrónico.",
+  },
+  {
+    question: "¿Puedo gestionar múltiples pacientes?",
+    answer:
+      "Sí, los fisioterapeutas pueden gestionar un número ilimitado de pacientes, crear rutinas y monitorear su progreso.",
+  },
+  {
+    question: "¿Es segura mi información médica?",
+    answer:
+      "MotionHub cumple con estándares de seguridad y privacidad médica, cifrando toda la información sensible.",
+  },
+  {
+    question: "¿Puedo usar MotionHub desde mi móvil?",
+    answer:
+      "Sí, la plataforma es completamente responsive y funciona en dispositivos móviles.",
+  },
+];
+
+const inputClass =
+  "w-full rounded-lg border border-gray-300 bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-300";
+---
+
+<Layout title="Soporte | MotionHub">
+  <Nav />
+
+  <!-- TÍTULO -->
+  <section class="max-w-6xl mx-auto px-6 pt-36 pb-24 text-center" data-section="hero">
+    <h1
+      class="hero-title text-4xl md:text-5xl font-bold tracking-tight leading-tight"
+    >
+      ¿Cómo podemos ayudarte?
+    </h1>
+    <p class="hero-subtitle mt-4 max-w-2xl mx-auto text-gray-700 font-light">
+      Estamos aquí para resolver tus dudas y ayudarte a aprovechar al máximo
+      MotionHub
+    </p>
+
+    <!-- BUSCADOR -->
+    <div class="hero-search max-w-3xl mx-auto mt-10">
+      <div class="relative">
+        <input
+          type="text"
+          placeholder="Busca tu pregunta o problema..."
+          class="w-full rounded-xl border border-gray-200 px-12 py-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+        />
+        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+          <img src={searchIcon.src} alt="Buscar" class="w-6 h-6 dark-invert" />
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CANALES DE SOPORTE -->
+  <section class="max-w-6xl mx-auto px-6 py-24" data-section="canales">
+    <div class="divider w-full h-0.5 bg-gray-800/20 mb-10"></div>
+    <h2 class="section-title text-3xl font-semibold text-center mb-4">
+      Canales de soporte
+    </h2>
+    <p
+      class="section-subtitle text-center text-gray-700 font-light max-w-2xl mx-auto mb-12"
+    >
+      Elige el medio que te resulte más cómodo para contactarnos.
+    </p>
+
+    <div class="channels-grid grid gap-8 md:grid-cols-3">
+      {
+        channels.map((channel) => (
+          <div
+            class={`channel-card ${channel.bg} flex flex-col items-center rounded-2xl p-8 text-center shadow-lg`}
+          >
+            <img
+              src={channel.icon.src}
+              alt={channel.title}
+              class="w-14 h-14 mb-6 dark-invert"
+            />
+            <h3 class="text-xl font-semibold mb-2">{channel.title}</h3>
+            <p class="text-sm text-gray-700 font-light mb-6">{channel.text}</p>
+            <div class="mt-auto">
+              <Button text={channel.button} href={channel.href} theme="white" />
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <!-- PREGUNTAS FRECUENTES -->
+  <section class="max-w-6xl mx-auto px-6 py-24" data-section="faq">
+    <div class="divider w-full h-0.5 bg-gray-800/20 mb-10"></div>
+    <h2 class="section-title text-3xl font-semibold text-center mb-4">
+      Preguntas frecuentes
+    </h2>
+    <p
+      class="section-subtitle text-center text-gray-700 font-light max-w-2xl mx-auto mb-12"
+    >
+      Las dudas más comunes de fisioterapeutas y pacientes.
+    </p>
+
+    <div class="faq-grid grid gap-6 md:grid-cols-2">
+      {
+        faqs.map((faq) => (
+          <div class="faq-card bg-gray-100 rounded-2xl p-6 shadow-lg">
+            <h3 class="font-semibold mb-2">{faq.question}</h3>
+            <p class="text-gray-700 font-light text-sm">{faq.answer}</p>
+          </div>
+        ))
+      }
+    </div>
+
+    <div class="faq-button mt-10">
+      <Button text="Ver todas las preguntas" href="#" theme="white" />
+    </div>
+  </section>
+
+  <!-- FORMULARIO DE CONTACTO -->
+  <section class="max-w-6xl mx-auto px-6 pt-24 pb-32" data-section="formulario">
+    <div class="divider w-full h-0.5 bg-gray-800/20 mb-10"></div>
+    <h2 class="section-title text-3xl font-semibold text-center mb-4">
+      Envíanos un mensaje
+    </h2>
+    <p
+      class="section-subtitle text-center text-gray-700 font-light max-w-2xl mx-auto mb-12"
+    >
+      ¿No encontraste lo que buscabas? Escríbenos directamente
+    </p>
+
+    <div class="form-card bg-gray-100 rounded-2xl p-6 sm:p-10 shadow-lg">
+      <form id="contactForm" class="grid gap-6">
+        <div class="grid md:grid-cols-2 gap-6">
+          <div>
+            <input
+              id="name"
+              type="text"
+              placeholder="Tu nombre completo"
+              class={inputClass}
+            />
+            <p id="nameError" class="text-red-500 text-sm mt-1 hidden"></p>
+          </div>
+          <div>
+            <input
+              id="email"
+              type="email"
+              placeholder="tu@email.com"
+              class={inputClass}
+            />
+            <p id="emailError" class="text-red-500 text-sm mt-1 hidden"></p>
+          </div>
+        </div>
+
+        <div>
+          <input
+            id="subject"
+            type="text"
+            placeholder="¿En qué podemos ayudarte?"
+            class={inputClass}
+          />
+          <p id="subjectError" class="text-red-500 text-sm mt-1 hidden"></p>
+        </div>
+
+        <div>
+          <textarea
+            id="message"
+            rows="5"
+            placeholder="Describe tu problema o pregunta en detalle..."
+            class={inputClass}></textarea>
+          <p id="messageError" class="text-red-500 text-sm mt-1 hidden"></p>
+        </div>
+
+        <p id="formError" class="text-red-500 text-sm hidden"></p>
+        <p id="formSuccess" class="text-green-600 text-sm hidden"></p>
+
+        <Button text="Enviar mensaje" type="submit" theme="dark" class="w-40" />
+      </form>
+    </div>
+  </section>
+
+  <Footer />
+</Layout>
+
+<script>
+  import { gsap } from "gsap";
+  import { reveal, revealSectionHeader } from "../scripts/reveal";
+
+  // Utilidades de validación
+  const sanitizeInput = (input: string): string => {
+    return input
+      .replace(/[<>]/g, "") // Elimina < y >
+      .replace(/javascript:/gi, "") // Elimina javascript:
+      .replace(/on\w+=/gi, "") // Elimina atributos de eventos como onclick=
+      .trim();
+  };
+
+  const validateName = (name: string): { valid: boolean; error: string } => {
+    const sanitized = sanitizeInput(name);
+
+    if (!sanitized) {
+      return { valid: false, error: "El nombre es obligatorio" };
+    }
+
+    if (sanitized.length < 3) {
+      return {
+        valid: false,
+        error: "El nombre debe tener al menos 3 caracteres",
+      };
+    }
+
+    if (sanitized.length > 100) {
+      return { valid: false, error: "El nombre es demasiado largo" };
+    }
+
+    // Verifica que no sea solo caracteres repetidos o sin sentido
+    const uniqueChars = new Set(sanitized.toLowerCase().replace(/\s/g, ""))
+      .size;
+    if (uniqueChars < 3) {
+      return { valid: false, error: "Por favor ingresa un nombre válido" };
+    }
+
+    // Verifica que contenga al menos dos palabras (nombre y apellido)
+    const words = sanitized.split(/\s+/).filter((w) => w.length > 0);
+    if (words.length < 2) {
+      return { valid: false, error: "Por favor ingresa tu nombre completo" };
+    }
+
+    // Verifica que cada palabra tenga al menos 2 caracteres
+    if (words.some((word) => word.length < 2)) {
+      return {
+        valid: false,
+        error: "Cada parte del nombre debe tener al menos 2 caracteres",
+      };
+    }
+
+    // Solo permite letras, espacios, guiones y apóstrofes
+    const nameRegex = /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s'-]+$/;
+    if (!nameRegex.test(sanitized)) {
+      return { valid: false, error: "El nombre solo puede contener letras" };
+    }
+
+    return { valid: true, error: "" };
+  };
+
+  const validateEmail = (email: string): { valid: boolean; error: string } => {
+    const sanitized = sanitizeInput(email);
+
+    if (!sanitized) {
+      return { valid: false, error: "El email es obligatorio" };
+    }
+
+    // Expresión regular estricta para emails
+    const emailRegex =
+      /^[a-zA-Z0-9][a-zA-Z0-9._-]*@[a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,}$/;
+
+    if (!emailRegex.test(sanitized)) {
+      return { valid: false, error: "Por favor ingresa un email válido" };
+    }
+
+    // Verifica dominios comunes mal escritos
+    const suspiciousPatterns = [
+      /\.con$/i,
+      /\.coom$/i,
+      /\.coml$/i,
+      /@test\./i,
+      /@example\./i,
+      /@temp\./i,
+      /\.123$/i,
+      /\.abc$/i,
+    ];
+
+    if (suspiciousPatterns.some((pattern) => pattern.test(sanitized))) {
+      return {
+        valid: false,
+        error: "Por favor verifica el dominio de tu email",
+      };
+    }
+
+    // Verifica que no sea un email temporal o de prueba obvio
+    if (/^(test|temp|fake|spam|junk|throwaway)@/i.test(sanitized)) {
+      return { valid: false, error: "Por favor usa un email válido" };
+    }
+
+    return { valid: true, error: "" };
+  };
+
+  const validateSubject = (
+    subject: string,
+  ): { valid: boolean; error: string } => {
+    const sanitized = sanitizeInput(subject);
+
+    if (!sanitized) {
+      return { valid: false, error: "El asunto es obligatorio" };
+    }
+
+    if (sanitized.length < 5) {
+      return {
+        valid: false,
+        error: "El asunto debe tener al menos 5 caracteres",
+      };
+    }
+
+    if (sanitized.length > 200) {
+      return { valid: false, error: "El asunto es demasiado largo" };
+    }
+
+    // Verifica que no sea solo caracteres repetidos
+    const uniqueChars = new Set(sanitized.toLowerCase().replace(/\s/g, ""))
+      .size;
+    if (uniqueChars < 3) {
+      return { valid: false, error: "Por favor ingresa un asunto válido" };
+    }
+
+    return { valid: true, error: "" };
+  };
+
+  const validateMessage = (
+    message: string,
+  ): { valid: boolean; error: string } => {
+    const sanitized = sanitizeInput(message);
+
+    if (!sanitized) {
+      return { valid: false, error: "El mensaje es obligatorio" };
+    }
+
+    if (sanitized.length < 10) {
+      return {
+        valid: false,
+        error: "El mensaje debe tener al menos 10 caracteres",
+      };
+    }
+
+    if (sanitized.length > 2000) {
+      return {
+        valid: false,
+        error: "El mensaje es demasiado largo (máximo 2000 caracteres)",
+      };
+    }
+
+    // Verifica que no sea solo caracteres repetidos
+    const uniqueChars = new Set(sanitized.toLowerCase().replace(/\s/g, ""))
+      .size;
+    if (uniqueChars < 5) {
+      return { valid: false, error: "Por favor ingresa un mensaje válido" };
+    }
+
+    // Verifica que contenga al menos algunas palabras reales
+    const words = sanitized.split(/\s+/).filter((w) => w.length > 2);
+    if (words.length < 3) {
+      return {
+        valid: false,
+        error: "Por favor describe tu problema con más detalle",
+      };
+    }
+
+    return { valid: true, error: "" };
+  };
+
+  const showError = (elementId: string, message: string) => {
+    const errorElement = document.getElementById(elementId);
+    const inputElement = document.getElementById(
+      elementId.replace("Error", ""),
+    );
+
+    if (errorElement) {
+      errorElement.textContent = message;
+      errorElement.classList.remove("hidden");
+    }
+
+    if (inputElement) {
+      inputElement.classList.add("border-red-500");
+    }
+  };
+
+  const clearError = (elementId: string) => {
+    const errorElement = document.getElementById(elementId);
+    const inputElement = document.getElementById(
+      elementId.replace("Error", ""),
+    );
+
+    if (errorElement) {
+      errorElement.textContent = "";
+      errorElement.classList.add("hidden");
+    }
+
+    if (inputElement) {
+      inputElement.classList.remove("border-red-500");
+    }
+  };
+
+  // Manejo del formulario
+  const form = document.getElementById("contactForm") as HTMLFormElement;
+  const nameInput = document.getElementById("name") as HTMLInputElement;
+  const emailInput = document.getElementById("email") as HTMLInputElement;
+  const subjectInput = document.getElementById("subject") as HTMLInputElement;
+  const messageInput = document.getElementById(
+    "message",
+  ) as HTMLTextAreaElement;
+  const submitButton = form?.querySelector(
+    'button[type="submit"]',
+  ) as HTMLButtonElement;
+
+  // Validación en tiempo real
+  nameInput?.addEventListener("blur", () => {
+    const validation = validateName(nameInput.value);
+    if (!validation.valid) {
+      showError("nameError", validation.error);
+    } else {
+      clearError("nameError");
+    }
+  });
+
+  emailInput?.addEventListener("blur", () => {
+    const validation = validateEmail(emailInput.value);
+    if (!validation.valid) {
+      showError("emailError", validation.error);
+    } else {
+      clearError("emailError");
+    }
+  });
+
+  subjectInput?.addEventListener("blur", () => {
+    const validation = validateSubject(subjectInput.value);
+    if (!validation.valid) {
+      showError("subjectError", validation.error);
+    } else {
+      clearError("subjectError");
+    }
+  });
+
+  messageInput?.addEventListener("blur", () => {
+    const validation = validateMessage(messageInput.value);
+    if (!validation.valid) {
+      showError("messageError", validation.error);
+    } else {
+      clearError("messageError");
+    }
+  });
+
+  // Validación al enviar
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    // Limpiar errores previos
+    clearError("nameError");
+    clearError("emailError");
+    clearError("subjectError");
+    clearError("messageError");
+    document.getElementById("formError")?.classList.add("hidden");
+    document.getElementById("formSuccess")?.classList.add("hidden");
+
+    // Validar todos los campos
+    const nameValidation = validateName(nameInput.value);
+    const emailValidation = validateEmail(emailInput.value);
+    const subjectValidation = validateSubject(subjectInput.value);
+    const messageValidation = validateMessage(messageInput.value);
+
+    let hasErrors = false;
+
+    if (!nameValidation.valid) {
+      showError("nameError", nameValidation.error);
+      hasErrors = true;
+    }
+
+    if (!emailValidation.valid) {
+      showError("emailError", emailValidation.error);
+      hasErrors = true;
+    }
+
+    if (!subjectValidation.valid) {
+      showError("subjectError", subjectValidation.error);
+      hasErrors = true;
+    }
+
+    if (!messageValidation.valid) {
+      showError("messageError", messageValidation.error);
+      hasErrors = true;
+    }
+
+    if (hasErrors) {
+      return;
+    }
+
+    // Si todo es válido, procesar el formulario
+    submitButton.disabled = true;
+    submitButton.textContent = "Enviando...";
+
+    try {
+      // Aquí iría tu lógica de envío al servidor
+      // Por ahora solo simulamos un envío exitoso
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const successMsg = document.getElementById("formSuccess");
+      if (successMsg) {
+        successMsg.textContent =
+          "¡Mensaje enviado con éxito! Te responderemos pronto.";
+        successMsg.classList.remove("hidden");
+      }
+
+      // Limpiar el formulario
+      form.reset();
+    } catch (error) {
+      const errorMsg = document.getElementById("formError");
+      if (errorMsg) {
+        errorMsg.textContent =
+          "Hubo un error al enviar el mensaje. Por favor intenta de nuevo.";
+        errorMsg.classList.remove("hidden");
+      }
+    } finally {
+      submitButton.disabled = false;
+      submitButton.textContent = "Enviar mensaje";
+    }
+  });
+
+  // ======================
+  // ANIMACIONES DE ENTRADA
+  // ======================
+  // Hero (al cargar)
+  gsap.from(".hero-title", {
+    opacity: 0,
+    y: 80,
+    duration: 1.2,
+    ease: "power3.out",
+    delay: 0.3,
+  });
+  gsap.from(".hero-subtitle", {
+    opacity: 0,
+    y: 50,
+    duration: 1,
+    ease: "power3.out",
+    delay: 0.6,
+  });
+  gsap.from(".hero-search", {
+    opacity: 0,
+    y: 40,
+    duration: 0.8,
+    ease: "power2.out",
+    delay: 0.9,
+  });
+
+  // Encabezados de sección
+  ["canales", "faq", "formulario"].forEach((name) =>
+    revealSectionHeader(`[data-section="${name}"]`),
+  );
+
+  // Cards y formulario
+  const cardVars = {
+    y: 60,
+    scale: 0.9,
+    duration: 0.8,
+    stagger: 0.15,
+    ease: "back.out(1.2)",
+  };
+  reveal(".channels-grid", ".channel-card", cardVars, "top 85%");
+  reveal(".faq-grid", ".faq-card", cardVars, "top 85%");
+  reveal('[data-section="faq"]', ".faq-button", { y: 30, duration: 0.8 }, "top 40%");
+  reveal('[data-section="formulario"]', ".form-card", { y: 60 });
+
+  // Hover en cards
+  document.querySelectorAll(".channel-card, .faq-card").forEach((card) => {
+    card.addEventListener("mouseenter", () => {
+      gsap.to(card, { y: -10, scale: 1.02, duration: 0.3, ease: "power2.out" });
+    });
+    card.addEventListener("mouseleave", () => {
+      gsap.to(card, { y: 0, scale: 1, duration: 0.3, ease: "power2.out" });
+    });
+  });
+</script>

@@ -1,0 +1,167 @@
+---
+import DashboardLayout from "../../../components/common/DashboardLayout.astro";
+import PageHeader from "../../../components/dashboard/PageHeader.astro";
+import SectionHeader from "../../../components/dashboard/SectionHeader.astro";
+import EmptyState from "../../../components/dashboard/EmptyState.astro";
+import { card, meses, diasSemana, hora, plural, diaRelativo } from "../../../components/dashboard/styles";
+import { getSessionFromRequest } from "../../../lib/session";
+import connectDB from "../../../lib/db";
+import { Cita } from "../../../models/Cita";
+import { Rutina } from "../../../models/Rutina";
+import { Progreso } from "../../../models/Progreso";
+import { User } from "../../../models/User";
+
+const session = getSessionFromRequest(Astro.request);
+if (!session || session.role !== "paciente") return Astro.redirect("/login");
+
+await connectDB();
+
+const hoy = new Date();
+const inicioSemana = new Date(hoy);
+inicioSemana.setHours(0, 0, 0, 0);
+inicioSemana.setDate(inicioSemana.getDate() - 6);
+
+const paciente = await User.findById(session.userId).populate(
+  "medicoAsignado",
+  "nombre apellido especialidad",
+);
+
+const [proximaCita, rutinasActivas, sesionesSemana] = await Promise.all([
+  Cita.findOne({
+    paciente: session.userId,
+    fecha: { $gte: hoy },
+    estado: { $in: ["pendiente", "confirmada"] },
+  })
+    .populate("medico", "nombre apellido especialidad")
+    .sort({ fecha: 1 }),
+  Rutina.countDocuments({ paciente: session.userId, activa: true }),
+  Progreso.find({ paciente: session.userId, fecha: { $gte: inicioSemana } }).select("fecha"),
+]);
+
+const cita: any = proximaCita;
+const medico: any = (paciente as any)?.medicoAsignado;
+
+// Últimos 7 días, marcando los que tienen al menos una sesión registrada
+const diasConSesion = new Set(sesionesSemana.map((s: any) => new Date(s.fecha).toDateString()));
+const semana = Array.from({ length: 7 }, (_, i) => {
+  const d = new Date(inicioSemana);
+  d.setDate(d.getDate() + i);
+  return { dia: diasSemana[d.getDay()], num: d.getDate(), hecho: diasConSesion.has(d.toDateString()), hoy: i === 6 };
+});
+
+const atajos = [
+  { href: "/dashboard/paciente/rutinas",  label: "Mis rutinas",        desc: "Ejercicios asignados" },
+  { href: "/dashboard/paciente/progreso", label: "Mi progreso",        desc: "Evolución de tu dolor" },
+  { href: "/dashboard/paciente/citas",    label: "Ver mis citas",      desc: "Próximas y pasadas" },
+];
+---
+
+<DashboardLayout title="Mi Dashboard" role="paciente" nombre={session.nombre} activeSection="/dashboard/paciente">
+
+  <div class="max-w-6xl px-6 sm:px-10 py-10 lg:py-14 space-y-12">
+
+    <PageHeader eyebrow={`${diasSemana[hoy.getDay()]}, ${hoy.getDate()} ${meses[hoy.getMonth()]} ${hoy.getFullYear()}`}>
+      <Fragment slot="title">Hola, <strong>{session.nombre}</strong></Fragment>
+      Tienes <strong>{plural(rutinasActivas, "rutina activa", "rutinas activas")}</strong> y esta semana has
+      registrado <strong>{plural(sesionesSemana.length, "sesión", "sesiones")}</strong>. ¡Sigue así!
+    </PageHeader>
+
+    <!-- Fila 1: próxima cita | fisioterapeuta -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div class="lg:col-span-7 flex flex-col">
+        <SectionHeader title="Tu próxima cita" />
+
+        {cita ? (
+          <a href="/dashboard/paciente/citas"
+            class="group flex-1 flex flex-col justify-between bg-black text-white rounded-2xl p-8 transition-transform duration-200 hover:-translate-y-0.5">
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+              <div>
+                <p class="text-base text-white/60 font-light uppercase tracking-widest">{diaRelativo(new Date(cita.fecha))}</p>
+                <p class="text-6xl font-baloo font-bold leading-none mt-2">{hora(new Date(cita.fecha))}</p>
+              </div>
+              <span class={`self-start sm:self-auto text-sm px-3 py-1 rounded-full font-medium capitalize
+                ${cita.estado === "confirmada" ? "bg-white text-black" : "border border-white/40 text-white/80"}`}>
+                {cita.estado}
+              </span>
+            </div>
+            <div class="mt-8 pt-6 border-t border-white/15 flex items-center justify-between gap-4">
+              <div>
+                <p class="text-2xl font-medium capitalize">{cita.tipo}</p>
+                <p class="text-base text-white/60 mt-1">
+                  Dr. {cita.medico.nombre} {cita.medico.apellido} · {cita.duracion} min
+                </p>
+              </div>
+              <span class="text-2xl transition-transform duration-200 group-hover:translate-x-1">→</span>
+            </div>
+          </a>
+        ) : (
+          <EmptyState title="Sin citas próximas" text="Tu fisioterapeuta te agendará la siguiente." />
+        )}
+      </div>
+
+      <div class="lg:col-span-5 flex flex-col">
+        <SectionHeader title="Mi fisioterapeuta" />
+
+        {medico ? (
+          <div class={`${card} flex-1 flex flex-col justify-between gap-8`}>
+            <div class="w-16 h-16 rounded-full bg-black text-white flex items-center justify-center text-2xl font-baloo font-bold">
+              {medico.nombre.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <p class="text-2xl font-semibold text-gray-900">Dr. {medico.nombre} {medico.apellido}</p>
+              <p class="text-lg text-gray-600 mt-1">{medico.especialidad || "Fisioterapeuta"}</p>
+            </div>
+          </div>
+        ) : (
+          <EmptyState title="Sin fisioterapeuta" text="Aún no tienes un fisioterapeuta asignado." />
+        )}
+      </div>
+    </section>
+
+    <hr class="border-stone-300" />
+
+    <!-- Fila 2: tu semana | atajos -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div class="lg:col-span-7">
+        <SectionHeader title="Tu semana">
+          <a href="/dashboard/paciente/progreso" class="text-base text-gray-500 hover:text-gray-900 font-light">Ver progreso →</a>
+        </SectionHeader>
+
+        <ol class="grid grid-cols-7 gap-2 sm:gap-3">
+          {semana.map((d) => (
+            <li class="flex flex-col items-center gap-2">
+              <span class={`text-sm uppercase tracking-widest ${d.hoy ? "font-semibold text-gray-900" : "text-gray-500"}`}>{d.dia}</span>
+              <span class={`w-full aspect-square max-w-14 rounded-full flex items-center justify-center text-lg font-baloo font-bold
+                ${d.hecho ? "bg-black text-white" : "border-2 border-dashed border-stone-300 text-gray-500"}
+                ${d.hoy && !d.hecho ? "border-black text-gray-900" : ""}`}>
+                {d.num}
+              </span>
+            </li>
+          ))}
+        </ol>
+        <p class="text-base text-gray-600 mt-5">
+          Los días en negro son aquellos en los que registraste una sesión.
+        </p>
+      </div>
+
+      <div class="lg:col-span-5">
+        <SectionHeader title="Atajos" />
+        <ul class="divide-y divide-stone-300 border-y border-stone-300">
+          {atajos.map(({ href, label, desc }, i) => (
+            <li>
+              <a href={href} class="group flex items-center gap-5 py-5">
+                <span class="text-sm font-baloo text-gray-400 w-6">{String(i + 1).padStart(2, "0")}</span>
+                <div class="flex-1">
+                  <p class="text-lg font-medium group-hover:underline underline-offset-4">{label}</p>
+                  <p class="text-base text-gray-500 font-light">{desc}</p>
+                </div>
+                <span class="text-xl text-gray-400 transition-all duration-200 group-hover:text-black group-hover:translate-x-1">→</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+  </div>
+</DashboardLayout>

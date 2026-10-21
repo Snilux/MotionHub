@@ -1,0 +1,186 @@
+---
+import Title from "./Title.astro";
+import AnimatedButtonIcon from "./buttons/AnimatedButtonIcon.astro";
+import AnimatedButton from "./buttons/AnimatedButton.astro";
+---
+
+<footer
+    data-footer
+    class="relative bg-neutral-50 border-t border-neutral-200 overflow-hidden"
+>
+    <div
+        class="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16 lg:px-8 lg:py-20"
+    >
+        <div
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-16"
+        >
+            <!-- Texto principal -->
+            <div class="lg:col-span-5 md:col-span-2 flex items-start">
+                <h2
+                    class="text-xl sm:text-2xl lg:text-3xl font-light text-neutral-900 tracking-tight leading-snug"
+                >
+                    Una mejor experiencia
+                </h2>
+            </div>
+
+            <!-- Producto -->
+            <div class="lg:col-span-3 md:col-span-1">
+                <ul class="space-y-4">
+                    <li>
+                        <AnimatedButton href="/" text="Principal" />
+                    </li>
+                    <li>
+                        <AnimatedButton href="/product" text="Producto" />
+                    </li>
+                    <li>
+                        <h3
+                            class="text-sm text-neutral-600 tracking-wide mb-2"
+                        >
+                            Para ti:
+                        </h3>
+                        <ul class="space-y-2">
+                            <li class="pl-4">
+                                <AnimatedButton
+                                    href="/use/user"
+                                    text="-> Paciente"
+                                />
+                            </li>
+                            <li class="pl-4">
+                                <AnimatedButton
+                                    href="/use/admin"
+                                    text="-> Fisioterapeuta"
+                                />
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        <AnimatedButton href="/about" text="Acerca de" />
+                    </li>
+                    <li>
+                        <AnimatedButton href="/contact" text="Contacto" />
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Social -->
+            <div class="lg:col-span-4 md:col-span-1">
+                <h3
+                    class="text-sm font-semibold text-neutral-900 mb-6 tracking-wide uppercase"
+                >
+                    Social Media
+                </h3>
+                <ul class="space-y-4">
+                    <li>
+                        <AnimatedButtonIcon
+                            href="https://x.com"
+                            name="X"
+                            iconName="x"
+                            target={true}
+                        />
+                    </li>
+                    <li>
+                        <AnimatedButtonIcon
+                            href="https://instagram.com"
+                            name="Instagram"
+                            iconName="instagram"
+                            target={true}
+                        />
+                    </li>
+                    <li>
+                        <AnimatedButtonIcon
+                            href="mailto:hello@motionhub.com"
+                            name="Email"
+                            iconName="email"
+                            target={false}
+                        />
+                    </li>
+                    <li>
+                        <AnimatedButtonIcon
+                            href="https://github.com"
+                            name="GitHub"
+                            iconName="github"
+                            target={true}
+                        />
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Parte inferior -->
+        <div class="mt-12 sm:mt-16 pt-10 sm:pt-12 border-t border-neutral-200">
+            <h2
+                class="mega text-center baloo font-semibold text-neutral-900 tracking-wider title-anim"
+            >
+                Motion<span class="hub">Hub</span>
+            </h2>
+            <p class="text-sm text-neutral-500 text-center">
+                © 2026 MotionHub. Todos los derechos reservados.
+            </p>
+        </div>
+    </div>
+
+    <Title />
+</footer>
+
+<script>
+    import { gsap } from "gsap";
+    import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+    gsap.registerPlugin(ScrollTrigger);
+
+    // ======================
+    // ANIMACIÓN DEL FOOTER
+    // ======================
+    // Un solo timeline con un único ScrollTrigger para todo el footer
+    document.querySelectorAll<HTMLElement>("[data-footer]").forEach((footer) => {
+        const tl = gsap.timeline({
+            scrollTrigger: {
+                trigger: footer,
+                start: "top 80%",
+                toggleActions: "play reverse play reverse",
+            },
+            defaults: { opacity: 0, ease: "power2.out" },
+        });
+
+        tl.from(footer.querySelectorAll("h1, h2, h3, p"), {
+            y: 50,
+            duration: 0.8,
+            stagger: 0.2,
+        }, 0)
+            .from(footer.querySelectorAll("img"), { scale: 0.8, duration: 1 }, 0)
+            .from(footer.querySelectorAll("li"), {
+                y: 40,
+                duration: 0.6,
+                stagger: 0.1,
+            }, 0)
+            .from(footer.querySelectorAll("a"), { y: 30, duration: 0.6 }, 0.4);
+    });
+</script>
+
+<style>
+    .mega {
+        font-size: clamp(3rem, 15vw, 12rem);
+        line-height: 1;
+    }
+
+    /* Título animado */
+    .title-anim {
+        letter-spacing: 0.05em;
+        transition: letter-spacing 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        
+    }
+
+    .title-anim:hover {
+        letter-spacing: 0.1em;
+    }
+
+    /* Parte "Hub" */
+    .hub {
+        display: inline-block;
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .title-anim:hover .hub {
+        transform: translateY(-0.1em);
+    }
+</style>

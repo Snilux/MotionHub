@@ -1,0 +1,241 @@
+---
+import DashboardLayout from "../../../components/common/DashboardLayout.astro";
+import PageHeader from "../../../components/dashboard/PageHeader.astro";
+import SectionHeader from "../../../components/dashboard/SectionHeader.astro";
+import EmptyState from "../../../components/dashboard/EmptyState.astro";
+import SearchInput from "../../../components/dashboard/SearchInput.astro";
+import { card, btnPrimary, btnSecondary, chip, label, plural } from "../../../components/dashboard/styles";
+import { getSessionFromRequest } from "../../../lib/session";
+import connectDB from "../../../lib/db";
+import { Rutina } from "../../../models/Rutina";
+
+const session = getSessionFromRequest(Astro.request);
+if (!session || session.role !== "paciente") return Astro.redirect("/login");
+
+await connectDB();
+
+const rutinas = await Rutina.find({ paciente: session.userId })
+  .populate("medico","nombre apellido especialidad")
+  .sort({ activa: -1, createdAt: -1 });
+
+const grupos = [
+  { titulo: "Activas", items: rutinas.filter((r: any) => r.activa) },
+  { titulo: "Pausadas", items: rutinas.filter((r: any) => !r.activa) },
+].filter((g) => g.items.length > 0);
+
+const activas = rutinas.filter((r: any) => r.activa).length;
+---
+
+<DashboardLayout title="Mis Rutinas" role="paciente" nombre={session.nombre} activeSection="/dashboard/paciente/rutinas">
+
+  <div class="max-w-6xl px-6 sm:px-10 py-10 lg:py-14 space-y-12">
+
+    <PageHeader eyebrow="Programas">
+      <Fragment slot="title"><strong>Mis Rutinas</strong></Fragment>
+      Tienes <strong>{plural(activas, "rutina activa", "rutinas activas")}</strong>.
+      Abre una para ver sus ejercicios y registra tu sesión al terminar.
+    </PageHeader>
+
+    <SearchInput placeholder="Buscar rutina o ejercicio..." />
+
+    {grupos.length === 0 ? (
+      <>
+        <hr class="border-stone-300" />
+        <EmptyState title="Aún no tienes rutinas asignadas" text="Tu fisioterapeuta te asignará un programa personalizado." />
+      </>
+    ) : (
+      grupos.map(({ titulo, items }) => (
+        <>
+          <hr class="border-stone-300" />
+          <section>
+            <SectionHeader title={`${titulo} · ${items.length}`} />
+            <div class="space-y-6">
+              {items.map((r: any) => (
+                <article class={`${card} space-y-6 ${r.activa ? "" : "opacity-70"}`}>
+
+                  <!-- Cabecera -->
+                  <div class="flex items-start justify-between gap-4">
+                    <div class="min-w-0">
+                      <h2 class="text-2xl font-semibold text-gray-900">{r.nombre}</h2>
+                      {r.objetivo && <p class="text-lg text-gray-600 mt-1">{r.objetivo}</p>}
+                    </div>
+                    <span class={`${chip(r.activa)} shrink-0`}>{r.activa ? "Activa" : "Pausada"}</span>
+                  </div>
+
+                  <dl class="grid grid-cols-2 sm:grid-cols-3 gap-4 border-t border-stone-200 pt-5">
+                    <div class="col-span-2 sm:col-span-1">
+                      <dt class={label}>Fisioterapeuta</dt>
+                      <dd class="text-lg font-medium text-gray-900 mt-1">Dr. {r.medico.nombre} {r.medico.apellido}</dd>
+                    </div>
+                    <div>
+                      <dt class={label}>Frecuencia</dt>
+                      <dd class="text-lg font-medium text-gray-900 mt-1">{r.frecuencia || "—"}</dd>
+                    </div>
+                    <div>
+                      <dt class={label}>Ejercicios</dt>
+                      <dd class="text-lg font-medium text-gray-900 mt-1">{r.ejercicios.length}</dd>
+                    </div>
+                  </dl>
+
+                  <!-- Ejercicios (acordeón) -->
+                  <div>
+                    <button
+                      class={`toggle-ejercicios ${btnSecondary} inline-flex items-center gap-2`}
+                      data-target={`ej-${r._id}`}
+                    >
+                      <span class="arrow text-sm">▶</span>
+                      Ver ejercicios
+                    </button>
+
+                    <div id={`ej-${r._id}`} class="hidden mt-6 space-y-4">
+                      {r.ejercicios.map((ej: any, i: number) => (
+                        <div class="bg-white border border-stone-200 rounded-xl p-5">
+                          <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                            <div class="min-w-0">
+                              <p class={label}>Ejercicio {i + 1}</p>
+                              <p class="text-xl font-semibold text-gray-900 mt-1">{ej.nombre}</p>
+                              {ej.descripcion && <p class="text-base text-gray-700 mt-2">{ej.descripcion}</p>}
+                              {ej.notas && <p class="text-base text-gray-500 italic mt-1">{ej.notas}</p>}
+                            </div>
+                            <div class="flex gap-2 shrink-0">
+                              {[
+                                { val: ej.series,       lbl: "series" },
+                                { val: ej.repeticiones, lbl: "reps" },
+                                { val: ej.descanso,     lbl: "seg" },
+                              ].map(({ val, lbl }) => (
+                                <div class="border border-stone-300 rounded-xl px-3 py-2 text-center min-w-16">
+                                  <p class="text-2xl font-baloo font-bold leading-tight">{val}</p>
+                                  <p class="text-sm text-gray-600">{lbl}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {r.activa && (
+                        <button
+                          class={`registrar-sesion ${btnPrimary} w-full`}
+                          data-rutina={r._id}
+                          data-total={r.ejercicios.length}
+                        >
+                          Registrar sesión completada
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                </article>
+              ))}
+            </div>
+          </section>
+        </>
+      ))
+    )}
+  </div>
+
+  <!-- Modal registrar sesión -->
+  <div id="modalSesion" class="hidden fixed inset-0 z-50 bg-black/30 dark:bg-[#000]/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg border border-gray-200 shadow-lg p-6 w-full max-w-sm">
+      <h2 class="font-baloo tracking-wide text-2xl mb-1"><strong>Registrar sesión</strong></h2>
+      <p class="text-base text-gray-600 mb-5">Anota cómo te sentiste hoy</p>
+      <div class="space-y-5">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-sm text-gray-600 font-medium uppercase tracking-wide">Dolor antes</label>
+            <span id="dolorAntesVal" class="text-xl font-baloo font-bold">5</span>
+          </div>
+          <input id="dolorAntes" type="range" min="0" max="10" value="5"
+            class="w-full accent-black" />
+          <div class="flex justify-between text-sm text-gray-500 mt-1">
+            <span>Sin dolor</span><span>Máximo</span>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-sm text-gray-600 font-medium uppercase tracking-wide">Dolor después</label>
+            <span id="dolorDespuesVal" class="text-xl font-baloo font-bold">3</span>
+          </div>
+          <input id="dolorDespues" type="range" min="0" max="10" value="3"
+            class="w-full accent-black" />
+          <div class="flex justify-between text-sm text-gray-500 mt-1">
+            <span>Sin dolor</span><span>Máximo</span>
+          </div>
+        </div>
+        <div>
+          <label class="text-sm text-gray-600 font-medium uppercase tracking-wide block mb-1.5">Notas (opcional)</label>
+          <textarea id="notasSesion" rows="2" placeholder="¿Cómo te sentiste hoy?"
+            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors resize-none"></textarea>
+        </div>
+        <div class="flex gap-2 pt-1">
+          <button id="cancelarSesion"
+            class="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-base font-medium hover:border-gray-400 transition-colors">
+            Cancelar
+          </button>
+          <button id="guardarSesion"
+            class="flex-1 px-4 py-2.5 bg-black text-white rounded-lg text-base font-medium hover:bg-gray-800 transition-colors">
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  // Acordeón
+  document.querySelectorAll(".toggle-ejercicios").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const targetId = btn.getAttribute("data-target")!;
+      const target   = document.getElementById(targetId)!;
+      const arrow    = btn.querySelector(".arrow")!;
+      target.classList.toggle("hidden");
+      arrow.textContent = target.classList.contains("hidden") ? "▶" : "▼";
+    });
+  });
+
+  // Sliders
+  const sliderAntes   = document.getElementById("dolorAntes")   as HTMLInputElement;
+  const sliderDespues = document.getElementById("dolorDespues") as HTMLInputElement;
+  sliderAntes?.addEventListener("input",   () => { document.getElementById("dolorAntesVal")!.textContent   = sliderAntes.value; });
+  sliderDespues?.addEventListener("input", () => { document.getElementById("dolorDespuesVal")!.textContent = sliderDespues.value; });
+
+  // Registrar sesión
+  let rutinaActual: string | null = null;
+  let totalActual = 0;
+
+  document.querySelectorAll(".registrar-sesion").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      rutinaActual = btn.getAttribute("data-rutina");
+      totalActual  = Number(btn.getAttribute("data-total")) || 0;
+      document.getElementById("modalSesion")?.classList.remove("hidden");
+    });
+  });
+
+  document.getElementById("cancelarSesion")?.addEventListener("click", () => {
+    document.getElementById("modalSesion")?.classList.add("hidden");
+  });
+
+  document.getElementById("guardarSesion")?.addEventListener("click", async () => {
+    const res = await fetch("/api/paciente/progreso", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rutina:               rutinaActual,
+        dolorAntes:           Number(sliderAntes.value),
+        dolorDespues:         Number(sliderDespues.value),
+        notasPaciente:        (document.getElementById("notasSesion") as HTMLTextAreaElement).value,
+        completado:           true,
+        totalEjercicios:      totalActual,
+        ejerciciosCompletados: totalActual,
+      }),
+    });
+    if (res.ok) {
+      document.getElementById("modalSesion")?.classList.add("hidden");
+      // Feedback visual sin alert
+      const btn = document.getElementById("guardarSesion")!;
+      btn.textContent = "¡Guardado!";
+      setTimeout(() => { btn.textContent = "Guardar"; }, 2000);
+    }
+  });
+</script>
