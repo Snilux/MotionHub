@@ -4,11 +4,11 @@ import crypto from "crypto";
 const JWT_SECRET = import.meta.env.JWT_SECRET || "motionhub-secret-key-change-in-production";
 
 // Médico expira en 10 minutos, paciente en 7 días
-const MEDICO_EXPIRES   = "10m";
+const MEDICO_EXPIRES   = "60m";
 const PACIENTE_EXPIRES = "7d";
 
 export interface JWTPayload {
-  userId: string;
+  userId: string;1
   email: string;
   role: "medico" | "paciente";
   nombre: string;

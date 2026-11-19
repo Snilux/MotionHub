@@ -97,17 +97,28 @@ const activas = rutinas.filter((r: any) => r.activa).length;
                               {ej.descripcion && <p class="text-base text-gray-700 mt-2">{ej.descripcion}</p>}
                               {ej.notas && <p class="text-base text-gray-500 italic mt-1">{ej.notas}</p>}
                             </div>
-                            <div class="flex gap-2 shrink-0">
-                              {[
-                                { val: ej.series,       lbl: "series" },
-                                { val: ej.repeticiones, lbl: "reps" },
-                                { val: ej.descanso,     lbl: "seg" },
-                              ].map(({ val, lbl }) => (
-                                <div class="border border-stone-300 rounded-xl px-3 py-2 text-center min-w-16">
-                                  <p class="text-2xl font-baloo font-bold leading-tight">{val}</p>
-                                  <p class="text-sm text-gray-600">{lbl}</p>
-                                </div>
-                              ))}
+                            <div class="flex flex-col gap-2 shrink-0">
+                              <div class="flex gap-2">
+                                {[
+                                  { val: ej.series,       lbl: "series" },
+                                  { val: ej.repeticiones, lbl: "reps" },
+                                  { val: ej.descanso,     lbl: "seg" },
+                                ].map(({ val, lbl }) => (
+                                  <div class="border border-stone-300 rounded-xl px-3 py-2 text-center min-w-16">
+                                    <p class="text-2xl font-baloo font-bold leading-tight">{val}</p>
+                                    <p class="text-sm text-gray-600">{lbl}</p>
+                                  </div>
+                                ))}
+                              </div>
+
+                              <!-- Video del ejercicio: ocupa el ancho de series a seg -->
+                              <button
+                                type="button"
+                                class={`${btnSecondary} w-full inline-flex items-center justify-center gap-2`}
+                              >
+                                <span class="text-sm">▶</span>
+                                Ver video
+                              </button>
                             </div>
                           </div>
                         </div>
