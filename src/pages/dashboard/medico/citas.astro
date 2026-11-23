@@ -8,43 +8,68 @@ import { getSessionFromRequest } from "../../../lib/session";
 import connectDB from "../../../lib/db";
 import { Cita } from "../../../models/Cita";
 import { User } from "../../../models/User";
+import { TIPOS_CITA } from "../../../lib/medico";
 
 const session = getSessionFromRequest(Astro.request);
 if (!session || session.role !== "medico") return Astro.redirect("/login");
 
 await connectDB();
 
-const hoy = new Date();
-hoy.setHours(0, 0, 0, 0);
-const finSemana = new Date(hoy);
-finSemana.setDate(finSemana.getDate() + 7);
+// Vistas: próximas (todas las futuras), historial (últimos 60 días) y canceladas
+const vistas = [
+  { id: "proximas",    label: "Próximas" },
+  { id: "historial",   label: "Historial" },
+  { id: "canceladas",  label: "Canceladas" },
+] as const;
+type Vista = (typeof vistas)[number]["id"];
+const vistaParam = Astro.url.searchParams.get("ver");
+const vista: Vista = vistas.some((v) => v.id === vistaParam) ? (vistaParam as Vista) : "proximas";
 
-const [citasProximas, pacientes] = await Promise.all([
-  Cita.find({
-    medico: session.userId,
-    fecha: { $gte: hoy, $lte: finSemana },
-    estado: { $ne: "cancelada" },
-  })
+const ahora = new Date();
+const inicioHoy = new Date(ahora);
+inicioHoy.setHours(0, 0, 0, 0);
+const hace60 = new Date(inicioHoy);
+hace60.setDate(hace60.getDate() - 60);
+
+const filtro: Record<string, unknown> = { medico: session.userId };
+if (vista === "proximas") {
+  filtro.fecha = { $gte: inicioHoy };
+  filtro.estado = { $in: ["pendiente", "confirmada", "completada"] };
+} else if (vista === "historial") {
+  filtro.fecha = { $gte: hace60, $lt: inicioHoy };
+  filtro.estado = { $ne: "cancelada" };
+} else {
+  filtro.estado = "cancelada";
+  filtro.fecha = { $gte: hace60 };
+}
+
+const [citas, pacientes] = await Promise.all([
+  Cita.find(filtro)
     .populate("paciente", "nombre apellido")
-    .sort({ fecha: 1 }),
+    .sort({ fecha: vista === "proximas" ? 1 : -1 }),
   User.find({ role: "paciente", medicoAsignado: session.userId })
     .select("_id nombre apellido")
     .sort({ nombre: 1 }),
 ]);
 
-const tipos = ["evaluacion", "tratamiento", "seguimiento", "alta"];
+const tipos = TIPOS_CITA.map((t) => ({ value: t, label: t === "evaluacion" ? "Evaluación" : t.charAt(0).toUpperCase() + t.slice(1) }));
+const nombreTipo = (t: string) => tipos.find((x) => x.value === t)?.label ?? t;
 
 // Agrupa las citas por día (ya vienen ordenadas por fecha)
 const porDia = new Map<string, any[]>();
-for (const c of citasProximas as any[]) {
+for (const c of citas as any[]) {
+  if (!c.paciente) continue; // paciente eliminado
   const clave = new Date(c.fecha).toDateString();
   if (!porDia.has(clave)) porDia.set(clave, []);
   porDia.get(clave)!.push(c);
 }
 const dias = [...porDia.values()];
 
-const confirmadas = citasProximas.filter((c: any) => c.estado === "confirmada").length;
-const pendientes = citasProximas.filter((c: any) => c.estado === "pendiente").length;
+const confirmadas = citas.filter((c: any) => c.estado === "confirmada").length;
+const pendientes = citas.filter((c: any) => c.estado === "pendiente").length;
+
+const fieldCls = "w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors";
+const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide";
 ---
 
 <DashboardLayout
@@ -55,257 +80,355 @@ const pendientes = citasProximas.filter((c: any) => c.estado === "pendiente").le
 >
   <div class="max-w-6xl px-6 sm:px-10 py-10 lg:py-14 space-y-12">
 
-    <PageHeader eyebrow="Agenda · próximos 7 días">
+    <PageHeader eyebrow="Agenda">
       <Fragment slot="title"><strong>Citas</strong></Fragment>
-      Tienes <strong>{plural(citasProximas.length, "cita", "citas")}</strong> esta semana:
-      <strong>{confirmadas}</strong> confirmadas y <strong>{pendientes}</strong> por confirmar.
+      {vista === "proximas" ? (
+        <>Tienes <strong>{plural(citas.length, "cita próxima", "citas próximas")}</strong>:
+        <strong>{confirmadas}</strong> confirmadas y <strong>{pendientes}</strong> por confirmar.</>
+      ) : vista === "historial" ? (
+        <>Citas de los <strong>últimos 60 días</strong>.</>
+      ) : (
+        <>Citas <strong>canceladas</strong> recientemente. Puedes reagendarlas o eliminarlas.</>
+      )}
       <button slot="action" id="nuevaCitaBtn" class={`${btnPrimary} shrink-0 self-start sm:self-auto`}>
         + Nueva cita
       </button>
     </PageHeader>
 
-    <SearchInput placeholder="Buscar cita por paciente o tipo..." />
+    <div class="flex flex-col lg:flex-row lg:items-center gap-4 lg:justify-between">
+      <SearchInput placeholder="Buscar cita por paciente, tipo o estado..." />
+      <nav class="flex max-sm:flex-wrap gap-2" aria-label="Filtrar citas">
+        {vistas.map((v) => (
+          <a
+            href={v.id === "proximas" ? "/dashboard/medico/citas" : `/dashboard/medico/citas?ver=${v.id}`}
+            class={`${btnSecondary} ${v.id === vista ? "bg-black text-white border-black" : ""}`}
+            aria-current={v.id === vista ? "page" : undefined}
+          >
+            {v.label}
+          </a>
+        ))}
+      </nav>
+    </div>
 
     {dias.length === 0 ? (
       <>
         <hr class="border-stone-300" />
-        <EmptyState title="Sin citas esta semana" text="Agenda una nueva cita con el botón de arriba." />
+        <EmptyState
+          title={vista === "proximas" ? "Sin citas próximas" : vista === "historial" ? "Sin citas en el historial" : "Sin citas canceladas"}
+          text={vista === "proximas" ? "Agenda una nueva cita con el botón de arriba." : undefined}
+        />
       </>
     ) : (
-      dias.map((citas) => {
-        const fecha = new Date(citas[0].fecha);
+      dias.map((grupo) => {
+        const fecha = new Date(grupo[0].fecha);
         return (
-          <>
+          <div data-buscar-grupo class="space-y-12">
             <hr class="border-stone-300" />
             <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
-              <!-- Día -->
               <div class="lg:col-span-3">
                 <p class="text-3xl font-baloo font-bold">{diaRelativo(fecha)}</p>
-                <p class="text-base text-gray-600 mt-1">{plural(citas.length, "cita", "citas")}</p>
+                <p class="text-base text-gray-600 mt-1">{plural(grupo.length, "cita", "citas")}</p>
               </div>
 
-              <!-- Citas del día -->
               <div class="lg:col-span-9 space-y-4">
-                {citas.map((c: any) => {
+                {grupo.map((c: any) => {
                   const f = new Date(c.fecha);
+                  const pasada = f.getTime() + c.duracion * 60_000 < ahora.getTime();
+                  const datos = JSON.stringify({
+                    id: String(c._id),
+                    paciente: String(c.paciente._id),
+                    pacienteNombre: `${c.paciente.nombre} ${c.paciente.apellido}`,
+                    fecha: f.toISOString(),
+                    tipo: c.tipo,
+                    duracion: c.duracion,
+                    notas: c.notas ?? "",
+                    estado: c.estado,
+                  });
                   return (
-                    <article class={`${card} flex flex-col sm:flex-row sm:items-center gap-5`}>
-                      <div class="sm:w-28 shrink-0">
-                        <p class="text-3xl font-baloo font-bold leading-none">{hora(f)}</p>
-                        <p class="text-base text-gray-600 mt-1">{c.duracion} min</p>
+                    <article
+                      data-buscar={`${c.paciente.nombre} ${c.paciente.apellido} ${nombreTipo(c.tipo)} ${c.estado}`}
+                      data-cita={datos}
+                      class={`${card} flex flex-col gap-4 ${c.estado === "cancelada" ? "opacity-70" : ""}`}
+                    >
+                      <div class="flex flex-col sm:flex-row sm:items-center gap-5">
+                        <div class="sm:w-28 shrink-0">
+                          <p class={`text-3xl font-baloo font-bold leading-none ${c.estado === "cancelada" ? "line-through" : ""}`}>{hora(f)}</p>
+                          <p class="text-base text-gray-600 mt-1">{c.duracion} min</p>
+                        </div>
+                        <div class="flex-1 min-w-0 sm:border-l sm:border-stone-200 sm:pl-5">
+                          <a href={`/dashboard/medico/expedientes?paciente=${c.paciente._id}`} class="text-xl font-semibold text-gray-900 truncate hover:underline underline-offset-4 block">
+                            {c.paciente.nombre} {c.paciente.apellido}
+                          </a>
+                          <p class="text-base text-gray-600">{nombreTipo(c.tipo)}</p>
+                          {c.notas && <p class="text-base text-gray-500 mt-1 line-clamp-2">{c.notas}</p>}
+                          {c.estado === "cancelada" && c.canceladaPor && (
+                            <p class="text-sm text-gray-500 mt-1">
+                              Cancelada por {c.canceladaPor === "paciente" ? "el paciente" : "ti"}
+                              {c.motivoCancelacion ? ` · «${c.motivoCancelacion}»` : ""}
+                            </p>
+                          )}
+                        </div>
+                        <span class={`${chip(c.estado === "confirmada" || c.estado === "completada")} self-start sm:self-center`}>{c.estado}</span>
                       </div>
-                      <div class="flex-1 min-w-0 sm:border-l sm:border-stone-200 sm:pl-5">
-                        <p class="text-xl font-semibold text-gray-900 truncate">
-                          {c.paciente.nombre} {c.paciente.apellido}
-                        </p>
-                        <p class="text-base text-gray-600 capitalize">{c.tipo}</p>
-                      </div>
-                      <div class="flex flex-wrap items-center gap-3">
-                        <span class={chip(c.estado === "confirmada")}>{c.estado}</span>
-                        {c.estado !== "confirmada" && (
-                          <button data-id={c._id} data-action="confirmar" class={`confirm-btn ${btnSecondary}`}>
-                            Confirmar
-                          </button>
+
+                      <div class="flex flex-wrap gap-2 border-t border-stone-200 pt-4">
+                        {c.estado === "pendiente" && !pasada && (
+                          <button data-accion="confirmar" class={btnSecondary}>Confirmar</button>
                         )}
-                        <button data-id={c._id} data-action="cancelar" class={`cancel-btn ${btnSecondary}`}>
-                          Cancelar
-                        </button>
+                        {(c.estado === "pendiente" || c.estado === "confirmada") && (
+                          <button data-accion="completar" class={btnSecondary}>Marcar completada</button>
+                        )}
+                        {c.estado !== "completada" && (
+                          <button data-accion="editar" class={btnSecondary}>{c.estado === "cancelada" ? "Reagendar" : "Editar / reagendar"}</button>
+                        )}
+                        {(c.estado === "pendiente" || c.estado === "confirmada") && (
+                          <button data-accion="cancelar" class={btnSecondary}>Cancelar</button>
+                        )}
+                        <button data-accion="eliminar" class={`${btnSecondary} hover:!bg-red-600 hover:!border-red-600 sm:ml-auto`}>Eliminar</button>
                       </div>
                     </article>
                   );
                 })}
               </div>
             </section>
-          </>
+          </div>
         );
       })
     )}
   </div>
 
-  <!-- Modal nueva cita -->
+  <!-- Modal nueva / editar cita -->
   <div
     id="modalCita"
     class="hidden fixed inset-0 z-50 bg-black/30 dark:bg-[#000]/60 flex items-center justify-center p-4"
   >
-    <div
-      class="bg-white rounded-lg border border-gray-200 shadow-lg p-6 w-full max-w-md"
-    >
+    <form id="formCita" novalidate class="bg-white rounded-lg border border-gray-200 shadow-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
       <h2 class="font-baloo tracking-wide text-2xl mb-1">
-        <strong>Nueva cita</strong>
+        <strong id="citaTitulo">Nueva cita</strong>
       </h2>
-      <p class="text-base text-gray-600 mb-5">
-        Completa los datos de la cita
-      </p>
-      <div class="space-y-3">
-        <div>
-          <label
-            class="text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide"
-            >Paciente</label
-          >
-          <select
-            id="citaPaciente"
-            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors"
-          >
-            <option value="">Seleccionar paciente...</option>
-            {
-              pacientes.map((p: any) => (
-                <option value={p._id}>
-                  {p.nombre} {p.apellido}
-                </option>
-              ))
-            }
-          </select>
+      <p id="citaSubtitulo" class="text-base text-gray-600 mb-5">Completa los datos de la cita</p>
+
+      {pacientes.length === 0 ? (
+        <div class="space-y-4">
+          <p class="text-base text-gray-700">Aún no tienes pacientes asignados. Asigna uno para poder agendarle citas.</p>
+          <div class="flex gap-2">
+            <button type="button" data-cerrar class="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-base font-medium hover:border-gray-400 transition-colors">Cerrar</button>
+            <a href="/dashboard/medico/pacientes?nuevo=1" class="flex-1 text-center px-4 py-2.5 bg-black text-white rounded-lg text-base font-medium hover:bg-gray-800 transition-colors">Asignar paciente</a>
+          </div>
         </div>
-        <div>
-          <label
-            class="text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide"
-            >Fecha y hora</label
-          >
-          <input
-            id="citaFecha"
-            type="datetime-local"
-            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors"
-          />
-        </div>
-        <div class="grid grid-cols-2 gap-3">
+      ) : (
+        <div class="space-y-3">
           <div>
-            <label
-              class="text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide"
-              >Tipo</label
-            >
-            <select
-              id="citaTipo"
-              class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors"
-            >
-              {
-                tipos.map((t) => (
-                  <option value={t}>
-                    {t.charAt(0).toUpperCase() + t.slice(1)}
-                  </option>
-                ))
-              }
+            <label for="citaPaciente" class={labelCls}>Paciente</label>
+            <select id="citaPaciente" class={`${fieldCls} disabled:bg-stone-100 disabled:text-gray-600`}>
+              <option value="">Seleccionar paciente...</option>
+              {pacientes.map((p: any) => <option value={String(p._id)}>{p.nombre} {p.apellido}</option>)}
             </select>
           </div>
           <div>
-            <label
-              class="text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide"
-              >Duración (min)</label
-            >
-            <input
-              id="citaDuracion"
-              type="number"
-              value="60"
-              min="15"
-              max="180"
-              step="15"
-              class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors"
-            />
+            <label for="citaFecha" class={labelCls}>Fecha y hora</label>
+            <input id="citaFecha" type="datetime-local" step="900" class={fieldCls} />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="citaTipo" class={labelCls}>Tipo</label>
+              <select id="citaTipo" class={fieldCls}>
+                {tipos.map((t) => <option value={t.value} selected={t.value === "tratamiento"}>{t.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label for="citaDuracion" class={labelCls}>Duración</label>
+              <select id="citaDuracion" class={fieldCls}>
+                {[15, 30, 45, 60, 75, 90, 120, 150, 180].map((m) => (
+                  <option value={m} selected={m === 60}>{m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ""}`}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label for="citaNotas" class={labelCls}>Notas</label>
+            <textarea id="citaNotas" rows="2" placeholder="Opcional" class={`${fieldCls} resize-none`}></textarea>
+          </div>
+          <p id="citaError" class="hidden text-base text-red-600"></p>
+          <div class="flex gap-2 pt-1">
+            <button type="button" data-cerrar class="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-base font-medium hover:border-gray-400 transition-colors">
+              Cancelar
+            </button>
+            <button type="submit" id="guardarCita" class="flex-1 px-4 py-2.5 bg-black text-white rounded-lg text-base font-medium hover:bg-gray-800 transition-colors disabled:opacity-60">
+              Guardar cita
+            </button>
           </div>
         </div>
-        <div>
-          <label
-            class="text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide"
-            >Notas</label
-          >
-          <textarea
-            id="citaNotas"
-            rows="2"
-            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors resize-none"
-          ></textarea>
-        </div>
-        <div id="citaError" class="hidden text-base text-red-600">
-        </div>
-        <div class="flex gap-2 pt-1">
-          <button
-            id="cancelarCita"
-            class="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-base font-medium hover:border-gray-400 transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            id="guardarCita"
-            class="flex-1 px-4 py-2.5 bg-black text-white rounded-lg text-base font-medium hover:bg-gray-800 transition-colors"
-          >
-            Guardar cita
-          </button>
-        </div>
-      </div>
-    </div>
+      )}
+    </form>
   </div>
 </DashboardLayout>
 
 <script>
-  document
-    .getElementById("nuevaCitaBtn")
-    ?.addEventListener("click", () =>
-      document.getElementById("modalCita")?.classList.remove("hidden"),
-    );
-  document
-    .getElementById("cancelarCita")
-    ?.addEventListener("click", () =>
-      document.getElementById("modalCita")?.classList.add("hidden"),
-    );
+  import { api, aviso, confirmar, modal, abrirSiNuevo, errorEn, $ } from "../../../scripts/ui";
 
-  document
-    .getElementById("guardarCita")
-    ?.addEventListener("click", async () => {
-      const paciente = (
-        document.getElementById("citaPaciente") as HTMLSelectElement
-      ).value;
-      const fecha = (document.getElementById("citaFecha") as HTMLInputElement)
-        .value;
-      const tipo = (document.getElementById("citaTipo") as HTMLSelectElement)
-        .value;
-      const duracion = (
-        document.getElementById("citaDuracion") as HTMLInputElement
-      ).value;
-      const notas = (
-        document.getElementById("citaNotas") as HTMLTextAreaElement
-      ).value;
-      const errorEl = document.getElementById("citaError")!;
-      if (!paciente || !fecha) {
-        errorEl.textContent = "Selecciona un paciente y una fecha.";
-        errorEl.classList.remove("hidden");
-        return;
-      }
-      const res = await fetch("/api/medico/citas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          paciente,
-          fecha,
-          tipo,
-          duracion: Number(duracion),
-          notas,
-        }),
-      });
-      if (res.ok) {
-        window.location.reload();
-      } else {
-        const d = await res.json();
-        errorEl.textContent = d.error || "Error al guardar";
-        errorEl.classList.remove("hidden");
-      }
-    });
+  interface CitaDatos {
+    id: string;
+    paciente: string;
+    pacienteNombre: string;
+    fecha: string;
+    tipo: string;
+    duracion: number;
+    notas: string;
+    estado: string;
+  }
 
-  document.querySelectorAll(".confirm-btn").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const id = btn.getAttribute("data-id");
-      await fetch(`/api/medico/cita/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ estado: "confirmada" }),
-      });
-      window.location.reload();
-    });
+  const form = $<HTMLFormElement>("formCita");
+  const campos = {
+    paciente: document.getElementById("citaPaciente") as HTMLSelectElement | null,
+    fecha: document.getElementById("citaFecha") as HTMLInputElement | null,
+    tipo: document.getElementById("citaTipo") as HTMLSelectElement | null,
+    duracion: document.getElementById("citaDuracion") as HTMLSelectElement | null,
+    notas: document.getElementById("citaNotas") as HTMLTextAreaElement | null,
+  };
+  let editando: CitaDatos | null = null;
+  let guardando = false;
+
+  // Fecha → valor de <input type="datetime-local"> en hora local
+  const aLocal = (d: Date) => {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const limpiar = () => {
+    editando = null;
+    form.reset();
+    if (campos.paciente) campos.paciente.disabled = false;
+    errorEn("citaError");
+  };
+
+  const m = modal("modalCita", limpiar);
+  form.querySelectorAll("[data-cerrar]").forEach((b) => b.addEventListener("click", m.cerrar));
+
+  const abrirNueva = () => {
+    limpiar();
+    $("citaTitulo").textContent = "Nueva cita";
+    $("citaSubtitulo").textContent = "Completa los datos de la cita";
+    if (campos.fecha) campos.fecha.min = aLocal(new Date());
+    // Preseleccionar paciente si viene en la URL (?paciente=id)
+    const pre = new URLSearchParams(location.search).get("paciente");
+    if (pre && campos.paciente) campos.paciente.value = pre;
+    m.abrir();
+  };
+
+  const abrirEdicion = (c: CitaDatos) => {
+    limpiar();
+    editando = c;
+    $("citaTitulo").textContent = c.estado === "cancelada" ? "Reagendar cita" : "Editar cita";
+    $("citaSubtitulo").textContent = c.pacienteNombre;
+    if (campos.paciente) {
+      campos.paciente.value = c.paciente;
+      campos.paciente.disabled = true;
+    }
+    if (campos.fecha) {
+      campos.fecha.min = aLocal(new Date());
+      campos.fecha.value = aLocal(new Date(c.fecha));
+    }
+    if (campos.tipo) campos.tipo.value = c.tipo;
+    if (campos.duracion) campos.duracion.value = String(c.duracion);
+    if (campos.notas) campos.notas.value = c.notas;
+    m.abrir();
+  };
+
+  document.getElementById("nuevaCitaBtn")?.addEventListener("click", abrirNueva);
+  abrirSiNuevo(abrirNueva);
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (guardando || !campos.fecha) return;
+
+    const paciente = campos.paciente!.value;
+    const local = campos.fecha.value;
+    if (!paciente) return errorEn("citaError", "Selecciona un paciente.");
+    if (!local) return errorEn("citaError", "Elige la fecha y la hora.");
+    const fecha = new Date(local);
+    if (fecha.getTime() < Date.now()) return errorEn("citaError", "La fecha y hora no pueden estar en el pasado.");
+
+    const datos = {
+      fecha: fecha.toISOString(), // se envía en UTC para evitar desfases de zona horaria
+      tipo: campos.tipo!.value,
+      duracion: Number(campos.duracion!.value),
+      notas: campos.notas!.value.trim(),
+    };
+
+    guardando = true;
+    const btn = $<HTMLButtonElement>("guardarCita");
+    btn.disabled = true;
+    errorEn("citaError");
+
+    const { ok, data } = editando
+      ? await api(`/api/medico/cita/${editando.id}`, "PUT", {
+          ...datos,
+          // Reactivar una cita cancelada al reagendarla
+          ...(editando.estado === "cancelada" && { estado: "pendiente" }),
+        })
+      : await api("/api/medico/citas", "POST", { ...datos, paciente });
+
+    guardando = false;
+    btn.disabled = false;
+
+    if (ok) {
+      const fueEdicion = !!editando;
+      m.cerrar();
+      aviso(fueEdicion ? "Cita actualizada" : "Cita agendada", "exito");
+      setTimeout(() => location.reload(), 500);
+    } else {
+      errorEn("citaError", data.error || "No se pudo guardar la cita");
+    }
   });
-  document.querySelectorAll(".cancel-btn").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      if (!confirm("¿Cancelar esta cita?")) return;
-      await fetch(`/api/medico/cita/${btn.getAttribute("data-id")}`, {
-        method: "DELETE",
+
+  // Acciones de cada cita
+  document.querySelectorAll<HTMLElement>("[data-cita]").forEach((art) => {
+    const c: CitaDatos = JSON.parse(art.dataset.cita!);
+    let ocupado = false;
+
+    const ejecutar = async (fn: () => Promise<{ ok: boolean; data: any }>, exito: string) => {
+      if (ocupado) return;
+      ocupado = true;
+      art.querySelectorAll("button").forEach((b) => (b.disabled = true));
+      const { ok, data } = await fn();
+      if (ok) {
+        aviso(exito, "exito");
+        setTimeout(() => location.reload(), 500);
+      } else {
+        aviso(data.error || "No se pudo completar la acción", "error");
+        ocupado = false;
+        art.querySelectorAll("button").forEach((b) => (b.disabled = false));
+      }
+    };
+
+    art.querySelectorAll<HTMLButtonElement>("[data-accion]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        switch (btn.dataset.accion) {
+          case "confirmar":
+            return ejecutar(() => api(`/api/medico/cita/${c.id}`, "PUT", { estado: "confirmada" }), "Cita confirmada");
+          case "completar":
+            return ejecutar(() => api(`/api/medico/cita/${c.id}`, "PUT", { estado: "completada" }), "Cita marcada como completada");
+          case "editar":
+            return abrirEdicion(c);
+          case "cancelar":
+            if (!(await confirmar({
+              titulo: "¿Cancelar esta cita?",
+              mensaje: `${c.pacienteNombre}. La cita quedará en «Canceladas» y podrás reagendarla después. Le avisaremos por correo.`,
+              aceptar: "Cancelar cita",
+              cancelar: "Volver",
+            }))) return;
+            return ejecutar(() => api(`/api/medico/cita/${c.id}`, "PUT", { estado: "cancelada" }), "Cita cancelada");
+          case "eliminar":
+            if (!(await confirmar({
+              titulo: "¿Eliminar esta cita?",
+              mensaje: "Se borrará definitivamente. Úsalo solo si la cita se creó por error; si no se realizará, mejor cancélala.",
+              aceptar: "Eliminar",
+              peligro: true,
+            }))) return;
+            return ejecutar(() => api(`/api/medico/cita/${c.id}`, "DELETE"), "Cita eliminada");
+        }
       });
-      window.location.reload();
     });
   });
 </script>

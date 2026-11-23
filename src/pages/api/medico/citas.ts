@@ -1,18 +1,15 @@
 import type { APIRoute } from "astro";
 import connectDB from "../../../lib/db";
 import { Cita } from "../../../models/Cita";
-import { getSessionFromRequest } from "../../../lib/session";
+import { getSessionFromRequest, json } from "../../../lib/session";
+import { esMiPaciente, citaQueSeCruza, validarCita, mensajeCruce } from "../../../lib/medico";
+import { notificarCita } from "../../../lib/notificaciones";
 
 // GET /api/medico/citas - Listar citas del médico
 export const GET: APIRoute = async ({ request, url }) => {
   try {
     const session = getSessionFromRequest(request);
-    if (!session || session.role !== "medico") {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    if (!session || session.role !== "medico") return json({ error: "No autorizado" }, 403);
 
     await connectDB();
 
@@ -33,16 +30,10 @@ export const GET: APIRoute = async ({ request, url }) => {
       .populate("paciente", "nombre apellido email telefono")
       .sort({ fecha: 1 });
 
-    return new Response(JSON.stringify(citas), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json(citas);
   } catch (error) {
     console.error("GET citas medico error:", error);
-    return new Response(JSON.stringify({ error: "Error interno" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json({ error: "Error interno" }, 500);
   }
 };
 
@@ -50,32 +41,36 @@ export const GET: APIRoute = async ({ request, url }) => {
 export const POST: APIRoute = async ({ request }) => {
   try {
     const session = getSessionFromRequest(request);
-    if (!session || session.role !== "medico") {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    if (!session || session.role !== "medico") return json({ error: "No autorizado" }, 403);
+
+    const { paciente, fecha, tipo = "tratamiento", duracion = 60, notas } = await request.json();
 
     await connectDB();
-    const body = await request.json();
+    if (!(await esMiPaciente(session.userId, paciente))) {
+      return json({ error: "Selecciona uno de tus pacientes" }, 400);
+    }
+
+    const error = validarCita({ fecha, duracion, tipo });
+    if (error) return json({ error }, 400);
+
+    const inicio = new Date(fecha);
+    const cruce = await citaQueSeCruza(session.userId, inicio, Number(duracion));
+    if (cruce) return json({ error: mensajeCruce(cruce), codigo: "CRUCE" }, 409);
 
     const cita = await Cita.create({
-      ...body,
+      paciente,
       medico: session.userId,
+      fecha: inicio,
+      tipo,
+      duracion: Number(duracion),
+      notas: notas || undefined,
     });
+    notificarCita(cita, "agendada", { origen: new URL(request.url).origin });
 
     const populated = await cita.populate("paciente", "nombre apellido email");
-
-    return new Response(JSON.stringify(populated), {
-      status: 201,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json(populated, 201);
   } catch (error) {
     console.error("POST citas medico error:", error);
-    return new Response(JSON.stringify({ error: "Error interno" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json({ error: "Error interno" }, 500);
   }
 };

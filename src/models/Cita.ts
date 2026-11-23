@@ -10,6 +10,8 @@ export interface ICita extends Document {
   notas?: string;
   notasMedico?: string;
   sala?: string;
+  canceladaPor?: "medico" | "paciente";
+  motivoCancelacion?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +35,8 @@ const CitaSchema = new Schema<ICita>(
     notas: { type: String },
     notasMedico: { type: String },
     sala: { type: String },
+    canceladaPor: { type: String, enum: ["medico", "paciente"] },
+    motivoCancelacion: { type: String, maxlength: 500 },
   },
   { timestamps: true },
 );
