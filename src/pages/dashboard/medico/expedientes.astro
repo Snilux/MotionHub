@@ -9,24 +9,51 @@ import { getSessionFromRequest } from "../../../lib/session";
 import connectDB from "../../../lib/db";
 import { Expediente } from "../../../models/Expediente";
 import { User } from "../../../models/User";
+import { SolicitudExpediente } from "../../../models/SolicitudExpediente";
+import { ETIQUETA_CAMPO, textoCampo } from "../../../lib/expediente";
 
 const session = getSessionFromRequest(Astro.request);
 if (!session || session.role !== "medico") return Astro.redirect("/login");
 
 await connectDB();
 
+// El expediente pertenece al paciente: se muestran los de todos los pacientes
+// asignados a este médico, aunque los haya creado otro fisioterapeuta.
+const pacientes = await User.find({ role: "paciente", medicoAsignado: session.userId })
+  .select("_id nombre apellido email fechaNacimiento")
+  .sort({ nombre: 1 })
+  .lean();
+
+const expedientes = await Expediente.find({ paciente: { $in: pacientes.map((p) => p._id) } }).lean();
+const expPorPaciente = new Map(expedientes.map((e: any) => [String(e.paciente), e]));
+
+// Sugerencias de los pacientes pendientes de revisión
+const pendientes = await SolicitudExpediente.find({ paciente: { $in: pacientes.map((p) => p._id) }, estado: "pendiente" })
+  .sort({ createdAt: 1 })
+  .lean();
+const pendientesPorPaciente = new Map<string, any[]>();
+for (const s of pendientes) {
+  const k = String(s.paciente);
+  pendientesPorPaciente.set(k, [...(pendientesPorPaciente.get(k) ?? []), s]);
+}
+
+// Pacientes con expediente primero (más recientes arriba), luego los que no tienen
+const lista = pacientes
+  .map((p: any) => ({ paciente: p, exp: expPorPaciente.get(String(p._id)) as any }))
+  .sort((a, b) => {
+    // Primero los que tienen sugerencias por revisar
+    const pa = pendientesPorPaciente.has(String(a.paciente._id));
+    const pb = pendientesPorPaciente.has(String(b.paciente._id));
+    if (pa !== pb) return pa ? -1 : 1;
+    if (!!a.exp !== !!b.exp) return a.exp ? -1 : 1;
+    if (a.exp && b.exp) return new Date(b.exp.updatedAt).getTime() - new Date(a.exp.updatedAt).getTime();
+    return 0;
+  });
+
 const pacienteId = Astro.url.searchParams.get("paciente");
-const [expedientes, pacientes] = await Promise.all([
-  Expediente.find({ medico: session.userId })
-    .populate("paciente","nombre apellido email fechaNacimiento")
-    .sort({ updatedAt: -1 }),
-  User.find({ role:"paciente", medicoAsignado: session.userId }).select("_id nombre apellido"),
-]);
-
-const exp: any = pacienteId
-  ? expedientes.find((e: any) => e.paciente._id.toString() === pacienteId)
-  : null;
-
+const seleccionado = lista.find((x) => String(x.paciente._id) === pacienteId) ?? null;
+const exp: any = seleccionado?.exp ?? null;
+const pacienteSel: any = seleccionado?.paciente ?? null;
 
 const datosClinicos = exp
   ? [
@@ -47,6 +74,52 @@ const medidas = exp
   : [];
 
 const notas = exp ? [...(exp.evolucion ?? [])].reverse() : [];
+
+const sinExpediente = lista.filter((x) => !x.exp).map((x) => x.paciente);
+
+// Sugerencias del paciente seleccionado: pendientes y las últimas revisadas
+const sugerencias = (pacienteSel ? pendientesPorPaciente.get(String(pacienteSel._id)) ?? [] : []).map((s: any) => ({
+  id: String(s._id),
+  campo: s.campo,
+  etiqueta: ETIQUETA_CAMPO[s.campo as keyof typeof ETIQUETA_CAMPO],
+  actual: s.campo === "otro" ? "" : textoCampo(exp, s.campo),
+  anterior: s.valorAnterior ?? "",
+  propuesto: s.valorPropuesto,
+  comentario: s.comentario ?? "",
+  fecha: fechaLarga(new Date(s.createdAt)),
+}));
+const revisadas: any[] = exp
+  ? await SolicitudExpediente.find({ paciente: pacienteSel._id, estado: { $ne: "pendiente" } })
+      .sort({ revisadaEn: -1 })
+      .limit(5)
+      .lean()
+  : [];
+
+// Datos para precargar el formulario de edición
+const expDatos = exp
+  ? JSON.stringify({
+      paciente: String(pacienteSel._id),
+      diagnostico: exp.diagnostico ?? "",
+      motivoConsulta: exp.motivoConsulta ?? "",
+      antecedentes: exp.antecedentes ?? "",
+      alergias: exp.alergias ?? "",
+      medicamentos: exp.medicamentos ?? "",
+      presionArterial: exp.presionArterial ?? "",
+      altura: exp.altura ?? "",
+      peso: exp.peso ?? "",
+    })
+  : "";
+
+const camposTexto = [
+  { id: "expDiagnostico",   name: "diagnostico",     label: "Diagnóstico *" },
+  { id: "expMotivo",        name: "motivoConsulta",  label: "Motivo de consulta *" },
+  { id: "expAntecedentes",  name: "antecedentes",    label: "Antecedentes" },
+  { id: "expAlergias",      name: "alergias",        label: "Alergias" },
+  { id: "expMedicamentos",  name: "medicamentos",    label: "Medicamentos actuales" },
+  { id: "expPresion",       name: "presionArterial", label: "Presión arterial", placeholder: "Ej: 120/80" },
+];
+const fieldCls = "w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors";
+const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide";
 ---
 
 <DashboardLayout title="Expedientes" role="medico" nombre={session.nombre} activeSection="/dashboard/medico/expedientes">
@@ -55,7 +128,9 @@ const notas = exp ? [...(exp.evolucion ?? [])].reverse() : [];
 
     <PageHeader eyebrow="Clínico">
       <Fragment slot="title"><strong>Expedientes</strong></Fragment>
-      Tienes <strong>{plural(expedientes.length, "expediente clínico", "expedientes clínicos")}</strong> a tu cargo.
+      Tienes <strong>{plural(expedientes.length, "expediente clínico", "expedientes clínicos")}</strong> a tu cargo
+      {sinExpediente.length > 0 && <> y <strong>{plural(sinExpediente.length, "paciente", "pacientes")}</strong> sin expediente</>}.
+      {pendientes.length > 0 && <> Hay <strong>{plural(pendientes.length, "sugerencia", "sugerencias")}</strong> de pacientes por revisar.</>}
       <button slot="action" id="nuevoExpBtn" class={`${btnPrimary} shrink-0 self-start sm:self-auto`}>
         + Nuevo expediente
       </button>
@@ -67,28 +142,40 @@ const notas = exp ? [...(exp.evolucion ?? [])].reverse() : [];
 
     <section class="grid grid-cols-1 lg:grid-cols-12 gap-10">
 
-      <!-- Lista de expedientes -->
+      <!-- Lista de pacientes -->
       <div class="lg:col-span-4">
-        <SectionHeader title={`Pacientes · ${expedientes.length}`} />
-        {expedientes.length === 0 ? (
-          <EmptyState title="Sin expedientes" text="Crea el primero con el botón de arriba." />
+        <SectionHeader title={`Pacientes · ${lista.length}`} />
+        {lista.length === 0 ? (
+          <EmptyState title="Sin pacientes" text="Asigna pacientes para crear sus expedientes.">
+            <a href="/dashboard/medico/pacientes?nuevo=1" class={`${btnPrimary} mt-6`}>Asignar paciente</a>
+          </EmptyState>
         ) : (
           <ul class="space-y-3">
-            {expedientes.map((e: any) => {
-              const activo = pacienteId === e.paciente._id.toString();
+            {lista.map(({ paciente: p, exp: e }) => {
+              const activo = pacienteId === String(p._id);
+              const nPend = pendientesPorPaciente.get(String(p._id))?.length ?? 0;
               return (
-                <li>
-                  <a href={`/dashboard/medico/expedientes?paciente=${e.paciente._id}`}
+                <li data-buscar={`${p.nombre} ${p.apellido} ${p.email} ${e?.diagnostico ?? ""}`}>
+                  <a href={`/dashboard/medico/expedientes?paciente=${p._id}`}
                     class={`flex items-center gap-4 rounded-2xl border p-4 transition-colors duration-200
                       ${activo ? "bg-black text-white border-black" : "bg-stone-50 border-stone-200 hover:border-black"}`}>
                     <div class={`w-11 h-11 rounded-full flex items-center justify-center text-lg font-baloo font-bold shrink-0
                       ${activo ? "bg-white text-black" : "bg-black text-white"}`}>
-                      {e.paciente.nombre.charAt(0).toUpperCase()}
+                      {p.nombre.charAt(0).toUpperCase()}
                     </div>
-                    <div class="min-w-0">
-                      <p class="text-lg font-semibold truncate">{e.paciente.nombre} {e.paciente.apellido}</p>
-                      <p class={`text-base truncate ${activo ? "text-white/70" : "text-gray-600"}`}>{e.diagnostico}</p>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-lg font-semibold truncate">{p.nombre} {p.apellido}</p>
+                      <p class={`text-base truncate ${activo ? "text-white/70" : e ? "text-gray-600" : "text-gray-400 italic"}`}>
+                        {e ? e.diagnostico : "Sin expediente"}
+                      </p>
                     </div>
+                    {nPend > 0 && (
+                      <span title={plural(nPend, "sugerencia por revisar", "sugerencias por revisar")}
+                        class={`shrink-0 min-w-7 h-7 px-2 rounded-full text-sm font-bold flex items-center justify-center
+                          ${activo ? "bg-white text-black" : "bg-black text-white"}`}>
+                        {nPend}
+                      </span>
+                    )}
                   </a>
                 </li>
               );
@@ -101,32 +188,67 @@ const notas = exp ? [...(exp.evolucion ?? [])].reverse() : [];
       <div class="lg:col-span-8 flex flex-col">
         <SectionHeader title="Expediente" />
 
-        {!exp ? (
-          <EmptyState title="Selecciona un expediente" text="Elige un paciente de la lista para ver su historial clínico." />
+        {!pacienteSel ? (
+          <EmptyState title="Selecciona un paciente" text="Elige un paciente de la lista para ver su historial clínico." />
+        ) : !exp ? (
+          <EmptyState title={`${pacienteSel.nombre} ${pacienteSel.apellido} aún no tiene expediente`} text="Registra su historial clínico para darle seguimiento.">
+            <button data-crear-para={String(pacienteSel._id)} class={`${btnPrimary} mt-6`}>+ Crear expediente</button>
+          </EmptyState>
         ) : (
-          <div class="space-y-10">
+          <div class="space-y-10" id="detalleExp" data-exp={expDatos}>
 
             <!-- Paciente -->
             <div class={`${card} flex flex-col sm:flex-row sm:items-center justify-between gap-4`}>
               <div class="flex items-center gap-4 min-w-0">
                 <div class="w-14 h-14 rounded-full bg-black flex items-center justify-center text-white text-2xl font-baloo font-bold shrink-0">
-                  {exp.paciente.nombre.charAt(0).toUpperCase()}
+                  {pacienteSel.nombre.charAt(0).toUpperCase()}
                 </div>
                 <div class="min-w-0">
                   <h2 class="text-2xl font-baloo tracking-wide truncate">
-                    <strong>{exp.paciente.nombre} {exp.paciente.apellido}</strong>
+                    <strong>{pacienteSel.nombre} {pacienteSel.apellido}</strong>
                   </h2>
-                  <p class="text-base text-gray-600 truncate">{exp.paciente.email}</p>
+                  <p class="text-base text-gray-600 truncate">{pacienteSel.email}</p>
                 </div>
               </div>
-              <p class="text-base text-gray-600 shrink-0">
-                Actualizado el <span class="font-medium text-gray-900">{fechaLarga(new Date(exp.updatedAt))}</span>
-              </p>
+              <div class="flex flex-col sm:items-end gap-3 shrink-0">
+                <p class="text-base text-gray-600">
+                  Actualizado el <span class="font-medium text-gray-900">{fechaLarga(new Date(exp.updatedAt))}</span>
+                </p>
+                <button id="exportarPdfBtn" data-paciente={String(pacienteSel._id)} class={`${btnSecondary} self-start sm:self-auto`}>
+                  Exportar PDF
+                </button>
+              </div>
             </div>
+
+            <!-- Sugerencias del paciente -->
+            {sugerencias.length > 0 && (
+              <div>
+                <SectionHeader title={`Sugerencias del paciente · ${sugerencias.length}`} />
+                <ul class="space-y-3">
+                  {sugerencias.map((s) => (
+                    <li class={`${card} flex flex-col sm:flex-row sm:items-center gap-4`}>
+                      <div class="flex-1 min-w-0 space-y-1">
+                        <p class={label}>{s.etiqueta} · {s.fecha}</p>
+                        {s.campo !== "otro" && (
+                          <p class="text-base text-gray-500 break-words">Actual: <span class="text-gray-700">{s.actual || "Sin registrar"}</span></p>
+                        )}
+                        <p class="text-lg font-medium text-gray-900 whitespace-pre-line break-words">
+                          {s.campo !== "otro" && <span class="text-base font-normal text-gray-500">Propuesto: </span>}{s.propuesto}
+                        </p>
+                        {s.comentario && <p class="text-base text-gray-600 italic break-words">“{s.comentario}”</p>}
+                      </div>
+                      <button data-revisar={JSON.stringify(s)} class={`${btnPrimary} shrink-0 self-start sm:self-auto`}>Revisar</button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <!-- Datos clínicos y medidas -->
             <div>
-              <SectionHeader title="Datos clínicos" />
+              <SectionHeader title="Datos clínicos">
+                <button id="editarExpBtn" class={btnSecondary}>Editar</button>
+              </SectionHeader>
               <dl class={`${card} grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6`}>
                 {datosClinicos.map(({ label: l, value }) => (
                   <div>
@@ -152,13 +274,13 @@ const notas = exp ? [...(exp.evolucion ?? [])].reverse() : [];
                 <button id="agregarNotaBtn" class={btnSecondary}>+ Agregar nota</button>
               </SectionHeader>
 
-              <div id="notaForm" class="hidden mb-6 space-y-3">
+              <form id="notaForm" class="hidden mb-6 space-y-3" novalidate>
                 <textarea id="notaTexto" rows="3" placeholder="Nota de evolución..."
                   class="w-full px-4 py-3 bg-stone-50 border border-stone-300 rounded-xl text-base focus:outline-none focus:border-black transition-colors resize-none"></textarea>
-                <button id="guardarNota" data-paciente={exp.paciente._id} class={btnPrimary}>
+                <button type="submit" id="guardarNota" data-paciente={String(pacienteSel._id)} class={btnPrimary}>
                   Guardar nota
                 </button>
-              </div>
+              </form>
 
               {notas.length === 0 ? (
                 <p class="text-base text-gray-600">Sin notas de evolución.</p>
@@ -169,92 +291,295 @@ const notas = exp ? [...(exp.evolucion ?? [])].reverse() : [];
                       <span class={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-black
                         ${i === 0 ? "bg-black" : "bg-stone-100"}`} />
                       <p class="text-base font-baloo font-bold">{fechaLarga(new Date(nota.fecha))}</p>
-                      <p class="text-lg text-gray-900 mt-1 leading-relaxed">{nota.nota}</p>
+                      <p class="text-lg text-gray-900 mt-1 leading-relaxed whitespace-pre-line">{nota.nota}</p>
                     </li>
                   ))}
                 </ol>
               )}
             </div>
+
+            <!-- Sugerencias ya revisadas -->
+            {revisadas.length > 0 && (
+              <div>
+                <SectionHeader title="Sugerencias revisadas" />
+                <ul class="divide-y divide-stone-300 border-y border-stone-300">
+                  {revisadas.map((s: any) => (
+                    <li class="py-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
+                      <p class="sm:w-40 shrink-0 text-base font-baloo font-bold text-gray-700">{fechaLarga(new Date(s.revisadaEn ?? s.updatedAt))}</p>
+                      <p class="flex-1 min-w-0 text-base text-gray-900 truncate">
+                        <span class="text-gray-500">{ETIQUETA_CAMPO[s.campo as keyof typeof ETIQUETA_CAMPO]}:</span>
+                        {" "}{s.estado === "aprobada" ? s.valorAplicado ?? s.valorPropuesto : s.valorPropuesto}
+                      </p>
+                      <span class={`text-sm px-3 py-1 rounded-full font-medium self-start sm:self-auto ${
+                        s.estado === "aprobada" ? "bg-black text-white" : "border border-stone-400 text-gray-600"}`}>
+                        {s.estado === "aprobada" ? "Integrada" : "Rechazada"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </div>
     </section>
   </div>
 
-  <!-- Modal nuevo expediente -->
+  <!-- Modal nuevo / editar expediente -->
   <div id="modalExp" class="hidden fixed inset-0 z-50 bg-black/30 dark:bg-[#000]/60 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg border border-gray-200 shadow-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-      <h2 class="font-baloo tracking-wide text-2xl mb-1"><strong>Nuevo expediente</strong></h2>
+    <form id="formExp" novalidate class="bg-white rounded-lg border border-gray-200 shadow-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <h2 class="font-baloo tracking-wide text-2xl mb-1"><strong id="expTitulo">Nuevo expediente</strong></h2>
       <p class="text-base text-gray-600 mb-5">Historial clínico del paciente</p>
       <div class="space-y-3">
-        <div>
-          <label class="text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide">Paciente</label>
-          <select id="expPaciente" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black">
+        <div id="expPacienteWrap">
+          <label for="expPaciente" class={labelCls}>Paciente</label>
+          <select id="expPaciente" class={fieldCls}>
             <option value="">Seleccionar...</option>
-            {pacientes.map((p: any) => <option value={p._id}>{p.nombre} {p.apellido}</option>)}
+            {sinExpediente.map((p: any) => <option value={String(p._id)}>{p.nombre} {p.apellido}</option>)}
           </select>
+          {sinExpediente.length === 0 && (
+            <p class="text-sm text-gray-500 mt-1.5">Todos tus pacientes ya tienen expediente.</p>
+          )}
         </div>
-        {[
-          {id:"expDiagnostico", label:"Diagnóstico *"},
-          {id:"expMotivo",      label:"Motivo de consulta *"},
-          {id:"expAntecedentes",label:"Antecedentes"},
-          {id:"expAlergias",    label:"Alergias"},
-          {id:"expMedicamentos",label:"Medicamentos actuales"},
-          {id:"expPresion",     label:"Presión arterial"},
-        ].map(({id,label}) => (
+        {camposTexto.map(({ id, name, label: l, placeholder }) => (
           <div>
-            <label class="text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide">{label}</label>
-            <input id={id} type="text"
-              class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors" />
+            <label for={id} class={labelCls}>{l}</label>
+            <input id={id} name={name} type="text" placeholder={placeholder} class={fieldCls} />
           </div>
         ))}
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide">Altura (cm)</label>
-            <input id="expAltura" type="number" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors" />
+            <label for="expAltura" class={labelCls}>Altura (cm)</label>
+            <input id="expAltura" name="altura" type="number" min="30" max="250" class={fieldCls} />
           </div>
           <div>
-            <label class="text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide">Peso (kg)</label>
-            <input id="expPeso" type="number" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors" />
+            <label for="expPeso" class={labelCls}>Peso (kg)</label>
+            <input id="expPeso" name="peso" type="number" min="1" max="400" step="0.1" class={fieldCls} />
           </div>
         </div>
-        <div id="expError" class="hidden text-base text-red-600"></div>
+        <p id="expError" class="hidden text-base text-red-600"></p>
         <div class="flex gap-2 pt-1">
-          <button id="cancelarExp" class="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-base font-medium hover:border-gray-400 transition-colors">Cancelar</button>
-          <button id="guardarExp"  class="flex-1 px-4 py-2.5 bg-black text-white rounded-lg text-base font-medium hover:bg-gray-800 transition-colors">Guardar</button>
+          <button type="button" id="cancelarExp" class="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-base font-medium hover:border-gray-400 transition-colors">Cancelar</button>
+          <button type="submit" id="guardarExp" class="flex-1 px-4 py-2.5 bg-black text-white rounded-lg text-base font-medium hover:bg-gray-800 transition-colors disabled:opacity-60">Guardar</button>
         </div>
       </div>
-    </div>
+    </form>
+  </div>
+
+  <!-- Modal revisar sugerencia del paciente -->
+  <div id="modalRev" class="hidden fixed inset-0 z-50 bg-black/30 dark:bg-[#000]/60 flex items-center justify-center p-4">
+    <form id="formRev" novalidate class="bg-white rounded-lg border border-gray-200 shadow-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <h2 class="font-baloo tracking-wide text-2xl mb-1"><strong>Revisar sugerencia</strong></h2>
+      <p class="text-base text-gray-600 mb-5">
+        <span id="revCampo"></span> · Nada cambia en el expediente hasta que lo apruebes.
+      </p>
+      <div class="space-y-3">
+        <div id="revActualWrap">
+          <p class={labelCls}>Valor actual en el expediente</p>
+          <p id="revActual" class="text-base text-gray-900 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2.5 whitespace-pre-line break-words"></p>
+          <p id="revCambio" class="hidden text-sm text-amber-700 mt-1.5">
+            El expediente cambió desde que el paciente envió la sugerencia (entonces era: <span id="revAnterior"></span>).
+          </p>
+        </div>
+        <div id="revComentarioWrap">
+          <p class={labelCls}>Comentario del paciente</p>
+          <p id="revComentario" class="text-base text-gray-700 italic break-words"></p>
+        </div>
+        <div>
+          <label for="revValor" id="revValorLabel" class={labelCls}>Valor a integrar</label>
+          <textarea id="revValor" rows="3" maxlength="1000" class={`${fieldCls} resize-none`}></textarea>
+          <p class="text-sm text-gray-500 mt-1.5">Es lo que propuso el paciente; puedes ajustarlo antes de aprobar.</p>
+        </div>
+        <div>
+          <label for="revRespuesta" class={labelCls}>Respuesta al paciente (opcional)</label>
+          <textarea id="revRespuesta" rows="2" maxlength="500" class={`${fieldCls} resize-none`}></textarea>
+        </div>
+        <p id="revError" class="hidden text-base text-red-600"></p>
+        <div class="flex flex-col sm:flex-row gap-2 pt-1">
+          <button type="button" id="cancelarRev" class="sm:flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-base font-medium hover:border-gray-400 transition-colors">Cerrar</button>
+          <button type="button" id="rechazarRev" class="sm:flex-1 px-4 py-2.5 border border-red-300 text-red-700 rounded-lg text-base font-medium hover:bg-red-50 transition-colors disabled:opacity-60">Rechazar</button>
+          <button type="submit" id="aprobarRev" class="sm:flex-1 px-4 py-2.5 bg-black text-white rounded-lg text-base font-medium hover:bg-gray-800 transition-colors disabled:opacity-60">Aprobar</button>
+        </div>
+      </div>
+    </form>
   </div>
 </DashboardLayout>
 
 <script>
-  document.getElementById("nuevoExpBtn")?.addEventListener("click", () => document.getElementById("modalExp")?.classList.remove("hidden"));
-  document.getElementById("cancelarExp")?.addEventListener("click", () => document.getElementById("modalExp")?.classList.add("hidden"));
-  document.getElementById("guardarExp")?.addEventListener("click", async () => {
-    const paciente = (document.getElementById("expPaciente") as HTMLSelectElement).value;
-    const diagnostico = (document.getElementById("expDiagnostico") as HTMLInputElement).value;
-    const motivoConsulta = (document.getElementById("expMotivo") as HTMLInputElement).value;
-    const errorEl = document.getElementById("expError")!;
-    if (!paciente||!diagnostico||!motivoConsulta) { errorEl.textContent="Paciente, diagnóstico y motivo son requeridos"; errorEl.classList.remove("hidden"); return; }
-    const res = await fetch("/api/medico/expediente",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-      paciente,diagnostico,motivoConsulta,
-      antecedentes:(document.getElementById("expAntecedentes") as HTMLInputElement).value,
-      alergias:(document.getElementById("expAlergias") as HTMLInputElement).value,
-      medicamentos:(document.getElementById("expMedicamentos") as HTMLInputElement).value,
-      presionArterial:(document.getElementById("expPresion") as HTMLInputElement).value,
-      altura:Number((document.getElementById("expAltura") as HTMLInputElement).value)||undefined,
-      peso:Number((document.getElementById("expPeso") as HTMLInputElement).value)||undefined,
-    })});
-    if (res.ok) { window.location.href=`/dashboard/medico/expedientes?paciente=${paciente}`; }
-    else { const d=await res.json(); errorEl.textContent=d.error||"Error"; errorEl.classList.remove("hidden"); }
+  import { api, aviso, confirmar, descargar, modal, unaVez, abrirSiNuevo, errorEn, $ } from "../../../scripts/ui";
+
+  // Exportar expediente a PDF
+  const btnPdf = document.getElementById("exportarPdfBtn") as HTMLButtonElement | null;
+  if (btnPdf) {
+    unaVez(btnPdf, async () => {
+      const error = await descargar(`/api/medico/expediente-pdf?paciente=${btnPdf.dataset.paciente}`, "expediente.pdf");
+      if (error) aviso(error, "error");
+      else aviso("Expediente exportado", "exito");
+    }, "Generando...");
+  }
+
+  const form = $<HTMLFormElement>("formExp");
+  const selPaciente = $<HTMLSelectElement>("expPaciente");
+  let editandoPaciente: string | null = null;
+  let guardando = false;
+
+  const limpiar = () => {
+    form.reset();
+    editandoPaciente = null;
+    $("expPacienteWrap").classList.remove("hidden");
+    errorEn("expError");
+  };
+  const m = modal("modalExp", limpiar);
+  $("cancelarExp").addEventListener("click", m.cerrar);
+
+  const abrirNuevo = (pacienteId?: string | null) => {
+    limpiar();
+    $("expTitulo").textContent = "Nuevo expediente";
+    if (pacienteId) selPaciente.value = pacienteId;
+    m.abrir();
+  };
+
+  document.getElementById("nuevoExpBtn")?.addEventListener("click", () => abrirNuevo());
+  document.querySelectorAll<HTMLElement>("[data-crear-para]").forEach((b) =>
+    b.addEventListener("click", () => abrirNuevo(b.dataset.crearPara)),
+  );
+  abrirSiNuevo(() => abrirNuevo(new URLSearchParams(location.search).get("paciente")));
+
+  // Editar datos clínicos
+  document.getElementById("editarExpBtn")?.addEventListener("click", () => {
+    const datos = JSON.parse($("detalleExp").dataset.exp || "{}");
+    limpiar();
+    editandoPaciente = datos.paciente;
+    $("expTitulo").textContent = "Editar expediente";
+    $("expPacienteWrap").classList.add("hidden");
+    form.querySelectorAll<HTMLInputElement>("input[name]").forEach((i) => (i.value = datos[i.name] ?? ""));
+    m.abrir();
   });
-  document.getElementById("agregarNotaBtn")?.addEventListener("click", () => document.getElementById("notaForm")?.classList.toggle("hidden"));
-  document.getElementById("guardarNota")?.addEventListener("click", async () => {
-    const nota = (document.getElementById("notaTexto") as HTMLTextAreaElement).value;
-    const pacienteId = document.getElementById("guardarNota")?.getAttribute("data-paciente");
-    if (!nota.trim()) return;
-    const res = await fetch("/api/medico/expediente",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({pacienteId,notaEvolucion:nota})});
-    if (res.ok) window.location.reload();
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (guardando) return;
+
+    const datos: Record<string, string> = {};
+    form.querySelectorAll<HTMLInputElement>("input[name]").forEach((i) => (datos[i.name] = i.value.trim()));
+    const paciente = editandoPaciente ?? selPaciente.value;
+
+    if (!paciente) return errorEn("expError", "Selecciona un paciente.");
+    if (!datos.diagnostico || !datos.motivoConsulta) return errorEn("expError", "Diagnóstico y motivo de consulta son requeridos.");
+
+    guardando = true;
+    $<HTMLButtonElement>("guardarExp").disabled = true;
+    const { ok, data } = editandoPaciente
+      ? await api("/api/medico/expediente", "PUT", { pacienteId: paciente, ...datos })
+      : await api("/api/medico/expediente", "POST", { paciente, ...datos });
+    guardando = false;
+    $<HTMLButtonElement>("guardarExp").disabled = false;
+
+    if (ok) {
+      aviso(editandoPaciente ? "Expediente actualizado" : "Expediente creado", "exito");
+      setTimeout(() => (location.href = `/dashboard/medico/expedientes?paciente=${paciente}`), 400);
+    } else {
+      errorEn("expError", data.error || "No se pudo guardar");
+    }
   });
+
+  // Notas de evolución
+  document.getElementById("agregarNotaBtn")?.addEventListener("click", () => {
+    const f = $("notaForm");
+    f.classList.toggle("hidden");
+    if (!f.classList.contains("hidden")) $("notaTexto").focus();
+  });
+  let guardandoNota = false;
+  document.getElementById("notaForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const nota = $<HTMLTextAreaElement>("notaTexto").value.trim();
+    const pacienteId = $("guardarNota").dataset.paciente;
+    if (!nota) return aviso("Escribe la nota antes de guardar", "error");
+    if (guardandoNota) return;
+    guardandoNota = true;
+    $<HTMLButtonElement>("guardarNota").disabled = true;
+    const { ok, data } = await api("/api/medico/expediente", "PUT", { pacienteId, notaEvolucion: nota });
+    if (ok) {
+      aviso("Nota agregada", "exito");
+      setTimeout(() => location.reload(), 400);
+    } else {
+      guardandoNota = false;
+      $<HTMLButtonElement>("guardarNota").disabled = false;
+      aviso(data.error || "No se pudo guardar la nota", "error");
+    }
+  });
+
+  // Revisión de sugerencias del paciente: el médico debe confirmar antes de integrar
+  type Sugerencia = { id: string; campo: string; etiqueta: string; actual: string; anterior: string; propuesto: string; comentario: string };
+  let sugerencia: Sugerencia | null = null;
+  let revisando = false;
+  const mRev = modal("modalRev", () => {
+    sugerencia = null;
+    $<HTMLFormElement>("formRev").reset();
+    errorEn("revError");
+  });
+  $("cancelarRev").addEventListener("click", mRev.cerrar);
+
+  document.querySelectorAll<HTMLElement>("[data-revisar]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const s: Sugerencia = JSON.parse(b.dataset.revisar!);
+      sugerencia = s;
+      const otro = s.campo === "otro";
+      errorEn("revError");
+      $("revCampo").textContent = s.etiqueta;
+      $("revActualWrap").classList.toggle("hidden", otro);
+      $("revActual").textContent = s.actual || "Sin registrar";
+      $("revAnterior").textContent = s.anterior || "sin registrar";
+      $("revCambio").classList.toggle("hidden", otro || s.actual === s.anterior);
+      $("revComentarioWrap").classList.toggle("hidden", !s.comentario);
+      $("revComentario").textContent = s.comentario ? `“${s.comentario}”` : "";
+      $("revValorLabel").textContent = otro ? "Nota a integrar en la evolución" : "Valor a integrar";
+      $<HTMLTextAreaElement>("revValor").value = s.propuesto;
+      $<HTMLTextAreaElement>("revRespuesta").value = "";
+      mRev.abrir();
+    }),
+  );
+
+  const revisar = async (accion: "aprobar" | "rechazar") => {
+    if (!sugerencia || revisando) return;
+    const s = sugerencia;
+    const valor = $<HTMLTextAreaElement>("revValor").value.trim();
+    const respuesta = $<HTMLTextAreaElement>("revRespuesta").value.trim();
+    if (accion === "aprobar" && !valor && (s.campo === "otro" || s.campo === "diagnostico" || s.campo === "motivoConsulta")) {
+      return errorEn("revError", "El valor a integrar no puede quedar vacío.");
+    }
+
+    const ok = await confirmar(
+      accion === "aprobar"
+        ? {
+            titulo: "¿Integrar al expediente?",
+            mensaje: s.campo === "otro"
+              ? "Se agregará como nota de evolución en el expediente del paciente."
+              : `«${s.etiqueta}» cambiará de "${s.actual || "sin registrar"}" a "${valor || "sin registrar"}".`,
+            aceptar: "Confirmar e integrar",
+          }
+        : { titulo: "¿Rechazar sugerencia?", mensaje: "El expediente no cambiará y el paciente verá que no se integró.", aceptar: "Rechazar", peligro: true },
+    );
+    if (!ok) return;
+
+    revisando = true;
+    $<HTMLButtonElement>("aprobarRev").disabled = true;
+    $<HTMLButtonElement>("rechazarRev").disabled = true;
+    const r = await api(`/api/medico/solicitud/${s.id}`, "PUT", { accion, valor, respuesta });
+    revisando = false;
+    $<HTMLButtonElement>("aprobarRev").disabled = false;
+    $<HTMLButtonElement>("rechazarRev").disabled = false;
+
+    if (r.ok) {
+      aviso(accion === "aprobar" ? "Sugerencia integrada al expediente" : "Sugerencia rechazada", "exito");
+      setTimeout(() => location.reload(), 400);
+    } else {
+      errorEn("revError", r.data.error || "No se pudo guardar la revisión");
+    }
+  };
+  $("formRev").addEventListener("submit", (e) => {
+    e.preventDefault();
+    revisar("aprobar");
+  });
+  $("rechazarRev").addEventListener("click", () => revisar("rechazar"));
 </script>

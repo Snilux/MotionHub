@@ -1,0 +1,306 @@
+---
+import DashboardLayout from "../../../components/common/DashboardLayout.astro";
+import PageHeader from "../../../components/dashboard/PageHeader.astro";
+import SectionHeader from "../../../components/dashboard/SectionHeader.astro";
+import EmptyState from "../../../components/dashboard/EmptyState.astro";
+import { card, chip, btnPrimary, btnSecondary, label, plural, fechaLarga } from "../../../components/dashboard/styles";
+import { getSessionFromRequest } from "../../../lib/session";
+import connectDB from "../../../lib/db";
+import { Expediente } from "../../../models/Expediente";
+import { SolicitudExpediente } from "../../../models/SolicitudExpediente";
+import { User } from "../../../models/User";
+import { CAMPOS, ETIQUETA_CAMPO, CAMPOS_SUGERIBLES, esNumerico, textoCampo } from "../../../lib/expediente";
+
+const session = getSessionFromRequest(Astro.request);
+if (!session || session.role !== "paciente") return Astro.redirect("/login");
+
+await connectDB();
+
+const [exp, solicitudes, paciente]: any[] = await Promise.all([
+  Expediente.findOne({ paciente: session.userId }).lean(),
+  SolicitudExpediente.find({ paciente: session.userId })
+    .populate("revisadaPor", "nombre apellido")
+    .sort({ createdAt: -1 })
+    .limit(50)
+    .lean(),
+  User.findById(session.userId).populate("medicoAsignado", "nombre apellido").lean(),
+]);
+
+const medico = paciente?.medicoAsignado;
+const pendientes = solicitudes.filter((s: any) => s.estado === "pendiente");
+const camposPendientes = new Set(pendientes.map((s: any) => s.campo));
+
+// Todos los campos, también los vacíos: el paciente puede sugerir datos que faltan
+const datos = CAMPOS.map((c) => ({
+  campo: c,
+  label: ETIQUETA_CAMPO[c],
+  value: textoCampo(exp, c),
+  numerico: esNumerico(c),
+}));
+
+const notas = exp ? [...(exp.evolucion ?? [])].reverse() : [];
+
+// Valores actuales para el formulario de sugerencias
+const actuales = JSON.stringify(Object.fromEntries(CAMPOS.map((c) => [c, textoCampo(exp, c)])));
+
+const estadoTexto: Record<string, string> = { pendiente: "En revisión", aprobada: "Integrada", rechazada: "No integrada" };
+const fieldCls = "w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors";
+const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide";
+---
+
+<DashboardLayout title="Mi Expediente" role="paciente" nombre={session.nombre} activeSection="/dashboard/paciente/expediente">
+
+  <div class="max-w-6xl px-6 sm:px-10 py-10 lg:py-14 space-y-12">
+
+    <PageHeader eyebrow="Clínico">
+      <Fragment slot="title"><strong>Mi Expediente</strong></Fragment>
+      {!exp ? (
+        <>Tu fisioterapeuta aún no ha creado tu expediente clínico.</>
+      ) : (
+        <>
+          Aquí puedes consultar tu historial clínico. Si algún dato no es correcto o falta algo, envía una sugerencia:
+          {medico ? <> el <strong>Dr. {medico.nombre} {medico.apellido}</strong></> : <> tu fisioterapeuta</>} la revisará
+          antes de integrarla a tu expediente.
+        </>
+      )}
+      {exp && medico && (
+        <button slot="action" data-sugerir="otro" class={`${btnPrimary} shrink-0 self-start sm:self-auto`}>
+          + Enviar sugerencia
+        </button>
+      )}
+    </PageHeader>
+
+    {!exp ? (
+      <EmptyState title="Sin expediente" text="Cuando tu fisioterapeuta registre tu historial clínico podrás verlo aquí." />
+    ) : (
+      <>
+        {!medico && (
+          <p class="text-base text-gray-600 border border-dashed border-stone-300 rounded-2xl px-6 py-4">
+            No tienes un fisioterapeuta asignado en este momento, así que no puedes enviar sugerencias.
+          </p>
+        )}
+
+        <!-- Datos clínicos -->
+        <section>
+          <SectionHeader title="Datos clínicos">
+            <p class="text-base text-gray-600">Actualizado el <span class="font-medium text-gray-900">{fechaLarga(new Date(exp.updatedAt))}</span></p>
+          </SectionHeader>
+          <dl class={`${card} grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6`}>
+            {datos.map(({ campo, label: l, value, numerico }) => (
+              <div class="flex flex-col">
+                <dt class={label}>{l}</dt>
+                <dd class="mt-1 flex-1">
+                  {!value ? (
+                    <span class="text-lg text-gray-400 italic">Sin registrar</span>
+                  ) : numerico ? (
+                    <span class="text-3xl font-baloo font-bold">{value}</span>
+                  ) : (
+                    <span class="text-lg font-medium text-gray-900 whitespace-pre-line">{value}</span>
+                  )}
+                </dd>
+                {medico && (
+                  camposPendientes.has(campo) ? (
+                    <p class="text-sm text-gray-500 mt-2">Sugerencia en revisión</p>
+                  ) : (
+                    <button data-sugerir={campo} class="self-start text-sm text-gray-600 underline underline-offset-4 hover:text-black mt-2">
+                      Sugerir cambio
+                    </button>
+                  )
+                )}
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        <!-- Sugerencias -->
+        <section>
+          <SectionHeader title={`Mis sugerencias · ${solicitudes.length}`}>
+            {pendientes.length > 0 && <span class="text-base text-gray-600">{plural(pendientes.length, "en revisión", "en revisión")}</span>}
+          </SectionHeader>
+          {solicitudes.length === 0 ? (
+            <EmptyState title="Sin sugerencias" text='Usa "Sugerir cambio" en cualquier dato para proponer una corrección.' />
+          ) : (
+            <ul class="divide-y divide-stone-300 border-y border-stone-300">
+              {solicitudes.map((s: any) => (
+                <li class="py-5 flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-6">
+                  <div class="sm:w-40 shrink-0">
+                    <p class="text-lg font-baloo font-bold text-gray-700">{fechaLarga(new Date(s.createdAt))}</p>
+                    <p class="text-base text-gray-500">{ETIQUETA_CAMPO[s.campo as keyof typeof ETIQUETA_CAMPO]}</p>
+                  </div>
+                  <div class="flex-1 min-w-0 space-y-1">
+                    {s.campo !== "otro" && (
+                      <p class="text-base text-gray-500">
+                        Antes: <span class="text-gray-700">{s.valorAnterior || "Sin registrar"}</span>
+                      </p>
+                    )}
+                    <p class="text-lg text-gray-900 whitespace-pre-line break-words">{s.valorPropuesto}</p>
+                    {s.comentario && <p class="text-base text-gray-600 italic break-words">“{s.comentario}”</p>}
+                    {s.estado === "aprobada" && s.valorAplicado && s.valorAplicado !== s.valorPropuesto && (
+                      <p class="text-base text-gray-700">Se integró como: <strong class="break-words">{s.valorAplicado}</strong></p>
+                    )}
+                    {s.respuesta && (
+                      <p class="text-base text-gray-700 border-l-2 border-black pl-3 mt-2 break-words">
+                        {s.revisadaPor ? `Dr. ${s.revisadaPor.nombre}: ` : ""}{s.respuesta}
+                      </p>
+                    )}
+                  </div>
+                  <div class="flex sm:flex-col items-center sm:items-end gap-3 shrink-0">
+                    <span class={chip(s.estado === "aprobada")}>{estadoTexto[s.estado]}</span>
+                    {s.estado === "pendiente" && (
+                      <button data-cancelar={String(s._id)} class={btnSecondary}>Cancelar</button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <!-- Notas de evolución -->
+        <section>
+          <SectionHeader title="Notas de evolución" />
+          {notas.length === 0 ? (
+            <p class="text-base text-gray-600">Sin notas de evolución.</p>
+          ) : (
+            <ol class="relative border-l border-stone-300 ml-2 space-y-6">
+              {notas.map((nota: any, i: number) => (
+                <li class="pl-8 relative">
+                  <span class={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-black
+                    ${i === 0 ? "bg-black" : "bg-stone-100"}`} />
+                  <p class="text-base font-baloo font-bold">{fechaLarga(new Date(nota.fecha))}</p>
+                  <p class="text-lg text-gray-900 mt-1 leading-relaxed whitespace-pre-line">{nota.nota}</p>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+      </>
+    )}
+  </div>
+
+  <!-- Modal sugerencia -->
+  {exp && medico && (
+    <div id="modalSug" data-actuales={actuales} class="hidden fixed inset-0 z-50 bg-black/30 dark:bg-[#000]/60 flex items-center justify-center p-4">
+      <form id="formSug" novalidate class="bg-white rounded-lg border border-gray-200 shadow-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <h2 class="font-baloo tracking-wide text-2xl mb-1"><strong>Sugerir cambio</strong></h2>
+        <p class="text-base text-gray-600 mb-5">Tu fisioterapeuta revisará la sugerencia y decidirá si la integra a tu expediente.</p>
+        <div class="space-y-3">
+          <div>
+            <label for="sugCampo" class={labelCls}>Dato</label>
+            <select id="sugCampo" class={fieldCls}>
+              {CAMPOS_SUGERIBLES.map((c) => (
+                <option value={c} disabled={camposPendientes.has(c)}>
+                  {ETIQUETA_CAMPO[c]}{camposPendientes.has(c) ? " (en revisión)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div id="sugActualWrap">
+            <p class={labelCls}>Valor actual</p>
+            <p id="sugActual" class="text-base text-gray-900 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2.5 whitespace-pre-line"></p>
+          </div>
+          <div>
+            <label for="sugValor" id="sugValorLabel" class={labelCls}>Valor correcto</label>
+            <textarea id="sugValor" rows="3" maxlength="1000" class={`${fieldCls} resize-none`}></textarea>
+          </div>
+          <div>
+            <label for="sugComentario" class={labelCls}>Comentario (opcional)</label>
+            <textarea id="sugComentario" rows="2" maxlength="500" placeholder="Ej: Me diagnosticaron esta alergia el mes pasado"
+              class={`${fieldCls} resize-none`}></textarea>
+          </div>
+          <p id="sugError" class="hidden text-base text-red-600"></p>
+          <div class="flex gap-2 pt-1">
+            <button type="button" id="cancelarSug" class="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-base font-medium hover:border-gray-400 transition-colors">Cancelar</button>
+            <button type="submit" id="enviarSug" class="flex-1 px-4 py-2.5 bg-black text-white rounded-lg text-base font-medium hover:bg-gray-800 transition-colors disabled:opacity-60">Enviar</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  )}
+</DashboardLayout>
+
+<script>
+  import { api, aviso, confirmar, modal, errorEn, $ } from "../../../scripts/ui";
+
+  const modalEl = document.getElementById("modalSug");
+  if (modalEl) {
+    const actuales: Record<string, string> = JSON.parse(modalEl.dataset.actuales || "{}");
+    const form = $<HTMLFormElement>("formSug");
+    const selCampo = $<HTMLSelectElement>("sugCampo");
+    const valor = $<HTMLTextAreaElement>("sugValor");
+    let enviando = false;
+
+    const m = modal("modalSug", () => {
+      form.reset();
+      errorEn("sugError");
+    });
+    $("cancelarSug").addEventListener("click", m.cerrar);
+
+    const mostrarCampo = () => {
+      const c = selCampo.value;
+      const otro = c === "otro";
+      $("sugActualWrap").classList.toggle("hidden", otro);
+      $("sugActual").textContent = actuales[c] || "Sin registrar";
+      $("sugValorLabel").textContent = otro ? "Tu sugerencia" : "Valor correcto";
+      valor.placeholder = otro ? "¿Qué te gustaría que se agregue o corrija en tu expediente?" : "";
+      valor.value = otro ? "" : actuales[c] ?? "";
+      valor.inputMode = c === "altura" || c === "peso" ? "decimal" : "text";
+    };
+    selCampo.addEventListener("change", mostrarCampo);
+
+    document.querySelectorAll<HTMLElement>("[data-sugerir]").forEach((b) =>
+      b.addEventListener("click", () => {
+        form.reset();
+        errorEn("sugError");
+        selCampo.value = b.dataset.sugerir!;
+        mostrarCampo();
+        m.abrir();
+        valor.focus();
+      }),
+    );
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (enviando) return;
+      const campo = selCampo.value;
+      const valorPropuesto = valor.value.trim();
+      if (!valorPropuesto) return errorEn("sugError", "Escribe tu sugerencia.");
+      if (campo !== "otro" && valorPropuesto === (actuales[campo] ?? "")) {
+        return errorEn("sugError", "Es igual a lo que ya está en tu expediente.");
+      }
+
+      enviando = true;
+      $<HTMLButtonElement>("enviarSug").disabled = true;
+      const { ok, data } = await api("/api/paciente/expediente", "POST", {
+        campo,
+        valorPropuesto,
+        comentario: $<HTMLTextAreaElement>("sugComentario").value.trim(),
+      });
+      enviando = false;
+      $<HTMLButtonElement>("enviarSug").disabled = false;
+
+      if (ok) {
+        aviso("Sugerencia enviada a tu fisioterapeuta", "exito");
+        setTimeout(() => location.reload(), 400);
+      } else {
+        errorEn("sugError", data.error || "No se pudo enviar");
+      }
+    });
+  }
+
+  document.querySelectorAll<HTMLButtonElement>("[data-cancelar]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const ok = await confirmar({ titulo: "¿Cancelar sugerencia?", mensaje: "Tu fisioterapeuta ya no la verá.", aceptar: "Sí, cancelar", cancelar: "No", peligro: true });
+      if (!ok) return;
+      b.disabled = true;
+      const r = await api(`/api/paciente/expediente?solicitud=${b.dataset.cancelar}`, "DELETE");
+      if (r.ok) {
+        aviso("Sugerencia cancelada", "exito");
+        setTimeout(() => location.reload(), 400);
+      } else {
+        b.disabled = false;
+        aviso(r.data.error || "No se pudo cancelar", "error");
+      }
+    }),
+  );
+</script>
