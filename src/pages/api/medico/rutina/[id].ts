@@ -1,112 +1,98 @@
 import type { APIRoute } from "astro";
 import connectDB from "../../../../lib/db";
 import { Rutina } from "../../../../models/Rutina";
-import { getSessionFromRequest } from "../../../../lib/session";
+import { getSessionFromRequest, json } from "../../../../lib/session";
+import { esIdValido } from "../../../../lib/medico";
+import { PERIODOS, ejercicioSinArchivo, textoFrecuencia, validarEjercicios, videosDe, type Periodo } from "../../../../lib/rutina";
+import { borrarArchivos } from "../../../../lib/storage";
 
 export const GET: APIRoute = async ({ request, params }) => {
   try {
     const session = getSessionFromRequest(request);
-    if (!session || session.role !== "medico") {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    if (!session || session.role !== "medico") return json({ error: "No autorizado" }, 403);
+    if (!esIdValido(params.id)) return json({ error: "Rutina inválida" }, 400);
 
     await connectDB();
-    const rutina = await Rutina.findOne({
-      _id: params.id,
-      medico: session.userId,
-    }).populate("paciente", "nombre apellido email");
-
-    if (!rutina) {
-      return new Response(JSON.stringify({ error: "Rutina no encontrada" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    return new Response(JSON.stringify(rutina), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    const rutina = await Rutina.findOne({ _id: params.id, medico: session.userId })
+      .populate("paciente", "nombre apellido email");
+    if (!rutina) return json({ error: "Rutina no encontrada" }, 404);
+    return json(rutina);
   } catch (error) {
-    return new Response(JSON.stringify({ error: "Error interno" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error("GET rutina error:", error);
+    return json({ error: "Error interno" }, 500);
   }
 };
 
+// PUT - Actualiza solo los campos permitidos (activar/pausar, nombre, frecuencia, ejercicios...)
 export const PUT: APIRoute = async ({ request, params }) => {
   try {
     const session = getSessionFromRequest(request);
-    if (!session || session.role !== "medico") {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
+    if (!session || session.role !== "medico") return json({ error: "No autorizado" }, 403);
+    if (!esIdValido(params.id)) return json({ error: "Rutina inválida" }, 400);
+
+    const body = await request.json();
+    const $set: Record<string, unknown> = {};
+
+    if (typeof body.activa === "boolean") $set.activa = body.activa;
+    if (body.nombre !== undefined) {
+      const nombre = String(body.nombre).trim();
+      if (!nombre) return json({ error: "El nombre no puede quedar vacío" }, 400);
+      $set.nombre = nombre;
     }
+    if (body.objetivo !== undefined) $set.objetivo = String(body.objetivo).trim();
+    if (body.frecuenciaVeces !== undefined || body.frecuenciaPeriodo !== undefined) {
+      const veces = Number(body.frecuenciaVeces);
+      const periodo = body.frecuenciaPeriodo as Periodo;
+      if (!Number.isInteger(veces) || veces < 1 || veces > 31 || !(periodo in PERIODOS)) {
+        return json({ error: "Elige una frecuencia válida" }, 400);
+      }
+      Object.assign($set, { frecuenciaVeces: veces, frecuenciaPeriodo: periodo, frecuencia: textoFrecuencia(veces, periodo) });
+    }
+    if (body.ejercicios !== undefined) {
+      const v = validarEjercicios(body.ejercicios, session.userId);
+      if ("error" in v) return json({ error: v.error }, 400);
+      if (v.ejercicios.length === 0) return json({ error: "Agrega al menos un ejercicio" }, 400);
+      const sinVideo = await ejercicioSinArchivo(v.ejercicios);
+      if (sinVideo) return json({ error: `«${sinVideo}»: no se encontró el video, súbelo de nuevo` }, 400);
+      $set.ejercicios = v.ejercicios;
+    }
+    if (!Object.keys($set).length) return json({ error: "No hay cambios que guardar" }, 400);
 
     await connectDB();
-    const body = await request.json();
-
-    const rutina = await Rutina.findOneAndUpdate(
+    // Se devuelve la versión anterior para saber qué videos dejaron de usarse
+    const anterior = await Rutina.findOneAndUpdate(
       { _id: params.id, medico: session.userId },
-      { $set: body },
-      { new: true }
-    ).populate("paciente", "nombre apellido email");
+      { $set },
+      { new: false, runValidators: true },
+    ).select("ejercicios.video");
+    if (!anterior) return json({ error: "Rutina no encontrada" }, 404);
 
-    if (!rutina) {
-      return new Response(JSON.stringify({ error: "Rutina no encontrada" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
-      });
+    if ($set.ejercicios) {
+      const siguen = new Set(videosDe($set.ejercicios as { video?: string }[]));
+      await borrarArchivos(videosDe(anterior.ejercicios).filter((v) => !siguen.has(v)));
     }
 
-    return new Response(JSON.stringify(rutina), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    const rutina = await Rutina.findById(params.id).populate("paciente", "nombre apellido email");
+    return json(rutina);
   } catch (error) {
-    return new Response(JSON.stringify({ error: "Error interno" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error("PUT rutina error:", error);
+    return json({ error: "Error interno" }, 500);
   }
 };
 
 export const DELETE: APIRoute = async ({ request, params }) => {
   try {
     const session = getSessionFromRequest(request);
-    if (!session || session.role !== "medico") {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    if (!session || session.role !== "medico") return json({ error: "No autorizado" }, 403);
+    if (!esIdValido(params.id)) return json({ error: "Rutina inválida" }, 400);
 
     await connectDB();
-    const rutina = await Rutina.findOneAndDelete({
-      _id: params.id,
-      medico: session.userId,
-    });
-
-    if (!rutina) {
-      return new Response(JSON.stringify({ error: "Rutina no encontrada" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    const rutina = await Rutina.findOneAndDelete({ _id: params.id, medico: session.userId });
+    if (!rutina) return json({ error: "Rutina no encontrada" }, 404);
+    await borrarArchivos(videosDe(rutina.ejercicios));
+    return json({ success: true });
   } catch (error) {
-    return new Response(JSON.stringify({ error: "Error interno" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error("DELETE rutina error:", error);
+    return json({ error: "Error interno" }, 500);
   }
 };
