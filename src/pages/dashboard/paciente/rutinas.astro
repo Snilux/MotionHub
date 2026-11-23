@@ -123,17 +123,6 @@ const fieldLabel = "text-sm text-gray-600 font-medium uppercase tracking-wide";
                                 <p class="text-xl font-semibold text-gray-900 mt-1">{ej.nombre}</p>
                                 {ej.descripcion && <p class="text-base text-gray-700 mt-2">{ej.descripcion}</p>}
                                 {ej.notas && <p class="text-base text-gray-500 italic mt-1">{ej.notas}</p>}
-                                {ej.video && (
-                                  <video
-                                    src={urlArchivo(ej.video)}
-                                    controls
-                                    preload="none"
-                                    playsinline
-                                    class="mt-4 w-full max-w-lg max-h-80 rounded-xl bg-black"
-                                  >
-                                    Tu navegador no puede reproducir este video.
-                                  </video>
-                                )}
                               </div>
                               <div class="flex flex-col gap-2 shrink-0">
                                 <div class="flex gap-2">
@@ -148,6 +137,19 @@ const fieldLabel = "text-sm text-gray-600 font-medium uppercase tracking-wide";
                                     </div>
                                   ))}
                                 </div>
+
+                                <!-- Video subido por el fisioterapeuta: se abre en un modal -->
+                                {ej.video && (
+                                  <button
+                                    type="button"
+                                    data-ver-video={urlArchivo(ej.video)}
+                                    data-titulo={ej.nombre}
+                                    class={`${btnSecondary} w-full inline-flex items-center justify-center gap-2`}
+                                  >
+                                    <span class="text-sm">▶</span>
+                                    Ver video
+                                  </button>
+                                )}
 
                                 <!-- Enlace externo (rutinas antiguas sin video subido) -->
                                 {!ej.video && ej.videoUrl && (
@@ -186,6 +188,20 @@ const fieldLabel = "text-sm text-gray-600 font-medium uppercase tracking-wide";
         </div>
       ))
     )}
+  </div>
+
+  <!-- Modal del video de un ejercicio -->
+  <div id="modalVideo" class="hidden fixed inset-0 z-50 bg-black/60 dark:bg-[#000]/80 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg border border-gray-200 shadow-lg p-4 sm:p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-start justify-between gap-4 mb-4">
+        <h2 class="font-baloo tracking-wide text-2xl"><strong id="videoTitulo">Video del ejercicio</strong></h2>
+        <button type="button" id="cerrarVideo" aria-label="Cerrar video" class="text-xl text-gray-500 hover:text-gray-900 px-1">✕</button>
+      </div>
+      <video id="videoPlayer" controls playsinline preload="metadata" class="w-full max-h-[70vh] rounded-lg bg-black">
+        Tu navegador no puede reproducir este video.
+      </video>
+      <p id="videoError" class="hidden text-base text-red-600 mt-3">No se pudo cargar el video. Inténtalo de nuevo más tarde.</p>
+    </div>
   </div>
 
   <!-- Modal registrar sesión -->
@@ -241,6 +257,26 @@ const fieldLabel = "text-sm text-gray-600 font-medium uppercase tracking-wide";
 
 <script>
   import { api, aviso, modal, errorEn, $ } from "../../../scripts/ui";
+
+  // Video de un ejercicio: se carga al abrir el modal y se detiene al cerrarlo
+  const player = $<HTMLVideoElement>("videoPlayer");
+  const mVideo = modal("modalVideo", () => {
+    player.pause();
+    player.removeAttribute("src");
+    player.load();
+    errorEn("videoError");
+  });
+  $("cerrarVideo").addEventListener("click", mVideo.cerrar);
+  player.addEventListener("error", () => player.getAttribute("src") && $("videoError").classList.remove("hidden"));
+  document.querySelectorAll<HTMLButtonElement>("[data-ver-video]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      $("videoTitulo").textContent = btn.dataset.titulo || "Video del ejercicio";
+      $("videoError").classList.add("hidden");
+      player.src = btn.dataset.verVideo!;
+      mVideo.abrir();
+      player.play().catch(() => {}); // si el navegador bloquea la reproducción automática, queda el botón ▶
+    });
+  });
 
   const form = $<HTMLFormElement>("formSesion");
   const antes = $("dolorAntes");
