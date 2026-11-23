@@ -1,8 +1,5 @@
 import type { APIRoute } from "astro";
-import {
-  clearSessionCookie,
-  getSessionFromRequest,
-} from "../../../lib/session";
+import { clearSessionCookie, getSessionFromRequest, json, sesionEstricta } from "../../../lib/session";
 import connectDB from "../../../lib/db";
 import { User } from "../../../models/User";
 
@@ -10,23 +7,18 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const session = getSessionFromRequest(request);
 
-    // Limpiar sessionId en DB (médicos) para liberar la sesión
-    if (session?.role === "medico") {
+    // Libera la sesión del médico o administrador, pero solo si es la sesión vigente
+    // (así cerrar una pestaña vieja no cierra la sesión nueva de otro navegador).
+    if (session && sesionEstricta(session.role)) {
       await connectDB();
       await User.updateOne(
-        { _id: session.userId },
-        { activeSessionToken: null },
+        { _id: session.userId, activeSessionToken: session.sessionId },
+        { activeSessionToken: null, activeSessionExpires: null },
       );
     }
   } catch {
     // Silencioso: igual se limpia la cookie
   }
 
-  return new Response(JSON.stringify({ success: true }), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/json",
-      "Set-Cookie": clearSessionCookie(),
-    },
-  });
+  return json({ success: true }, 200, { "Set-Cookie": clearSessionCookie() });
 };

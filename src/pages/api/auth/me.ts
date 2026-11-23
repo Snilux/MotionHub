@@ -15,7 +15,8 @@ export const GET: APIRoute = async ({ request }) => {
 
     await connectDB();
     const user = await User.findById(session.userId)
-      .select("-password -resetPasswordToken -resetPasswordExpires")
+      // Nunca se envían contraseñas, tokens ni datos internos de sesión
+      .select("-password -resetPasswordToken -resetPasswordExpires -pendingEmailToken -activeSessionToken -activeSessionExpires -sesionesDesde")
       .populate("medicoAsignado", "nombre apellido especialidad email telefono");
 
     if (!user) {

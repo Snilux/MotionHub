@@ -1,0 +1,73 @@
+---
+import DashboardLayout from "../../../components/common/DashboardLayout.astro";
+import PageHeader from "../../../components/dashboard/PageHeader.astro";
+import SectionHeader from "../../../components/dashboard/SectionHeader.astro";
+import EmptyState from "../../../components/dashboard/EmptyState.astro";
+import SearchInput from "../../../components/dashboard/SearchInput.astro";
+import { plural, fechaLarga } from "../../../components/dashboard/styles";
+import { getSessionFromRequest } from "../../../lib/session";
+import connectDB from "../../../lib/db";
+import { User } from "../../../models/User";
+
+const session = getSessionFromRequest(Astro.request);
+if (!session || session.role !== "admin") return Astro.redirect("/login");
+
+await connectDB();
+
+// Directorio de cuentas: el administrador no ve datos clínicos (expedientes,
+// citas, rutinas); eso queda entre el paciente y su fisioterapeuta.
+const pacientes: any[] = await User.find({ role: "paciente" })
+  .select("nombre apellido email medicoAsignado createdAt")
+  .populate("medicoAsignado", "nombre apellido")
+  .sort({ createdAt: -1 })
+  .lean();
+
+const sinAsignar = pacientes.filter((p) => !p.medicoAsignado).length;
+---
+
+<DashboardLayout title="Pacientes" role="admin" nombre={session.nombre} activeSection="/dashboard/admin/pacientes">
+
+  <div class="max-w-6xl px-6 sm:px-10 py-10 lg:py-14 space-y-12">
+
+    <PageHeader eyebrow="Administración">
+      <Fragment slot="title"><strong>Pacientes</strong></Fragment>
+      Hay <strong>{plural(pacientes.length, "paciente registrado", "pacientes registrados")}</strong>
+      {sinAsignar > 0 && <>, de los cuales <strong>{sinAsignar}</strong> aún no {sinAsignar === 1 ? "tiene" : "tienen"} fisioterapeuta</>}.
+      Aquí solo ves datos de la cuenta: la información clínica es privada entre cada paciente y su fisioterapeuta.
+    </PageHeader>
+
+    <SearchInput placeholder="Buscar por nombre, correo o fisioterapeuta..." />
+
+    <hr class="border-stone-300" />
+
+    <section>
+      <SectionHeader title={`Pacientes · ${pacientes.length}`} />
+      {pacientes.length === 0 ? (
+        <EmptyState title="Sin pacientes" text="Cuando se registren pacientes aparecerán aquí." />
+      ) : (
+        <ul class="divide-y divide-stone-300 border-y border-stone-300">
+          {pacientes.map((p) => {
+            const medico = p.medicoAsignado ? `Dr. ${p.medicoAsignado.nombre} ${p.medicoAsignado.apellido}` : "";
+            return (
+              <li data-buscar={`${p.nombre} ${p.apellido} ${p.email} ${medico}`} class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 py-5">
+                <div class="flex items-center gap-4 flex-1 min-w-0">
+                  <div class="w-11 h-11 rounded-full bg-black flex items-center justify-center text-white text-lg font-baloo font-bold shrink-0">
+                    {p.nombre.charAt(0).toUpperCase()}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-lg font-medium text-gray-900 truncate">{p.nombre} {p.apellido}</p>
+                    <p class="text-base text-gray-500 truncate">{p.email}</p>
+                  </div>
+                </div>
+                <p class={`sm:w-56 text-base truncate ${medico ? "text-gray-700" : "text-gray-400 italic"}`}>
+                  {medico || "Sin fisioterapeuta"}
+                </p>
+                <p class="sm:w-32 sm:text-right text-base text-gray-500 shrink-0">{fechaLarga(new Date(p.createdAt))}</p>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  </div>
+</DashboardLayout>

@@ -1,50 +1,48 @@
 import type { APIRoute } from "astro";
-import crypto from "crypto";
 import connectDB from "../../../lib/db";
 import { User } from "../../../models/User";
-import { sendPasswordResetEmail } from "../../../lib/email";
+import { json, hashToken, tokenAleatorio } from "../../../lib/session";
+import { sendPasswordResetEmail, siteUrl, RESET_EXPIRA_MIN } from "../../../lib/email";
+import { LIMITES, consumir, demasiadosIntentos, ipCliente } from "../../../lib/rateLimit";
 
-export const POST: APIRoute = async ({ request }) => {
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Misma respuesta exista o no la cuenta, para no revelar qué correos están registrados
+const MENSAJE = "Si tu correo está registrado, recibirás un enlace para restablecer tu contraseña en unos minutos.";
+
+// POST /api/auth/forgot-password - Envía el enlace para restablecer la contraseña
+export const POST: APIRoute = async (context) => {
   try {
+    const { email } = await context.request.json().catch(() => ({}));
+    const correo = String(email ?? "").trim().toLowerCase();
+    if (!EMAIL_RE.test(correo)) return json({ error: "Escribe un correo electrónico válido" }, 400);
+
+    const espera =
+      consumir(`recuperar:ip:${ipCliente(context)}`, LIMITES.recuperarIp) ||
+      consumir(`recuperar:correo:${correo}`, LIMITES.recuperarCorreo);
+    if (espera) return demasiadosIntentos(espera);
+
     await connectDB();
+    const user = await User.findOne({ email: correo });
+    if (!user) return json({ message: MENSAJE });
 
-    const { email } = await request.json();
-    if (!email) {
-      return new Response(JSON.stringify({ error: "Email requerido" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const user = await User.findOne({ email: email.toLowerCase() });
-
-    // Respuesta genérica para evitar enumeración de emails
-    const genericResponse = new Response(
-      JSON.stringify({
-        message:
-          "Si tu correo está registrado, recibirás un enlace para restablecer tu contraseña.",
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
-
-    if (!user) return genericResponse;
-
-    const token = crypto.randomBytes(32).toString("hex");
-    user.resetPasswordToken = token;
-    user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hora
+    // En la DB solo se guarda la huella: si alguien lee la base no puede usar el enlace
+    const token = tokenAleatorio();
+    user.resetPasswordToken = hashToken(token);
+    user.resetPasswordExpires = new Date(Date.now() + RESET_EXPIRA_MIN * 60_000);
     await user.save();
 
-    const baseUrl = import.meta.env.SITE_URL || "http://localhost:4321";
-    const resetUrl = `${baseUrl}/nueva-contrasena?token=${token}`;
+    const resetUrl = `${siteUrl(new URL(context.request.url).origin)}/nueva-contrasena?token=${token}`;
+    try {
+      await sendPasswordResetEmail(user.email, user.nombre, resetUrl);
+    } catch (error) {
+      // No se revela al usuario si la cuenta existe; el error queda en el log
+      console.error("Forgot password: no se pudo enviar el correo:", error);
+    }
 
-    await sendPasswordResetEmail(user.email, user.nombre, resetUrl);
-
-    return genericResponse;
+    return json({ message: MENSAJE });
   } catch (error) {
     console.error("Forgot password error:", error);
-    return new Response(JSON.stringify({ error: "Error interno del servidor" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json({ error: "Error interno del servidor" }, 500);
   }
 };
