@@ -10,6 +10,9 @@ RUN apk add --no-cache git curl bash openssh-client
 # Claude Code global
 RUN npm install -g @anthropic-ai/claude-code
 
+# Carpeta del volumen de archivos subidos (ver UPLOADS_DIR en docker-compose.yml)
+RUN mkdir -p /data/uploads
+
 WORKDIR /app
 
 # Instalar dependencias primero (mejor caché)
