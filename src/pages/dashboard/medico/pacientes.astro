@@ -7,14 +7,21 @@ import { card, btnPrimary, btnSecondary, label, plural } from "../../../componen
 import { getSessionFromRequest } from "../../../lib/session";
 import connectDB from "../../../lib/db";
 import { User } from "../../../models/User";
+import { Expediente } from "../../../models/Expediente";
 
 const session = getSessionFromRequest(Astro.request);
 if (!session || session.role !== "medico") return Astro.redirect("/login");
 
 await connectDB();
 const pacientes = await User.find({ role: "paciente", medicoAsignado: session.userId })
-  .select("-password -resetPasswordToken -resetPasswordExpires")
-  .sort({ createdAt: -1 });
+  .select("nombre apellido email telefono diagnostico")
+  .sort({ nombre: 1 });
+
+// Qué pacientes ya tienen expediente (para el texto del botón)
+const conExpediente = new Set(
+  (await Expediente.find({ paciente: { $in: pacientes.map((p) => p._id) } }).select("paciente").lean())
+    .map((e: any) => String(e.paciente)),
+);
 ---
 
 <DashboardLayout title="Pacientes" role="medico" nombre={session.nombre} activeSection="/dashboard/medico/pacientes">
@@ -29,7 +36,7 @@ const pacientes = await User.find({ role: "paciente", medicoAsignado: session.us
       </button>
     </PageHeader>
 
-    <SearchInput placeholder="Buscar paciente por nombre o correo..." />
+    <SearchInput placeholder="Buscar paciente por nombre, correo o diagnóstico..." />
 
     <hr class="border-stone-300" />
 
@@ -39,62 +46,86 @@ const pacientes = await User.find({ role: "paciente", medicoAsignado: session.us
       </EmptyState>
     ) : (
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {pacientes.map((p: any) => (
-          <article class={`${card} flex flex-col gap-6`}>
-            <div class="flex items-center gap-4">
-              <div class="w-12 h-12 rounded-full bg-black flex items-center justify-center text-white text-xl font-baloo font-bold shrink-0">
-                {p.nombre.charAt(0).toUpperCase()}
+        {pacientes.map((p: any) => {
+          const tieneExp = conExpediente.has(String(p._id));
+          return (
+            <article
+              data-buscar={`${p.nombre} ${p.apellido} ${p.email} ${p.diagnostico ?? ""}`}
+              class={`${card} flex flex-col gap-6`}
+            >
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-black flex items-center justify-center text-white text-xl font-baloo font-bold shrink-0">
+                  {p.nombre.charAt(0).toUpperCase()}
+                </div>
+                <div class="min-w-0">
+                  <p class="text-xl font-semibold text-gray-900 truncate">{p.nombre} {p.apellido}</p>
+                  <p class="text-base text-gray-600 truncate">{p.email}</p>
+                </div>
               </div>
-              <div class="min-w-0">
-                <p class="text-xl font-semibold text-gray-900 truncate">{p.nombre} {p.apellido}</p>
-                <p class="text-base text-gray-600 truncate">{p.email}</p>
-              </div>
-            </div>
 
-            <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-stone-200 pt-5">
-              <div class="sm:col-span-2">
-                <dt class={label}>Diagnóstico</dt>
-                <dd class="text-lg font-medium text-gray-900 mt-1">{p.diagnostico || "—"}</dd>
-              </div>
-              <div>
-                <dt class={label}>Teléfono</dt>
-                <dd class="text-lg font-medium text-gray-900 mt-1">{p.telefono || "—"}</dd>
-              </div>
-            </dl>
+              <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-stone-200 pt-5">
+                <div class="sm:col-span-2">
+                  <dt class={label}>Diagnóstico</dt>
+                  <dd class="text-lg font-medium text-gray-900 mt-1">{p.diagnostico || "—"}</dd>
+                </div>
+                <div>
+                  <dt class={label}>Teléfono</dt>
+                  <dd class="text-lg font-medium text-gray-900 mt-1">{p.telefono || "—"}</dd>
+                </div>
+              </dl>
 
-            <div class="flex flex-wrap gap-3 mt-auto">
-              <a href={`/dashboard/medico/expedientes?paciente=${p._id}`} class={btnSecondary}>Expediente</a>
-              <a href={`/dashboard/medico/rutinas?paciente=${p._id}`} class={btnSecondary}>Rutinas</a>
-            </div>
-          </article>
-        ))}
+              <div class="flex flex-col items-start gap-3 mt-auto">
+                <div class="flex flex-wrap gap-3 min-w-0">
+                  <a
+                    href={tieneExp
+                      ? `/dashboard/medico/expedientes?paciente=${p._id}`
+                      : `/dashboard/medico/expedientes?paciente=${p._id}&nuevo=1`}
+                    class={`${btnSecondary} whitespace-nowrap`}
+                  >
+                    {tieneExp ? "Expediente" : "+ Crear expediente"}
+                  </a>
+                  <a href={`/dashboard/medico/rutinas?paciente=${p._id}`} class={`${btnSecondary} whitespace-nowrap`}>Rutinas</a>
+                  <a href={`/dashboard/medico/citas?nuevo=1&paciente=${p._id}`} class={`${btnSecondary} whitespace-nowrap`}>Agendar cita</a>
+                </div>
+                <button
+                  data-quitar={String(p._id)}
+                  data-nombre={`${p.nombre} ${p.apellido}`}
+                  class={`${btnSecondary} whitespace-nowrap shrink-0 hover:!bg-red-600 hover:!border-red-600`}
+                >
+                  Quitar
+                </button>
+              </div>
+            </article>
+          );
+        })}
       </div>
     )}
   </div>
 
   <!-- Modal asignar -->
   <div id="modalAsignar" class="hidden fixed inset-0 z-50 bg-black/30 dark:bg-[#000]/60 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg border border-gray-200 shadow-lg p-6 w-full max-w-sm">
+    <div class="bg-white rounded-lg border border-gray-200 shadow-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
       <h2 class="font-baloo tracking-wide text-2xl mb-1"><strong>Asignar paciente</strong></h2>
-      <p class="text-base text-gray-600 mb-5">Busca por correo electrónico</p>
-      <input id="emailBuscar" type="email" placeholder="correo@paciente.com"
-        class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors mb-3" />
-      <div id="resultadoBusqueda" class="hidden mb-3">
-        <div class="p-3 border border-gray-200 rounded-lg text-base" id="pacienteInfo"></div>
-      </div>
-      <div id="errorBusqueda" class="hidden text-base text-red-600 mb-3"></div>
-      <div class="flex gap-2">
-        <button id="cancelarModal"
-          class="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-base font-medium hover:border-gray-400 transition-colors">
-          Cancelar
-        </button>
-        <button id="buscarPacienteBtn"
-          class="flex-1 px-4 py-2 border border-black bg-black text-white rounded-lg text-base font-medium hover:bg-white hover:text-black transition-colors">
+      <p class="text-base text-gray-600 mb-5">Busca por nombre, apellido o correo electrónico. El paciente debe tener una cuenta en MotionHub.</p>
+
+      <form id="formBuscar" class="flex gap-2 mb-3" novalidate>
+        <input id="pacienteBuscar" type="search" autocomplete="off" placeholder="Ej: Ana López o ana@correo.com"
+          class="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors" />
+        <button type="submit" id="buscarPacienteBtn"
+          class="px-4 py-2 border border-black bg-black text-white rounded-lg text-base font-medium hover:bg-white hover:text-black transition-colors disabled:opacity-60">
           Buscar
         </button>
-        <button id="confirmarAsignar"
-          class="hidden flex-1 px-4 py-2 bg-black text-white rounded-lg text-base font-medium hover:bg-gray-800 transition-colors">
-          Asignar
+      </form>
+
+      <!-- Aviso de estado de la búsqueda -->
+      <p id="avisoBusqueda" class="hidden text-base rounded-lg px-3 py-2 mb-3"></p>
+
+      <ul id="resultadosBusqueda" class="space-y-2 mb-4"></ul>
+
+      <div class="flex gap-2">
+        <button id="cancelarModal" type="button"
+          class="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-base font-medium hover:border-gray-400 transition-colors">
+          Cerrar
         </button>
       </div>
     </div>
@@ -102,43 +133,156 @@ const pacientes = await User.find({ role: "paciente", medicoAsignado: session.us
 </DashboardLayout>
 
 <script>
-  let pacienteEncontrado: any = null;
-  const openModal = () => document.getElementById("modalAsignar")?.classList.remove("hidden");
-  document.getElementById("asignarBtn")?.addEventListener("click", openModal);
-  document.getElementById("asignarBtn2")?.addEventListener("click", openModal);
-  document.getElementById("cancelarModal")?.addEventListener("click", () => {
-    document.getElementById("modalAsignar")?.classList.add("hidden");
-    pacienteEncontrado = null;
-  });
-  document.getElementById("buscarPacienteBtn")?.addEventListener("click", async () => {
-    const email = (document.getElementById("emailBuscar") as HTMLInputElement)?.value;
-    if (!email) return;
-    const res = await fetch(`/api/medico/buscar-paciente?email=${encodeURIComponent(email)}`);
-    const data = await res.json();
-    const errorEl = document.getElementById("errorBusqueda")!;
-    const resultadoEl = document.getElementById("resultadoBusqueda")!;
-    const infoEl = document.getElementById("pacienteInfo")!;
-    const confirmarBtn = document.getElementById("confirmarAsignar")!;
-    if (!res.ok || !data) {
-      errorEl.textContent = "No se encontró ningún paciente con ese correo.";
-      errorEl.classList.remove("hidden");
-      resultadoEl.classList.add("hidden");
-      confirmarBtn.classList.add("hidden");
-      return;
+  import { api, aviso, confirmar, modal, abrirSiNuevo, $ } from "../../../scripts/ui";
+
+  interface Resultado {
+    _id: string;
+    nombre: string;
+    apellido: string;
+    email: string;
+    diagnostico?: string;
+    estado: "libre" | "tuyo" | "otro";
+    medico?: string;
+  }
+
+  const input = $("pacienteBuscar");
+  const avisoEl = $("avisoBusqueda");
+  const lista = $("resultadosBusqueda");
+  const btnBuscar = $<HTMLButtonElement>("buscarPacienteBtn");
+  let buscando = false;
+  let asignando = false;
+
+  const ESTILOS = {
+    exito: "bg-green-50 text-green-800 border border-green-200",
+    alerta: "bg-amber-50 text-amber-800 border border-amber-200",
+    error: "bg-red-50 text-red-700 border border-red-200",
+  };
+  const mostrarAviso = (texto: string, tipo: keyof typeof ESTILOS) => {
+    avisoEl.textContent = texto;
+    avisoEl.className = `text-base rounded-lg px-3 py-2 mb-3 ${ESTILOS[tipo]}`;
+  };
+
+  // Al cerrar el modal se borra todo lo escrito y los resultados
+  const limpiar = () => {
+    input.value = "";
+    lista.innerHTML = "";
+    avisoEl.className = "hidden";
+    avisoEl.textContent = "";
+  };
+
+  const m = modal("modalAsignar", limpiar);
+  document.getElementById("asignarBtn")?.addEventListener("click", m.abrir);
+  document.getElementById("asignarBtn2")?.addEventListener("click", m.abrir);
+  $("cancelarModal").addEventListener("click", m.cerrar);
+  abrirSiNuevo(m.abrir);
+
+  function pintar(resultados: Resultado[]) {
+    lista.innerHTML = "";
+    for (const r of resultados) {
+      const li = document.createElement("li");
+      li.className = "flex items-center gap-3 p-3 border border-gray-200 rounded-lg";
+      li.innerHTML = `
+        <div class="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center font-baloo font-bold shrink-0"></div>
+        <div class="flex-1 min-w-0">
+          <p class="text-base font-semibold text-gray-900 truncate" data-n></p>
+          <p class="text-sm text-gray-600 truncate" data-e></p>
+          <p class="text-sm mt-0.5" data-s></p>
+        </div>`;
+      li.querySelector("div")!.textContent = r.nombre.charAt(0).toUpperCase();
+      li.querySelector("[data-n]")!.textContent = `${r.nombre} ${r.apellido}`;
+      li.querySelector("[data-e]")!.textContent = r.email;
+      const s = li.querySelector<HTMLElement>("[data-s]")!;
+
+      if (r.estado === "libre") {
+        s.remove();
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "shrink-0 px-3 py-1.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-60";
+        btn.textContent = "Asignar";
+        btn.addEventListener("click", () => asignar(r, btn));
+        li.appendChild(btn);
+      } else if (r.estado === "tuyo") {
+        s.className = "text-sm mt-0.5 text-green-700";
+        s.textContent = "✓ Ya está asignado a ti";
+      } else {
+        s.className = "text-sm mt-0.5 text-amber-700";
+        s.textContent = `Ya está asignado a ${r.medico}`;
+      }
+      lista.appendChild(li);
     }
-    pacienteEncontrado = data;
-    infoEl.textContent = `${data.nombre} ${data.apellido} — ${data.email}`;
-    errorEl.classList.add("hidden");
-    resultadoEl.classList.remove("hidden");
-    confirmarBtn.classList.remove("hidden");
+  }
+
+  $<HTMLFormElement>("formBuscar").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const q = input.value.trim();
+    if (q.length < 2) return mostrarAviso("Escribe al menos 2 caracteres del nombre o correo.", "error");
+    if (buscando) return;
+    buscando = true;
+    btnBuscar.disabled = true;
+
+    const { ok, data } = await api<Resultado[]>(`/api/medico/buscar-paciente?q=${encodeURIComponent(q)}`);
+    buscando = false;
+    btnBuscar.disabled = false;
+
+    if (!ok) {
+      lista.innerHTML = "";
+      return mostrarAviso((data as any).error || "Error al buscar", "error");
+    }
+    const resultados = data as unknown as Resultado[];
+    pintar(resultados);
+
+    if (resultados.length === 0) {
+      mostrarAviso("No se encontró ningún paciente con ese nombre o correo.", "error");
+    } else if (resultados.length === 1) {
+      const r = resultados[0];
+      if (r.estado === "tuyo") mostrarAviso(`Paciente encontrado: ${r.nombre} ${r.apellido} ya está asignado a ti.`, "alerta");
+      else if (r.estado === "otro") mostrarAviso(`Paciente encontrado, pero ya está asignado a ${r.medico}.`, "alerta");
+      else mostrarAviso(`✓ Paciente encontrado: ${r.nombre} ${r.apellido}. Puedes asignarlo.`, "exito");
+    } else {
+      const libres = resultados.filter((r) => r.estado === "libre").length;
+      mostrarAviso(
+        `Se encontraron ${resultados.length} pacientes${libres < resultados.length ? `; ${resultados.length - libres} ya tienen fisioterapeuta` : ""}.`,
+        libres ? "exito" : "alerta",
+      );
+    }
   });
-  document.getElementById("confirmarAsignar")?.addEventListener("click", async () => {
-    if (!pacienteEncontrado) return;
-    const res = await fetch("/api/medico/pacientes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pacienteId: pacienteEncontrado._id }),
+
+  async function asignar(r: Resultado, btn: HTMLButtonElement) {
+    if (asignando) return;
+    asignando = true;
+    btn.disabled = true;
+    const { ok, data } = await api("/api/medico/pacientes", "POST", { pacienteId: r._id });
+    asignando = false;
+    if (ok) {
+      m.cerrar();
+      aviso(`${r.nombre} ${r.apellido} fue asignado a tus pacientes`, "exito");
+      setTimeout(() => location.reload(), 600);
+    } else {
+      btn.disabled = false;
+      mostrarAviso(data.error || "No se pudo asignar", "alerta");
+    }
+  }
+
+  // Quitar paciente de mi lista
+  document.querySelectorAll<HTMLButtonElement>("[data-quitar]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const ok = await confirmar({
+        titulo: `¿Quitar a ${btn.dataset.nombre}?`,
+        mensaje:
+          "Dejará de aparecer en tu lista. Sus citas futuras se cancelarán y sus rutinas quedarán en pausa. Su cuenta y su expediente no se borran.",
+        aceptar: "Quitar paciente",
+        peligro: true,
+      });
+      if (!ok) return;
+      btn.disabled = true;
+      const res = await api(`/api/medico/pacientes?id=${btn.dataset.quitar}`, "DELETE");
+      if (res.ok) {
+        aviso("Paciente quitado de tu lista", "exito");
+        setTimeout(() => location.reload(), 500);
+      } else {
+        btn.disabled = false;
+        aviso(res.data.error || "No se pudo quitar al paciente", "error");
+      }
     });
-    if (res.ok) window.location.reload();
   });
 </script>
