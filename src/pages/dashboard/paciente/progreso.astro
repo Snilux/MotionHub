@@ -128,12 +128,27 @@ const resumen = [
 
                 // Etiquetas de fecha
                 ctx.fillStyle = c.texto; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+                // En pantallas angostas (móvil) se salta etiquetas para que no se encimen
+                // y la última se alinea a la derecha para que no se corte
+                const angosta = W < 640;
+                const anchoEtiqueta = Math.max(...chartData.map((d) => ctx.measureText(d.fecha).width)) + 8;
+                const cada = angosta ? Math.max(1, Math.ceil(anchoEtiqueta / step)) : 1;
                 chartData.forEach((d, i) => {
-                  ctx.fillText(d.fecha, pad.left + i * step, H - 8);
+                  const ultima = i === n - 1;
+                  if (i % cada !== 0 && !ultima) return;
+                  if (angosta && ultima && i % cada !== 0 && (i % cada) * step < anchoEtiqueta) return;
+                  ctx.textAlign = angosta && ultima ? "right" : "center";
+                  ctx.fillText(d.fecha, angosta && ultima ? W - 2 : pad.left + i * step, H - 8);
                 });
               }
 
               setTimeout(dibujar, 100);
+              // Redibuja al cambiar el ancho (girar el celular, redimensionar la ventana)
+              let tResize;
+              window.addEventListener("resize", () => {
+                clearTimeout(tResize);
+                tResize = setTimeout(dibujar, 150);
+              });
               // Redibuja al cambiar de tema
               new MutationObserver(dibujar).observe(document.documentElement, {
                 attributes: true,

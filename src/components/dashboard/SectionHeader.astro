@@ -8,7 +8,8 @@ interface Props {
 const { title } = Astro.props;
 ---
 
-<div class="h-8 flex items-center justify-between mb-4">
+<!-- En móvil la altura no es fija: si el título o la acción no caben, pasan a otra línea -->
+<div class="max-sm:min-h-8 max-sm:flex-wrap max-sm:gap-x-4 max-sm:gap-y-2 sm:h-8 flex items-center justify-between mb-4">
   <h2 class="text-sm text-gray-500 font-light tracking-widest uppercase">{title}</h2>
   <slot />
 </div>

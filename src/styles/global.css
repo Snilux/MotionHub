@@ -89,3 +89,17 @@
     /* 0.86 en vez de 1: el blanco pasa a gris carbón, igual que el fondo */
     filter: invert(0.86) hue-rotate(180deg);
 }
+
+/*
+ * MÓVIL Y TABLET (< lg)
+ * Las animaciones de entrada (GSAP) desplazan elementos fuera de la pantalla
+ * mientras no están a la vista; en pantallas angostas eso creaba scroll
+ * horizontal. `clip` recorta sin crear un contenedor de scroll (sticky sigue
+ * funcionando). En escritorio no cambia nada.
+ */
+@media (max-width: 1023.98px) {
+    html,
+    body {
+        overflow-x: clip;
+    }
+}
