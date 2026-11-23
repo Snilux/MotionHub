@@ -1,25 +1,43 @@
-import mongoose, { Schema, type Document, type Model } from "mongoose";
+import mongoose, { Schema, type Document } from "mongoose";
+import { definirModelo } from "../lib/modelo";
 import bcrypt from "bcryptjs";
+import { ESTADOS_VERIFICACION, type EstadoVerificacion } from "../lib/verificacion";
 
 export interface IUser extends Document {
   nombre: string;
   apellido: string;
   email: string;
-  password: string;
-  role: "medico" | "paciente";
+  password?: string;
+  role: "medico" | "paciente" | "admin";
   telefono?: string;
   fechaNacimiento?: Date;
+  // Inicio de sesión con Google
+  googleId?: string;
   // Médico
   cedulaProfesional?: string;
   especialidad?: string;
+  // Verificación de la cédula por un administrador
+  estadoVerificacion?: EstadoVerificacion;
+  motivoVerificacion?: string; // por qué se rechazó o revocó
+  verificadoPor?: mongoose.Types.ObjectId;
+  verificadoEn?: Date;
   // Paciente
-  medicoAsignado?: mongoose.Types.ObjectId;
+  medicoAsignado?: mongoose.Types.ObjectId | null;
   diagnostico?: string;
-  // Recuperación de contraseña
+  // Recuperación de contraseña (se guarda la huella SHA-256 del token, no el token)
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
+  // Cambio de correo pendiente de confirmar
+  pendingEmail?: string;
+  pendingEmailToken?: string; // huella SHA-256
+  pendingEmailExpires?: Date;
   // Control de sesión única (médicos)
-  activeSessionToken?: string;
+  activeSessionToken?: string | null;
+  activeSessionExpires?: Date | null;
+  // Los JWT emitidos antes de esta fecha ya no valen (al restablecer la contraseña)
+  sesionesDesde?: Date | null;
+  // Foto de perfil: ruta relativa dentro del volumen de subidas (src/lib/storage.ts)
+  fotoPerfil?: string;
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -37,28 +55,47 @@ const UserSchema = new Schema<IUser>(
       lowercase: true,
       trim: true,
     },
-    password: { type: String, required: true, minlength: 6 },
-    role: { type: String, enum: ["medico", "paciente"], required: true },
+    // Opcional para cuentas creadas con Google (pueden definirla después en su perfil)
+    password: {
+      type: String,
+      minlength: 8,
+      required: function (this: IUser) {
+        return !this.googleId;
+      },
+    },
+    role: { type: String, enum: ["medico", "paciente", "admin"], required: true },
     telefono: { type: String },
     fechaNacimiento: { type: Date },
+    googleId: { type: String, index: { unique: true, sparse: true } },
     // Campos médico
     cedulaProfesional: { type: String },
     especialidad: { type: String },
+    estadoVerificacion: { type: String, enum: ESTADOS_VERIFICACION },
+    motivoVerificacion: { type: String, maxlength: 500 },
+    verificadoPor: { type: Schema.Types.ObjectId, ref: "User" },
+    verificadoEn: { type: Date },
     // Campos paciente
     medicoAsignado: { type: Schema.Types.ObjectId, ref: "User" },
     diagnostico: { type: String },
     // Recuperación
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
+    // Cambio de correo
+    pendingEmail: { type: String, lowercase: true, trim: true },
+    pendingEmailToken: { type: String },
+    pendingEmailExpires: { type: Date },
     // Sesión única para médicos
     activeSessionToken: { type: String, default: null },
+    activeSessionExpires: { type: Date, default: null },
+    sesionesDesde: { type: Date, default: null },
+    fotoPerfil: { type: String },
   },
   { timestamps: true }
 );
 
 // Hash password antes de guardar
 UserSchema.pre("save", async function () {
-  if (!this.isModified("password")) return;
+  if (!this.isModified("password") || !this.password) return;
   this.password = await bcrypt.hash(this.password, 12);
 });
 
@@ -66,8 +103,8 @@ UserSchema.pre("save", async function () {
 UserSchema.methods.comparePassword = async function (
   candidatePassword: string
 ): Promise<boolean> {
+  if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-export const User = (mongoose.models.User ||
-  mongoose.model<IUser>("User", UserSchema)) as Model<IUser>;
+export const User = definirModelo<IUser>("User", UserSchema);

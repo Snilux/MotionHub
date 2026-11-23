@@ -112,9 +112,14 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
 
           <!-- Remember & Forgot -->
           <div class="flex items-center justify-between">
-            <label class="flex items-center">
+            <label
+              class="flex items-center"
+              title="Pacientes: mantiene la sesión abierta 30 días en este dispositivo. Los fisioterapeutas siempre cierran sesión tras 10 minutos de inactividad."
+            >
               <input
                 type="checkbox"
+                id="recordar"
+                name="recordar"
                 class="w-4 h-4 text-blue-600 dark:text-blue-300 border-gray-300 rounded focus:ring-blue-500"
               />
               <span class="ml-2 text-sm text-gray-600">Recordarme</span>
@@ -144,13 +149,13 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
 
           <!-- Social Login -->
           <div class="flex justify-center gap-4">
-            <button
-              type="button"
+            <a
+              href="/api/auth/google"
               class="flex items-center justify-center gap-2 px-4 py-3 bg-white/50 border border-gray-200 rounded-xl hover:bg-white/80 transition-all duration-200 w-full shadow-2xl"
             >
               <Icon name="google" />
               <span class="text-sm font-medium text-gray-700">Google</span>
-            </button>
+            </a>
           </div>
         </form>
 
@@ -189,8 +194,40 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
       info.textContent =
         "⚠️ Tu sesión fue cerrada porque iniciaste sesión desde otro dispositivo.";
       info.classList.remove("hidden");
+    } else if (razon === "google_no_configurado") {
+      info.textContent =
+        "El inicio de sesión con Google aún no está configurado en el servidor.";
+      info.classList.remove("hidden");
+    } else if (razon === "google_cancelado") {
+      info.textContent = "Cancelaste el inicio de sesión con Google.";
+      info.classList.remove("hidden");
+    } else if (razon === "password_restablecida") {
+      info.textContent = "✅ Tu contraseña se actualizó. Inicia sesión con la nueva.";
+      info.classList.remove("hidden");
+    } else if (razon === "correo_confirmado") {
+      info.textContent = "✅ Tu nuevo correo quedó confirmado. Inicia sesión con él.";
+      info.classList.remove("hidden");
+    } else if (razon === "correo_invalido") {
+      info.textContent = "El enlace para confirmar el correo ya se usó o expiró.";
+      info.classList.remove("hidden");
+    } else if (razon === "correo_ocupado") {
+      info.textContent = "No se pudo cambiar el correo: ya lo usa otra cuenta.";
+      info.classList.remove("hidden");
+    } else if (razon === "google_error") {
+      info.textContent =
+        "No se pudo iniciar sesión con Google. Inténtalo de nuevo.";
+      info.classList.remove("hidden");
+    } else if (razon === "sesion_activa_google") {
+      // Médico que entró con Google pero tiene otra sesión abierta
+      const banner = document.getElementById("sesionActivaBanner");
+      if (banner) {
+        banner.dataset.google = "1";
+        banner.classList.remove("hidden");
+      }
     }
   }
+
+  let credencialesPendientes = { email: "", password: "" };
 
   document
     .getElementById("loginForm")
@@ -214,18 +251,22 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+          recordar: (document.getElementById("recordar") as HTMLInputElement).checked,
+        }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (res.ok) {
         window.location.href = data.redirect;
       } else if (res.status === 409 && data.codigo === "SESION_ACTIVA") {
         // Sesión activa en otro lado → mostrar banner con opción de forzar cierre
         activaEl.classList.remove("hidden");
-        // Guardar credenciales en el banner para el botón de forzar
-        activaEl.dataset.email = email;
-        activaEl.dataset.password = password;
+        // Guardar credenciales en memoria (no en el DOM) para el botón de forzar
+        credencialesPendientes = { email, password };
+        delete activaEl.dataset.google;
         if (btn) {
           btn.disabled = false;
           btn.textContent = "Iniciar sesión";
@@ -245,8 +286,6 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
     .getElementById("forzarCierreBtn")
     ?.addEventListener("click", async () => {
       const banner = document.getElementById("sesionActivaBanner")!;
-      const email = banner.dataset.email || "";
-      const password = banner.dataset.password || "";
       const btn = document.getElementById(
         "forzarCierreBtn",
       ) as HTMLButtonElement;
@@ -257,7 +296,9 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
       const res = await fetch("/api/auth/forzar-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(
+          banner.dataset.google ? { google: true } : credencialesPendientes,
+        ),
       });
       const data = await res.json();
 

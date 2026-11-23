@@ -1,0 +1,126 @@
+---
+import DashboardLayout from "../../../components/common/DashboardLayout.astro";
+import PageHeader from "../../../components/dashboard/PageHeader.astro";
+import SectionHeader from "../../../components/dashboard/SectionHeader.astro";
+import { card, btnPrimary, label, fechaLarga } from "../../../components/dashboard/styles";
+import { getSessionFromRequest } from "../../../lib/session";
+import connectDB from "../../../lib/db";
+import { User } from "../../../models/User";
+
+const session = getSessionFromRequest(Astro.request);
+if (!session || session.role !== "medico") return Astro.redirect("/login");
+
+await connectDB();
+const medico: any = await User.findById(session.userId)
+  .select("nombre apellido email cedulaProfesional especialidad estadoVerificacion motivoVerificacion createdAt updatedAt")
+  .lean();
+if (!medico) return Astro.redirect("/login");
+if (medico.estadoVerificacion === "aprobada") return Astro.redirect("/dashboard/medico");
+
+const rechazada = medico.estadoVerificacion === "rechazada";
+
+const datos = [
+  { label: "Cédula profesional", value: medico.cedulaProfesional },
+  { label: "Especialidad", value: medico.especialidad },
+  { label: "Correo", value: medico.email },
+  { label: "Registrado el", value: fechaLarga(new Date(medico.createdAt)) },
+];
+
+const pasos = [
+  { titulo: "Registro", desc: "Creaste tu cuenta de fisioterapeuta.", hecho: true },
+  {
+    titulo: "Revisión de tu cédula",
+    desc: rechazada
+      ? "No pudimos verificar tus datos. Corrígelos en tu perfil para volver a revisión."
+      : "Un administrador compara tu cédula con el Registro Nacional de Profesionistas.",
+    hecho: false,
+    actual: true,
+  },
+  { titulo: "Atiende a tus pacientes", desc: "Asigna pacientes, agenda citas, crea rutinas y lleva sus expedientes.", hecho: false },
+];
+---
+
+<DashboardLayout title="Verificación" role="medico" nombre={session.nombre} activeSection="/dashboard/medico/verificacion">
+
+  <div class="max-w-6xl px-6 sm:px-10 py-10 lg:py-14 space-y-12">
+
+    <PageHeader eyebrow="Cuenta">
+      <Fragment slot="title">Hola, Dr. <strong>{session.nombre}</strong></Fragment>
+      {rechazada ? (
+        <>No pudimos verificar tu cuenta. Revisa el motivo y <strong>corrige tus datos profesionales</strong> para que la revisemos de nuevo.</>
+      ) : (
+        <>Tu cuenta está <strong>en revisión</strong>. Antes de atender pacientes verificamos tu cédula profesional; te avisaremos por correo en cuanto esté lista.</>
+      )}
+    </PageHeader>
+
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <!-- Estado -->
+      <div class="lg:col-span-7 flex flex-col">
+        <SectionHeader title="Estado de tu cuenta" />
+        <div class="flex-1 flex flex-col justify-between bg-black text-white rounded-2xl p-8">
+          <div>
+            <p class="text-base text-white/60 font-light uppercase tracking-widest">Verificación</p>
+            <p class="text-5xl font-baloo font-bold leading-none mt-2">{rechazada ? "No aprobada" : "En revisión"}</p>
+            {rechazada && medico.motivoVerificacion && (
+              <p class="text-lg text-white/80 mt-6 leading-relaxed break-words">
+                <span class="text-sm text-white/60 font-medium tracking-widest uppercase block mb-1">Motivo</span>
+                {medico.motivoVerificacion}
+              </p>
+            )}
+          </div>
+          <div class="mt-8 pt-6 border-t border-white/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <p class="text-base text-white/70">
+              {rechazada ? "Al guardar tus datos corregidos, tu cuenta vuelve a revisión." : "Si algún dato está mal, corrígelo en tu perfil."}
+            </p>
+            <a href="/dashboard/medico/perfil"
+              class="shrink-0 self-start sm:self-auto text-base font-medium border border-white/60 px-5 py-2.5 rounded-lg hover:bg-white hover:text-black transition-colors duration-200">
+              {rechazada ? "Corregir mis datos" : "Ver mi perfil"}
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Datos enviados -->
+      <div class="lg:col-span-5 flex flex-col">
+        <SectionHeader title="Datos enviados" />
+        <dl class={`${card} flex-1 space-y-5`}>
+          {datos.map(({ label: l, value }) => (
+            <div>
+              <dt class={label}>{l}</dt>
+              <dd class={`text-lg mt-1 break-words ${value ? "font-medium text-gray-900" : "text-gray-400 italic"}`}>
+                {value || "Sin registrar"}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+
+    <hr class="border-stone-300" />
+
+    <!-- Pasos -->
+    <section>
+      <SectionHeader title="Qué sigue" />
+      <ol class="divide-y divide-stone-300 border-y border-stone-300">
+        {pasos.map((p, i) => (
+          <li class="flex items-center gap-5 py-5">
+            <span class={`w-10 h-10 rounded-full flex items-center justify-center text-base font-baloo font-bold shrink-0
+              ${p.hecho ? "bg-black text-white" : p.actual ? "border-2 border-black text-black" : "border border-stone-300 text-gray-400"}`}>
+              {p.hecho ? "✓" : String(i + 1).padStart(2, "0")}
+            </span>
+            <div class="flex-1">
+              <p class={`text-lg font-medium ${p.hecho || p.actual ? "text-gray-900" : "text-gray-500"}`}>{p.titulo}</p>
+              <p class="text-base text-gray-500 font-light">{p.desc}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    {!medico.cedulaProfesional && (
+      <div class="text-center">
+        <a href="/dashboard/medico/perfil" class={btnPrimary}>Agregar mi cédula profesional</a>
+      </div>
+    )}
+  </div>
+</DashboardLayout>

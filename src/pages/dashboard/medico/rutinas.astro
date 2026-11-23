@@ -9,25 +9,30 @@ import { getSessionFromRequest } from "../../../lib/session";
 import connectDB from "../../../lib/db";
 import { Rutina } from "../../../models/Rutina";
 import { User } from "../../../models/User";
+import { esIdValido } from "../../../lib/medico";
+import { PERIODOS } from "../../../lib/rutina";
+import { VIDEO_MAX_MB, urlArchivo } from "../../../lib/storage";
 
 const session = getSessionFromRequest(Astro.request);
 if (!session || session.role !== "medico") return Astro.redirect("/login");
 
 await connectDB();
-const pacienteId = Astro.url.searchParams.get("paciente");
+const pacienteParam = Astro.url.searchParams.get("paciente");
+const pacienteId = esIdValido(pacienteParam) ? pacienteParam : null;
 const filtro: Record<string, unknown> = { medico: session.userId };
 if (pacienteId) filtro.paciente = pacienteId;
 
-const [rutinas, pacientes] = await Promise.all([
+const [rutinasRaw, pacientes] = await Promise.all([
   Rutina.find(filtro)
     .populate("paciente", "nombre apellido")
     .sort({ createdAt: -1 }),
-  User.find({ role: "paciente", medicoAsignado: session.userId }).select(
-    "_id nombre apellido",
-  ),
+  User.find({ role: "paciente", medicoAsignado: session.userId })
+    .select("_id nombre apellido")
+    .sort({ nombre: 1 }),
 ]);
+const rutinas = rutinasRaw.filter((r: any) => r.paciente); // ignora pacientes eliminados
 
-const pacienteFiltrado = pacienteId
+const pacienteFiltrado: any = pacienteId
   ? pacientes.find((p: any) => String(p._id) === pacienteId)
   : null;
 
@@ -35,6 +40,9 @@ const grupos = [
   { titulo: "Activas", items: rutinas.filter((r: any) => r.activa) },
   { titulo: "Pausadas", items: rutinas.filter((r: any) => !r.activa) },
 ].filter((g) => g.items.length > 0);
+
+const fieldCls = "w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors";
+const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide";
 ---
 
 <DashboardLayout
@@ -53,7 +61,7 @@ const grupos = [
       </button>
     </PageHeader>
 
-    <SearchInput placeholder="Buscar rutina por nombre o paciente..." />
+    <SearchInput placeholder="Buscar rutina por nombre, objetivo, paciente o ejercicio..." />
 
     {pacienteId && (
       <a href="/dashboard/medico/rutinas" class="inline-flex text-base text-gray-600 hover:text-gray-900">
@@ -68,13 +76,16 @@ const grupos = [
       </>
     ) : (
       grupos.map(({ titulo, items }) => (
-        <>
+        <div data-buscar-grupo class="space-y-12">
           <hr class="border-stone-300" />
           <section>
             <SectionHeader title={`${titulo} · ${items.length}`} />
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
               {items.map((r: any) => (
-                <article class={`${card} flex flex-col gap-6`}>
+                <article
+                  data-buscar={`${r.nombre} ${r.objetivo ?? ""} ${r.paciente.nombre} ${r.paciente.apellido} ${r.ejercicios.map((e: any) => e.nombre).join(" ")}`}
+                  class={`${card} flex flex-col gap-6`}
+                >
                   <div class="flex items-start justify-between gap-4">
                     <div class="min-w-0">
                       <p class="text-xl font-semibold text-gray-900">{r.nombre}</p>
@@ -98,16 +109,75 @@ const grupos = [
                     </div>
                   </dl>
 
-                  <div class="mt-auto">
-                    <button data-id={r._id} data-activa={r.activa} class={`toggle-btn ${btnSecondary}`}>
+                  {r.ejercicios.length > 0 && (
+                    <details class="group border-t border-stone-200 pt-4">
+                      <summary class="cursor-pointer text-base text-gray-600 hover:text-gray-900 list-none flex items-center gap-2">
+                        <span class="transition-transform group-open:rotate-90">›</span> Ver ejercicios
+                      </summary>
+                      <ol class="mt-3 space-y-3">
+                        {r.ejercicios.map((e: any, i: number) => (
+                          <li class="flex gap-3">
+                            <span class="text-sm font-baloo text-gray-400 w-5 shrink-0 pt-0.5">{i + 1}</span>
+                            <div class="min-w-0">
+                              <p class="text-base font-medium text-gray-900">{e.nombre}</p>
+                              <p class="text-sm text-gray-600">
+                                {e.series} series × {e.repeticiones} repeticiones · {e.descanso ?? 30} s de descanso
+                              </p>
+                              {e.descripcion && <p class="text-sm text-gray-500 mt-0.5">{e.descripcion}</p>}
+                              {e.video && (
+                                <video
+                                  src={urlArchivo(e.video)}
+                                  controls
+                                  preload="none"
+                                  playsinline
+                                  class="mt-2 w-full max-w-sm max-h-48 rounded-lg bg-black"
+                                ></video>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ol>
+                    </details>
+                  )}
+
+                  <div class="mt-auto flex flex-wrap gap-2">
+                    <button
+                      data-editar={JSON.stringify({
+                        id: String(r._id),
+                        paciente: String(r.paciente._id),
+                        nombre: r.nombre,
+                        objetivo: r.objetivo ?? "",
+                        frecuenciaVeces: r.frecuenciaVeces ?? 3,
+                        frecuenciaPeriodo: r.frecuenciaPeriodo ?? "semana",
+                        ejercicios: r.ejercicios.map((e: any) => ({
+                          nombre: e.nombre,
+                          descripcion: e.descripcion ?? "",
+                          series: e.series,
+                          repeticiones: e.repeticiones,
+                          descanso: e.descanso ?? 30,
+                          video: e.video ?? "",
+                        })),
+                      })}
+                      class={btnSecondary}
+                    >
+                      Editar
+                    </button>
+                    <button data-toggle={String(r._id)} data-activa={String(r.activa)} class={btnSecondary}>
                       {r.activa ? "Pausar" : "Activar"}
+                    </button>
+                    <button
+                      data-eliminar={String(r._id)}
+                      data-nombre={r.nombre}
+                      class={`${btnSecondary} hover:!bg-red-600 hover:!border-red-600 sm:ml-auto`}
+                    >
+                      Eliminar
                     </button>
                   </div>
                 </article>
               ))}
             </div>
           </section>
-        </>
+        </div>
       ))
     )}
   </div>
@@ -117,241 +187,513 @@ const grupos = [
     id="modalRutina"
     class="hidden fixed inset-0 z-50 bg-black/30 dark:bg-[#000]/60 flex items-center justify-center p-4"
   >
-    <div
-      class="bg-white rounded-lg border border-gray-200 shadow-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
-    >
-      <h2 class="font-baloo tracking-wide text-2xl mb-1">
-        <strong>Nueva rutina</strong>
-      </h2>
-      <p class="text-base text-gray-600 mb-5">
-        Define el programa de ejercicios
-      </p>
-      <div class="space-y-3">
-        <div>
-          <label
-            class="text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide"
-            >Paciente</label
-          >
-          <select
-            id="rutinaPaciente"
-            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors"
-          >
-            <option value="">Seleccionar paciente...</option>
-            {
-              pacientes.map((p: any) => (
-                <option value={p._id}>
-                  {p.nombre} {p.apellido}
-                </option>
-              ))
-            }
-          </select>
-        </div>
-        <div>
-          <label
-            class="text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide"
-            >Nombre de la rutina</label
-          >
-          <input
-            id="rutinaNombre"
-            type="text"
-            placeholder="Ej: Rehabilitación rodilla derecha"
-            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors"
-          />
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label
-              class="text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide"
-              >Objetivo</label
-            >
-            <input
-              id="rutinaObjetivo"
-              type="text"
-              placeholder="Ej: Fortalecer cuádriceps"
-              class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors"
-            />
-          </div>
-          <div>
-            <label
-              class="text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide"
-              >Frecuencia</label
-            >
-            <input
-              id="rutinaFrecuencia"
-              type="text"
-              placeholder="Ej: 3 veces/semana"
-              class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors"
-            />
+    <form id="formRutina" novalidate class="bg-white rounded-lg border border-gray-200 shadow-lg p-6 w-full max-w-xl max-h-[90vh] overflow-y-auto">
+      <h2 class="font-baloo tracking-wide text-2xl mb-1"><strong id="rutinaTitulo">Nueva rutina</strong></h2>
+      <p id="rutinaSubtitulo" class="text-base text-gray-600 mb-5">Define el programa de ejercicios</p>
+
+      {pacientes.length === 0 ? (
+        <div class="space-y-4">
+          <p class="text-base text-gray-700">Aún no tienes pacientes asignados. Asigna uno para crearle rutinas.</p>
+          <div class="flex gap-2">
+            <button type="button" data-cerrar class="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-base font-medium hover:border-gray-400 transition-colors">Cerrar</button>
+            <a href="/dashboard/medico/pacientes?nuevo=1" class="flex-1 text-center px-4 py-2.5 bg-black text-white rounded-lg text-base font-medium hover:bg-gray-800 transition-colors">Asignar paciente</a>
           </div>
         </div>
-        <!-- Ejercicios -->
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <label
-              class="text-sm text-gray-600 font-medium uppercase tracking-wide"
-              >Ejercicios</label
-            >
-            <button
-              id="agregarEjercicio"
-              type="button"
-              class="text-sm font-medium border border-gray-300 px-3 py-1.5 rounded-lg hover:border-black transition-colors"
-            >
-              + Agregar
+      ) : (
+        <div class="space-y-4">
+          <div>
+            <label for="rutinaPaciente" class={labelCls}>Paciente</label>
+            <select id="rutinaPaciente" class={fieldCls}>
+              <option value="">Seleccionar paciente...</option>
+              {pacientes.map((p: any) => (
+                <option value={String(p._id)} selected={String(p._id) === pacienteId}>{p.nombre} {p.apellido}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label for="rutinaNombre" class={labelCls}>Nombre de la rutina</label>
+            <input id="rutinaNombre" type="text" placeholder="Ej: Rehabilitación rodilla derecha" class={fieldCls} />
+          </div>
+          <div>
+            <label for="rutinaObjetivo" class={labelCls}>Objetivo <span class="normal-case tracking-normal text-gray-400">(opcional)</span></label>
+            <input id="rutinaObjetivo" type="text" placeholder="Ej: Fortalecer cuádriceps" class={fieldCls} />
+          </div>
+
+          <fieldset>
+            <legend class={labelCls}>Frecuencia</legend>
+            <div class="grid grid-cols-2 gap-3">
+              <select id="rutinaVeces" aria-label="Número de veces" class={fieldCls}>
+                {Array.from({ length: 7 }, (_, i) => i + 1).map((n) => (
+                  <option value={n} selected={n === 3}>{n} {n === 1 ? "vez" : "veces"}</option>
+                ))}
+              </select>
+              <select id="rutinaPeriodo" aria-label="Periodo" class={fieldCls}>
+                {Object.entries(PERIODOS).map(([k, v]) => (
+                  <option value={k} selected={k === "semana"}>{v.label}</option>
+                ))}
+              </select>
+            </div>
+            <p id="frecuenciaResumen" class="text-sm text-gray-500 mt-1.5">El paciente hará la rutina 3 veces por semana.</p>
+          </fieldset>
+
+          <!-- Ejercicios -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm text-gray-600 font-medium uppercase tracking-wide">Ejercicios</span>
+              <button
+                id="agregarEjercicio"
+                type="button"
+                class="text-sm font-medium border border-gray-300 px-3 py-1.5 rounded-lg hover:border-black transition-colors"
+              >
+                + Agregar ejercicio
+              </button>
+            </div>
+            <div id="ejerciciosList" class="space-y-3"></div>
+            <p id="ejerciciosVacio" class="text-base text-gray-500 border border-dashed border-gray-300 rounded-lg px-4 py-6 text-center">
+              Agrega al menos un ejercicio.
+            </p>
+          </div>
+
+          <p id="rutinaError" class="hidden text-base text-red-600"></p>
+          <div class="flex gap-2 pt-1">
+            <button type="button" data-cerrar class="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-base font-medium hover:border-gray-400 transition-colors">
+              Cancelar
+            </button>
+            <button type="submit" id="guardarRutina" class="flex-1 px-4 py-2.5 bg-black text-white rounded-lg text-base font-medium hover:bg-gray-800 transition-colors disabled:opacity-60">
+              Guardar rutina
             </button>
           </div>
-          <div id="ejerciciosList" class="space-y-2"></div>
         </div>
-        <div id="rutinaError" class="hidden text-base text-red-600">
+      )}
+    </form>
+  </div>
+
+  <!-- Plantilla de ejercicio -->
+  <template id="tplEjercicio">
+    <div data-ejercicio class="border border-gray-200 rounded-lg p-4 space-y-3">
+      <div class="flex justify-between items-center">
+        <span data-num class="text-sm text-gray-600 font-medium uppercase tracking-wide">Ejercicio</span>
+        <button type="button" data-quitar aria-label="Quitar ejercicio" class="text-base text-gray-400 hover:text-red-600 px-1">✕</button>
+      </div>
+      <input data-campo="nombre" type="text" placeholder="Nombre del ejercicio (ej: Sentadilla asistida)" class={fieldCls} />
+      <textarea data-campo="descripcion" rows="2" placeholder="Instrucciones para el paciente (opcional)" class={`${fieldCls} resize-none`}></textarea>
+      <div class="grid grid-cols-3 gap-2">
+        <label class="block">
+          <span class="text-xs text-gray-600 font-medium uppercase tracking-wide">Series</span>
+          <input data-campo="series" type="number" min="1" max="50" value="3" class={`${fieldCls} mt-1`} />
+          <span class="text-xs text-gray-500 leading-tight block mt-1">Bloques del ejercicio</span>
+        </label>
+        <label class="block">
+          <span class="text-xs text-gray-600 font-medium uppercase tracking-wide">Repeticiones</span>
+          <input data-campo="repeticiones" type="number" min="1" max="500" value="10" class={`${fieldCls} mt-1`} />
+          <span class="text-xs text-gray-500 leading-tight block mt-1">Veces por serie</span>
+        </label>
+        <label class="block">
+          <span class="text-xs text-gray-600 font-medium uppercase tracking-wide">Descanso</span>
+          <input data-campo="descanso" type="number" min="0" max="600" step="5" value="30" class={`${fieldCls} mt-1`} />
+          <span class="text-xs text-gray-500 leading-tight block mt-1">Segundos entre series</span>
+        </label>
+      </div>
+      <!-- Video demostrativo (se guarda en el volumen de subidas) -->
+      <div>
+        <input data-video-input data-max-mb={VIDEO_MAX_MB} type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" class="hidden" />
+        <button
+          type="button"
+          data-video-elegir
+          class="w-full text-sm font-medium border border-dashed border-gray-300 text-gray-600 px-3 py-2 rounded-lg hover:border-black hover:text-gray-900 transition-colors"
+        >
+          + Agregar video <span class="text-gray-400 font-normal">· MP4, MOV o WebM, máx. {VIDEO_MAX_MB} MB</span>
+        </button>
+        <div data-video-progreso class="hidden">
+          <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div data-video-barra class="h-full bg-black transition-[width]" style="width: 0%"></div>
+          </div>
+          <div class="flex justify-between items-center mt-1.5">
+            <span data-video-estado class="text-xs text-gray-500">Subiendo video...</span>
+            <button type="button" data-video-cancelar class="text-xs text-gray-500 hover:text-red-600">Cancelar</button>
+          </div>
         </div>
-        <div class="flex gap-2 pt-1">
-          <button
-            id="cancelarRutina"
-            class="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-base font-medium hover:border-gray-400 transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            id="guardarRutina"
-            class="flex-1 px-4 py-2.5 bg-black text-white rounded-lg text-base font-medium hover:bg-gray-800 transition-colors"
-          >
-            Guardar rutina
-          </button>
+        <div data-video-vista class="hidden space-y-2">
+          <video data-video-player controls preload="metadata" playsinline class="w-full max-h-56 rounded-lg bg-black"></video>
+          <div class="flex gap-2">
+            <button type="button" data-video-cambiar class="flex-1 text-sm font-medium border border-gray-300 px-3 py-1.5 rounded-lg hover:border-black transition-colors">Cambiar video</button>
+            <button type="button" data-video-quitar class="flex-1 text-sm font-medium border border-gray-300 px-3 py-1.5 rounded-lg hover:border-red-600 hover:text-red-600 transition-colors">Quitar video</button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  </template>
 </DashboardLayout>
 
 <script>
-  let ejercicioCount = 0;
-  function ejercicioTemplate(idx: number) {
-    return `<div class="border border-gray-200 rounded-lg p-3 space-y-2" id="ej-${idx}">
-      <div class="flex justify-between items-center">
-        <span class="text-sm text-gray-600 font-medium uppercase tracking-wide">Ejercicio ${idx + 1}</span>
-        <button onclick="document.getElementById('ej-${idx}')?.remove()" class="text-base text-gray-400 hover:text-gray-700">✕</button>
-      </div>
-      <input name="ej-nombre-${idx}" type="text" placeholder="Nombre del ejercicio"
-        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors" />
-      <textarea name="ej-desc-${idx}" placeholder="Descripción / instrucciones" rows="2"
-        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors resize-none"></textarea>
-      <div class="grid grid-cols-3 gap-2">
-        <input name="ej-series-${idx}" type="number" placeholder="Series" min="1" value="3"
-          class="px-3 py-2 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors" />
-        <input name="ej-reps-${idx}" type="number" placeholder="Reps" min="1" value="10"
-          class="px-3 py-2 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors" />
-        <input name="ej-descanso-${idx}" type="number" placeholder="Descanso(s)" min="0" value="30"
-          class="px-3 py-2 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors" />
-      </div>
-    </div>`;
+  import { api, aviso, confirmar, modal, abrirSiNuevo, errorEn, $ } from "../../../scripts/ui";
+
+  const form = $<HTMLFormElement>("formRutina");
+  const lista = document.getElementById("ejerciciosList");
+  const vacio = document.getElementById("ejerciciosVacio");
+  const tpl = $<HTMLTemplateElement>("tplEjercicio");
+  let guardando = false;
+  let editandoId: string | null = null; // null = creando una rutina nueva
+
+  interface EjercicioDatos {
+    nombre: string;
+    descripcion: string;
+    series: number;
+    repeticiones: number;
+    descanso: number;
+    video?: string;
   }
 
-  document
-    .getElementById("nuevaRutinaBtn")
-    ?.addEventListener("click", () =>
-      document.getElementById("modalRutina")?.classList.remove("hidden"),
-    );
-  document
-    .getElementById("cancelarRutina")
-    ?.addEventListener("click", () =>
-      document.getElementById("modalRutina")?.classList.add("hidden"),
-    );
-  document.getElementById("agregarEjercicio")?.addEventListener("click", () => {
-    document
-      .getElementById("ejerciciosList")!
-      .insertAdjacentHTML("beforeend", ejercicioTemplate(ejercicioCount++));
-  });
+  const tarjetas = () => [...(lista?.querySelectorAll<HTMLElement>("[data-ejercicio]") ?? [])];
+  const campo = (el: HTMLElement, n: string) => el.querySelector<HTMLInputElement>(`[data-campo="${n}"]`)!;
 
-  document
-    .getElementById("guardarRutina")
-    ?.addEventListener("click", async () => {
-      const paciente = (
-        document.getElementById("rutinaPaciente") as HTMLSelectElement
-      ).value;
-      const nombre = (
-        document.getElementById("rutinaNombre") as HTMLInputElement
-      ).value;
-      const objetivo = (
-        document.getElementById("rutinaObjetivo") as HTMLInputElement
-      ).value;
-      const frecuencia = (
-        document.getElementById("rutinaFrecuencia") as HTMLInputElement
-      ).value;
-      const errorEl = document.getElementById("rutinaError")!;
-      if (!paciente || !nombre || !frecuencia) {
-        errorEl.textContent = "Paciente, nombre y frecuencia son requeridos";
-        errorEl.classList.remove("hidden");
+  // ── Videos de ejercicios ────────────────────────────────────────────────
+  // El video se sube en cuanto se elige (con barra de progreso) y la tarjeta
+  // guarda su ruta en data-video; la rutina la envía al guardarse.
+  // `pendientes` son videos subidos en este formulario que aún no están en
+  // ninguna rutina: si se cancelan o reemplazan, se borran del servidor.
+  const pendientes = new Set<string>();
+  const subidas = new Map<HTMLElement, XMLHttpRequest>();
+  const urlVideo = (ruta: string) => `/archivos/${ruta}`;
+
+  const borrarPendiente = (ruta?: string) => {
+    if (!ruta || !pendientes.has(ruta)) return;
+    pendientes.delete(ruta);
+    fetch(`/api/medico/video?ruta=${encodeURIComponent(ruta)}`, { method: "DELETE", keepalive: true }).catch(() => {});
+  };
+
+  const v = (nodo: HTMLElement, n: string) => nodo.querySelector<HTMLElement>(`[data-video-${n}]`)!;
+
+  function mostrarVideo(nodo: HTMLElement, ruta?: string) {
+    const player = v(nodo, "player") as HTMLVideoElement;
+    if (ruta) {
+      nodo.dataset.video = ruta;
+      player.src = urlVideo(ruta);
+    } else {
+      delete nodo.dataset.video;
+      player.removeAttribute("src");
+      player.load();
+    }
+    v(nodo, "vista").classList.toggle("hidden", !ruta);
+    v(nodo, "elegir").classList.toggle("hidden", !!ruta);
+    v(nodo, "progreso").classList.add("hidden");
+  }
+
+  function subirVideo(nodo: HTMLElement, archivo: File) {
+    const input = v(nodo, "input") as HTMLInputElement;
+    const maxMb = Number(input.dataset.maxMb) || 100;
+    if (archivo.size > maxMb * 1024 * 1024) {
+      return errorEn("rutinaError", `El video «${archivo.name}» pesa más de ${maxMb} MB.`);
+    }
+    errorEn("rutinaError");
+
+    const anterior = nodo.dataset.video;
+    const barra = v(nodo, "barra");
+    const estado = v(nodo, "estado");
+    barra.style.width = "0%";
+    estado.textContent = "Subiendo video...";
+    v(nodo, "vista").classList.add("hidden");
+    v(nodo, "elegir").classList.add("hidden");
+    v(nodo, "progreso").classList.remove("hidden");
+
+    const fd = new FormData();
+    fd.append("video", archivo);
+    const xhr = new XMLHttpRequest();
+    subidas.set(nodo, xhr);
+    xhr.open("POST", "/api/medico/video");
+    xhr.responseType = "json";
+    xhr.upload.addEventListener("progress", (e) => {
+      if (!e.lengthComputable) return;
+      const pct = Math.round((e.loaded / e.total) * 100);
+      barra.style.width = `${pct}%`;
+      estado.textContent = pct < 100 ? `Subiendo video... ${pct}%` : "Procesando...";
+    });
+    const terminar = (error?: string) => {
+      subidas.delete(nodo);
+      input.value = "";
+      mostrarVideo(nodo, nodo.dataset.video); // vuelve a mostrar el anterior si falló
+      if (error) errorEn("rutinaError", error);
+    };
+    xhr.addEventListener("load", () => {
+      const data = xhr.response ?? {};
+      if (xhr.status === 401) {
+        window.location.href = `/login?razon=${data.razon ?? "expiracion"}`;
         return;
       }
-      const ejercicios = [];
-      for (let i = 0; i < ejercicioCount; i++) {
-        const n = document.querySelector(
-          `[name="ej-nombre-${i}"]`,
-        ) as HTMLInputElement;
-        if (!n) continue;
-        ejercicios.push({
-          nombre: n.value,
-          descripcion:
-            (
-              document.querySelector(
-                `[name="ej-desc-${i}"]`,
-              ) as HTMLTextAreaElement
-            )?.value || "",
-          series:
-            Number(
-              (
-                document.querySelector(
-                  `[name="ej-series-${i}"]`,
-                ) as HTMLInputElement
-              )?.value,
-            ) || 3,
-          repeticiones:
-            Number(
-              (
-                document.querySelector(
-                  `[name="ej-reps-${i}"]`,
-                ) as HTMLInputElement
-              )?.value,
-            ) || 10,
-          descanso:
-            Number(
-              (
-                document.querySelector(
-                  `[name="ej-descanso-${i}"]`,
-                ) as HTMLInputElement
-              )?.value,
-            ) || 30,
-        });
+      if (xhr.status < 200 || xhr.status >= 300 || !data.video) {
+        return terminar(data.error || "No se pudo subir el video");
       }
-      const res = await fetch("/api/medico/rutinas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          paciente,
-          nombre,
-          objetivo,
-          frecuencia,
-          ejercicios,
-        }),
+      pendientes.add(data.video);
+      nodo.dataset.video = data.video;
+      borrarPendiente(anterior); // el reemplazado no llegó a guardarse
+      terminar();
+      window.dispatchEvent(new Event("mh:actividad"));
+    });
+    xhr.addEventListener("error", () => terminar("Sin conexión con el servidor"));
+    xhr.addEventListener("abort", () => terminar());
+    xhr.send(fd);
+  }
+
+  function prepararVideo(nodo: HTMLElement) {
+    const input = v(nodo, "input") as HTMLInputElement;
+    const elegir = () => input.click();
+    v(nodo, "elegir").addEventListener("click", elegir);
+    v(nodo, "cambiar").addEventListener("click", elegir);
+    input.addEventListener("change", () => {
+      const archivo = input.files?.[0];
+      if (archivo) subirVideo(nodo, archivo);
+    });
+    v(nodo, "cancelar").addEventListener("click", () => subidas.get(nodo)?.abort());
+    v(nodo, "quitar").addEventListener("click", async () => {
+      const ok = await confirmar({
+        titulo: "¿Quitar el video?",
+        mensaje: "El ejercicio se quedará sin video. Si la rutina ya estaba guardada, se borrará al guardar los cambios.",
+        aceptar: "Quitar video",
+        peligro: true,
       });
-      if (res.ok) {
-        window.location.reload();
+      if (!ok) return;
+      borrarPendiente(nodo.dataset.video);
+      mostrarVideo(nodo);
+    });
+  }
+
+  const renumerar = () => {
+    tarjetas().forEach((t, i) => (t.querySelector("[data-num]")!.textContent = `Ejercicio ${i + 1}`));
+    vacio?.classList.toggle("hidden", tarjetas().length > 0);
+  };
+
+  const limpiar = () => {
+    form.reset();
+    editandoId = null;
+    $("rutinaTitulo").textContent = "Nueva rutina";
+    $("rutinaSubtitulo").textContent = "Define el programa de ejercicios";
+    const selPaciente = document.getElementById("rutinaPaciente") as HTMLSelectElement | null;
+    if (selPaciente) selPaciente.disabled = false;
+    const btnGuardar = document.getElementById("guardarRutina");
+    if (btnGuardar) btnGuardar.textContent = "Guardar rutina";
+    // Formulario cerrado sin guardar: se cancelan subidas y se borran los videos sueltos
+    subidas.forEach((xhr) => xhr.abort());
+    subidas.clear();
+    [...pendientes].forEach(borrarPendiente);
+    if (lista) lista.innerHTML = "";
+    renumerar();
+    actualizarResumen();
+    errorEn("rutinaError");
+  };
+
+  const m = modal("modalRutina", limpiar);
+  form.querySelectorAll("[data-cerrar]").forEach((b) => b.addEventListener("click", m.cerrar));
+  const abrir = () => {
+    m.abrir();
+    if (tarjetas().length === 0) agregarEjercicio(false);
+  };
+  document.getElementById("nuevaRutinaBtn")?.addEventListener("click", abrir);
+  abrirSiNuevo(abrir);
+
+  // Frecuencia: resumen legible
+  const veces = document.getElementById("rutinaVeces") as HTMLSelectElement | null;
+  const periodo = document.getElementById("rutinaPeriodo") as HTMLSelectElement | null;
+  function actualizarResumen() {
+    if (!veces || !periodo) return;
+    const n = Number(veces.value);
+    $("frecuenciaResumen").textContent =
+      `El paciente hará la rutina ${n} ${n === 1 ? "vez" : "veces"} ${periodo.selectedOptions[0]?.text ?? ""}.`;
+  }
+  veces?.addEventListener("change", actualizarResumen);
+  periodo?.addEventListener("change", actualizarResumen);
+
+  // Agregar ejercicio. Si el último sigue sin nombre, se enfoca ese en vez de
+  // crear otro vacío (evita ejercicios repetidos/en blanco por clics seguidos).
+  function agregarEjercicio(enfocar = true, datos?: EjercicioDatos) {
+    if (!lista) return;
+    const ultimo = tarjetas().at(-1);
+    if (!datos && ultimo && !campo(ultimo, "nombre").value.trim()) {
+      campo(ultimo, "nombre").focus();
+      errorEn("rutinaError", "Completa el nombre del ejercicio actual antes de agregar otro.");
+      return;
+    }
+    errorEn("rutinaError");
+    const nodo = tpl.content.firstElementChild!.cloneNode(true) as HTMLElement;
+    nodo.querySelector("[data-quitar]")!.addEventListener("click", async () => {
+      const tieneDatos =
+        campo(nodo, "nombre").value.trim() || campo(nodo, "descripcion").value.trim() || nodo.dataset.video || subidas.has(nodo);
+      if (tieneDatos) {
+        const ok = await confirmar({
+          titulo: "¿Quitar este ejercicio?",
+          mensaje: `Se quitará «${campo(nodo, "nombre").value.trim() || "sin nombre"}» de la rutina.`,
+          aceptar: "Quitar",
+          peligro: true,
+        });
+        if (!ok) return;
+      }
+      subidas.get(nodo)?.abort();
+      borrarPendiente(nodo.dataset.video);
+      nodo.remove();
+      renumerar();
+    });
+    prepararVideo(nodo);
+    if (datos) {
+      campo(nodo, "nombre").value = datos.nombre;
+      campo(nodo, "descripcion").value = datos.descripcion;
+      campo(nodo, "series").value = String(datos.series);
+      campo(nodo, "repeticiones").value = String(datos.repeticiones);
+      campo(nodo, "descanso").value = String(datos.descanso);
+      if (datos.video) mostrarVideo(nodo, datos.video);
+    }
+    lista.appendChild(nodo);
+    renumerar();
+    if (enfocar) campo(nodo, "nombre").focus();
+  }
+  document.getElementById("agregarEjercicio")?.addEventListener("click", () => agregarEjercicio());
+
+  // Editar: abre el mismo formulario con los datos de la rutina
+  document.querySelectorAll<HTMLButtonElement>("[data-editar]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const r = JSON.parse(btn.dataset.editar!) as {
+        id: string;
+        paciente: string;
+        nombre: string;
+        objetivo: string;
+        frecuenciaVeces: number;
+        frecuenciaPeriodo: string;
+        ejercicios: EjercicioDatos[];
+      };
+      // Sin pacientes asignados el formulario no tiene campos
+      if (!document.getElementById("rutinaNombre")) {
+        return aviso("Este paciente ya no está asignado a ti; no puedes editar su rutina.", "error");
+      }
+      m.abrir();
+      editandoId = r.id;
+      $("rutinaTitulo").textContent = "Editar rutina";
+      $("rutinaSubtitulo").textContent = "Los cambios se verán de inmediato en el panel del paciente";
+      $("guardarRutina").textContent = "Guardar cambios";
+
+      // La rutina no cambia de paciente (la API no lo permite)
+      const selPaciente = $<HTMLSelectElement>("rutinaPaciente");
+      selPaciente.value = r.paciente;
+      selPaciente.disabled = true;
+      $("rutinaNombre").value = r.nombre;
+      $("rutinaObjetivo").value = r.objetivo;
+
+      if (veces && periodo) {
+        // Rutinas antiguas pueden tener más de 7 veces: se añade la opción
+        if (![...veces.options].some((o) => o.value === String(r.frecuenciaVeces))) {
+          veces.add(new Option(`${r.frecuenciaVeces} veces`, String(r.frecuenciaVeces)));
+        }
+        veces.value = String(r.frecuenciaVeces);
+        periodo.value = r.frecuenciaPeriodo;
+        actualizarResumen();
+      }
+
+      if (lista) lista.innerHTML = "";
+      r.ejercicios.forEach((e) => agregarEjercicio(false, e));
+      renumerar();
+      $("rutinaNombre").focus();
+    });
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (guardando || !veces || !periodo) return; // bloquea envíos dobles
+    if (subidas.size > 0) return errorEn("rutinaError", "Espera a que termine de subirse el video.");
+
+    const paciente = $<HTMLSelectElement>("rutinaPaciente").value;
+    const nombre = $("rutinaNombre").value.trim();
+    if (!paciente && !editandoId) return errorEn("rutinaError", "Selecciona un paciente.");
+    if (!nombre) return errorEn("rutinaError", "Escribe el nombre de la rutina.");
+
+    const ejercicios = tarjetas().map((t) => ({
+      nombre: campo(t, "nombre").value.trim(),
+      descripcion: campo(t, "descripcion").value.trim(),
+      series: Number(campo(t, "series").value),
+      repeticiones: Number(campo(t, "repeticiones").value),
+      descanso: Number(campo(t, "descanso").value),
+      video: t.dataset.video || undefined,
+    }));
+
+    if (ejercicios.length === 0) return errorEn("rutinaError", "Agrega al menos un ejercicio.");
+    const sinNombre = ejercicios.findIndex((x) => !x.nombre);
+    if (sinNombre >= 0) {
+      campo(tarjetas()[sinNombre], "nombre").focus();
+      return errorEn("rutinaError", `El ejercicio ${sinNombre + 1} no tiene nombre.`);
+    }
+    const nombres = ejercicios.map((x) => x.nombre.toLowerCase());
+    const repetido = nombres.findIndex((n, i) => nombres.indexOf(n) !== i);
+    if (repetido >= 0) {
+      campo(tarjetas()[repetido], "nombre").focus();
+      return errorEn("rutinaError", `El ejercicio «${ejercicios[repetido].nombre}» está repetido.`);
+    }
+
+    guardando = true;
+    const btn = $<HTMLButtonElement>("guardarRutina");
+    btn.disabled = true;
+    btn.textContent = "Guardando...";
+    errorEn("rutinaError");
+
+    const datos = {
+      nombre,
+      objetivo: $("rutinaObjetivo").value.trim(),
+      frecuenciaVeces: Number(veces.value),
+      frecuenciaPeriodo: periodo.value,
+      ejercicios,
+    };
+    const editando = editandoId;
+    const { ok, data } = editando
+      ? await api(`/api/medico/rutina/${editando}`, "PUT", datos)
+      : await api("/api/medico/rutinas", "POST", { paciente, ...datos });
+
+    if (ok) {
+      // Los videos ya quedaron guardados en la rutina: no se borran al cerrar
+      pendientes.clear();
+      // Se mantiene bloqueado hasta recargar para que no se cree dos veces
+      m.cerrar();
+      aviso(editando ? "Rutina actualizada" : "Rutina creada", "exito");
+      setTimeout(() => location.reload(), 500);
+    } else {
+      guardando = false;
+      btn.disabled = false;
+      btn.textContent = editando ? "Guardar cambios" : "Guardar rutina";
+      errorEn("rutinaError", data.error || "No se pudo guardar la rutina");
+    }
+  });
+
+  // Pausar / activar
+  document.querySelectorAll<HTMLButtonElement>("[data-toggle]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      const activa = btn.dataset.activa === "true";
+      const { ok, data } = await api(`/api/medico/rutina/${btn.dataset.toggle}`, "PUT", { activa: !activa });
+      if (ok) {
+        aviso(activa ? "Rutina pausada" : "Rutina activada", "exito");
+        setTimeout(() => location.reload(), 400);
       } else {
-        const d = await res.json();
-        errorEl.textContent = d.error || "Error";
-        errorEl.classList.remove("hidden");
+        btn.disabled = false;
+        aviso(data.error || "No se pudo actualizar", "error");
       }
     });
+  });
 
-  document.querySelectorAll(".toggle-btn").forEach((btn) => {
+  // Eliminar (pensado para rutinas creadas por error)
+  document.querySelectorAll<HTMLButtonElement>("[data-eliminar]").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      const id = btn.getAttribute("data-id");
-      const activa = btn.getAttribute("data-activa") === "true";
-      await fetch(`/api/medico/rutina/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activa: !activa }),
+      const ok = await confirmar({
+        titulo: `¿Eliminar «${btn.dataset.nombre}»?`,
+        mensaje:
+          "Se borrará definitivamente junto con sus ejercicios. Úsalo solo si la rutina se creó por error; si el paciente ya no la necesita, mejor páusala.",
+        aceptar: "Eliminar rutina",
+        peligro: true,
       });
-      window.location.reload();
+      if (!ok) return;
+      btn.disabled = true;
+      const res = await api(`/api/medico/rutina/${btn.dataset.eliminar}`, "DELETE");
+      if (res.ok) {
+        aviso("Rutina eliminada", "exito");
+        setTimeout(() => location.reload(), 400);
+      } else {
+        btn.disabled = false;
+        aviso(res.data.error || "No se pudo eliminar", "error");
+      }
     });
   });
 </script>

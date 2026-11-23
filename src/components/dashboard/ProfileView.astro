@@ -1,10 +1,12 @@
 ---
-// Página de perfil compartida por médico y paciente (solo diseño: no guarda cambios).
+// Página de perfil compartida por médico y paciente.
 // El slot por defecto recibe filas <SettingsRow> propias de cada rol,
 // que se muestran después de "Datos personales".
 import PageHeader from "./PageHeader.astro";
 import SettingsRow from "./SettingsRow.astro";
 import { card, btnPrimary, btnSecondary, input, label, fechaLarga } from "./styles";
+import { REQUISITOS_PASSWORD } from "../../lib/password";
+import { urlArchivo } from "../../lib/storage";
 
 interface Props {
   usuario: {
@@ -14,6 +16,11 @@ interface Props {
     telefono?: string;
     fechaNacimiento?: Date;
     createdAt: Date;
+    googleId?: string;
+    password?: string;
+    pendingEmail?: string;
+    pendingEmailExpires?: Date;
+    fotoPerfil?: string;
   };
   prefijo?: string;
   subtitulo: string;
@@ -25,28 +32,52 @@ interface Props {
 const { usuario, prefijo = "", subtitulo, identidad, fotoDesc } = Astro.props;
 
 const iniciales = `${usuario.nombre.charAt(0)}${usuario.apellido.charAt(0)}`.toUpperCase();
+const foto = urlArchivo(usuario.fotoPerfil);
+const conGoogle = !!usuario.googleId;
+const tienePassword = !!usuario.password;
+const correoPendiente =
+  usuario.pendingEmail && usuario.pendingEmailExpires && new Date(usuario.pendingEmailExpires) > new Date()
+    ? usuario.pendingEmail
+    : null;
+
+// Avisos que llegan por la URL (login con contraseña antigua, enlace de confirmar correo)
+const cambiarPassword = Astro.url.searchParams.has("cambiar-password");
+const estadoCorreo = Astro.url.searchParams.get("correo");
+const AVISOS_CORREO: Record<string, { texto: string; ok: boolean }> = {
+  confirmado: { texto: "Tu nuevo correo quedó confirmado. A partir de ahora entra con él.", ok: true },
+  invalido: { texto: "El enlace para confirmar el correo ya se usó o expiró. Vuelve a guardar el correo para recibir otro.", ok: false },
+  ocupado: { texto: "Ese correo ya lo usa otra cuenta, así que no se pudo aplicar el cambio.", ok: false },
+};
+const avisoCorreo = estadoCorreo ? AVISOS_CORREO[estadoCorreo] : undefined;
 
 const datosPersonales = [
-  { id: "perfilNombre",   label: "Nombre",             type: "text",  value: usuario.nombre },
-  { id: "perfilApellido", label: "Apellido",           type: "text",  value: usuario.apellido },
-  { id: "perfilEmail",    label: "Correo electrónico", type: "email", value: usuario.email, full: true },
-  { id: "perfilTelefono", label: "Teléfono",           type: "tel",   value: usuario.telefono ?? "", placeholder: "+52 000 000 0000" },
+  { id: "perfilNombre",   name: "nombre",   label: "Nombre",             type: "text",  value: usuario.nombre, required: true },
+  { id: "perfilApellido", name: "apellido", label: "Apellido",           type: "text",  value: usuario.apellido, required: true },
   {
-    id: "perfilNacimiento", label: "Fecha de nacimiento", type: "date",
+    id: "perfilEmail", name: "email", label: "Correo electrónico", type: "email", value: usuario.email, full: true, required: true,
+    disabled: conGoogle,
+    ayuda: conGoogle
+      ? "Vinculado a tu cuenta de Google."
+      : "Si lo cambias, te enviaremos un enlace al nuevo correo para confirmarlo.",
+  },
+  { id: "perfilTelefono", name: "telefono", label: "Teléfono",           type: "tel",   value: usuario.telefono ?? "", placeholder: "+52 000 000 0000" },
+  {
+    id: "perfilNacimiento", name: "fechaNacimiento", label: "Fecha de nacimiento", type: "date",
     value: usuario.fechaNacimiento ? new Date(usuario.fechaNacimiento).toISOString().slice(0, 10) : "",
+    max: new Date().toISOString().slice(0, 10),
   },
 ];
 
 const camposPassword = [
-  { id: "passActual",    label: "Contraseña actual", full: true },
-  { id: "passNueva",     label: "Nueva contraseña" },
-  { id: "passConfirmar", label: "Confirmar nueva contraseña" },
+  ...(tienePassword ? [{ id: "passActual", name: "actual", label: "Contraseña actual", full: true, autocomplete: "current-password" }] : []),
+  { id: "passNueva",     name: "nueva",     label: "Nueva contraseña",           autocomplete: "new-password" },
+  { id: "passConfirmar", name: "confirmar", label: "Confirmar nueva contraseña", autocomplete: "new-password" },
 ];
 
+// Misma regla que el servidor (src/lib/password.ts)
 const requisitos = [
-  "Al menos 8 caracteres",
-  "Una letra mayúscula y una minúscula",
-  "Al menos un número",
+  ...REQUISITOS_PASSWORD.map(({ id, texto }) => ({ id, texto })),
+  { id: "match", texto: "Ambas contraseñas coinciden" },
 ];
 ---
 
@@ -57,22 +88,44 @@ const requisitos = [
     Consulta y actualiza tu información personal y la seguridad de tu cuenta.
   </PageHeader>
 
+  {cambiarPassword && tienePassword && (
+    <div role="alert" class="border border-amber-300 bg-amber-50 text-amber-900 rounded-2xl px-6 py-4 text-base">
+      <strong>Actualiza tu contraseña.</strong> La que usas ya no cumple los requisitos de seguridad
+      (8+ caracteres, mayúscula, minúscula y número). Cámbiala en la sección «Contraseña» de abajo.
+    </div>
+  )}
+
+  {avisoCorreo && (
+    <div
+      role="status"
+      class={`rounded-2xl px-6 py-4 text-base border ${
+        avisoCorreo.ok ? "border-green-300 bg-green-50 text-green-800" : "border-red-300 bg-red-50 text-red-700"
+      }`}
+    >
+      {avisoCorreo.texto}
+    </div>
+  )}
+
   <!-- Tarjeta de identidad -->
   <section class="bg-black text-white rounded-2xl p-8 flex flex-col sm:flex-row sm:items-center gap-6">
-    <div class="w-20 h-20 rounded-full bg-white text-black flex items-center justify-center text-3xl font-baloo font-bold shrink-0">
-      {iniciales}
-    </div>
+    {foto ? (
+      <img src={foto} alt="" class="w-20 h-20 rounded-full object-cover bg-white shrink-0" />
+    ) : (
+      <div class="w-20 h-20 rounded-full bg-white text-black flex items-center justify-center text-3xl font-baloo font-bold shrink-0">
+        {iniciales}
+      </div>
+    )}
     <div class="flex-1 min-w-0">
       <p class="text-3xl font-baloo tracking-wide truncate">
         {prefijo}<strong>{usuario.nombre} {usuario.apellido}</strong>
       </p>
       <p class="text-lg text-white/70 mt-1">{subtitulo}</p>
     </div>
-    <dl class="grid grid-cols-2 gap-x-8 gap-y-2 sm:text-right">
+    <dl class="grid grid-cols-1 min-[420px]:grid-cols-2 max-sm:gap-y-4 gap-x-8 gap-y-2 sm:text-right">
       {[...identidad, { label: "Miembro desde", value: fechaLarga(new Date(usuario.createdAt)) }].map(({ label: l, value }) => (
         <div>
           <dt class="text-sm text-white/60 font-medium tracking-widest uppercase">{l}</dt>
-          <dd class="text-lg font-medium mt-0.5">{value}</dd>
+          <dd class="text-lg font-medium mt-0.5 break-words">{value}</dd>
         </div>
       ))}
     </dl>
@@ -80,13 +133,24 @@ const requisitos = [
 
   <SettingsRow title="Foto de perfil" desc={fotoDesc}>
     <div class={`${card} flex flex-col sm:flex-row sm:items-center gap-6`}>
-      <div class="w-28 h-28 rounded-full bg-black text-white flex items-center justify-center text-4xl font-baloo font-bold shrink-0">
-        {iniciales}
-      </div>
+      {foto ? (
+        <img src={foto} alt="Tu foto de perfil" class="w-28 h-28 rounded-full object-cover bg-stone-200 shrink-0" />
+      ) : (
+        <div class="w-28 h-28 rounded-full bg-black text-white flex items-center justify-center text-4xl font-baloo font-bold shrink-0">
+          {iniciales}
+        </div>
+      )}
       <div class="space-y-4">
+        <input id="fotoInput" type="file" accept="image/jpeg,image/png" class="hidden" />
         <div class="flex flex-wrap gap-3">
-          <button type="button" class={btnPrimary}>Cambiar foto</button>
-          <button type="button" class={btnSecondary}>Eliminar</button>
+          <button type="button" id="fotoCambiar" class={`${btnPrimary} disabled:opacity-50 disabled:cursor-not-allowed`}>
+            {foto ? "Cambiar foto" : "Subir foto"}
+          </button>
+          {foto && (
+            <button type="button" id="fotoQuitar" class={`${btnSecondary} disabled:opacity-50 disabled:cursor-not-allowed`}>
+              Quitar
+            </button>
+          )}
         </div>
         <p class="text-base text-gray-600">JPG o PNG, máximo 2 MB.</p>
       </div>
@@ -94,47 +158,212 @@ const requisitos = [
   </SettingsRow>
 
   <SettingsRow title="Datos personales" desc="Información básica de contacto de tu cuenta.">
-    <form class={`${card} space-y-6`} onsubmit="return false">
+    <form id="formDatos" class={`${card} space-y-6`} novalidate>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {datosPersonales.map((campo) => (
           <div class={campo.full ? "sm:col-span-2" : ""}>
             <label for={campo.id} class={`${label} block mb-2`}>{campo.label}</label>
-            <input id={campo.id} type={campo.type} value={campo.value} placeholder={campo.placeholder} class={input} />
+            <input
+              id={campo.id}
+              name={campo.name}
+              type={campo.type}
+              value={campo.value}
+              placeholder={campo.placeholder}
+              required={campo.required}
+              disabled={campo.disabled}
+              max={campo.max}
+              class={`${input} disabled:opacity-60 disabled:cursor-not-allowed`}
+            />
+            {campo.ayuda && <p class="text-sm text-gray-500 mt-1.5">{campo.ayuda}</p>}
+            {campo.name === "email" && correoPendiente && (
+              <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border border-amber-300 bg-amber-50 rounded-xl px-4 py-3 text-sm text-amber-900">
+                <span class="flex-1 min-w-0">
+                  Pendiente de confirmar: <strong class="break-all">{correoPendiente}</strong>. Revisa esa bandeja de entrada.
+                </span>
+                <button type="button" id="cancelarCorreo" class="font-medium underline hover:no-underline">
+                  Cancelar cambio
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>
+      <p data-error class="hidden text-base text-red-600"></p>
       <div class="flex justify-end border-t border-stone-200 pt-6">
-        <button type="button" class={btnPrimary}>Guardar cambios</button>
+        <button type="submit" class={btnPrimary}>Guardar cambios</button>
       </div>
     </form>
   </SettingsRow>
 
   <slot />
 
-  <SettingsRow title="Contraseña" desc="Usa una contraseña segura que no utilices en otros sitios.">
-    <form class={`${card} space-y-6`} onsubmit="return false">
+  <SettingsRow
+    title="Contraseña"
+    desc={tienePassword
+      ? "Usa una contraseña segura que no utilices en otros sitios."
+      : "Entras con Google. Si quieres, define una contraseña para entrar también con tu correo."}
+  >
+    <form id="formPassword" class={`${card} space-y-6`} novalidate>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {camposPassword.map((campo) => (
           <div class={campo.full ? "sm:col-span-2" : ""}>
             <label for={campo.id} class={`${label} block mb-2`}>{campo.label}</label>
-            <input id={campo.id} type="password" placeholder="••••••••" autocomplete="off" class={input} />
+            <input id={campo.id} name={campo.name} type="password" placeholder="••••••••" autocomplete={campo.autocomplete} class={input} />
           </div>
         ))}
       </div>
 
       <ul class="space-y-2">
         {requisitos.map((r) => (
-          <li class="flex items-center gap-3 text-base text-gray-700">
-            <span class="w-2 h-2 rounded-full bg-stone-400 shrink-0" />
-            {r}
+          <li data-req={r.id} class="flex items-center gap-3 text-base text-gray-700">
+            <span class="w-2 h-2 rounded-full bg-stone-400 shrink-0 transition-colors" />
+            {r.texto}
           </li>
         ))}
       </ul>
 
+      <p data-error class="hidden text-base text-red-600"></p>
       <div class="flex justify-end border-t border-stone-200 pt-6">
-        <button type="button" class={btnPrimary}>Actualizar contraseña</button>
+        <button type="submit" class={btnPrimary}>{tienePassword ? "Actualizar contraseña" : "Definir contraseña"}</button>
       </div>
     </form>
   </SettingsRow>
 
 </div>
+
+<script>
+  import { api, aviso } from "../../scripts/ui";
+  import { REQUISITOS_PASSWORD } from "../../lib/password";
+
+  /**
+   * Envía un formulario del perfil a la API. Todos los formularios con
+   * `data-perfil` (incluidos los de cada rol) usan este mismo flujo.
+   */
+  // Recarga sin los avisos de la URL (?correo=..., ?cambiar-password=1)
+  const recargar = () => setTimeout(() => location.replace(location.pathname), 600);
+
+  function conectar(form: HTMLFormElement, url: string, alGuardar?: () => void) {
+    const errorEl = form.querySelector<HTMLElement>("[data-error]")!;
+    const btn = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    let enviando = false;
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (enviando) return;
+      enviando = true;
+      btn.disabled = true;
+      errorEl.classList.add("hidden");
+
+      const datos: Record<string, string> = {};
+      form.querySelectorAll<HTMLInputElement>("input[name]:not(:disabled)").forEach((i) => (datos[i.name] = i.value));
+
+      const { ok, data } = await api(url, "PUT", datos);
+      enviando = false;
+      btn.disabled = false;
+
+      if (ok) {
+        const pendiente = (data as any).correoPendiente;
+        // Médico que cambió su cédula: la cuenta vuelve a revisión
+        if ((data as any).enRevision) {
+          aviso("Datos guardados. Tu cuenta volvió a revisión; te avisaremos por correo cuando esté verificada.", "info", 6000);
+          setTimeout(() => (location.href = "/dashboard/medico/verificacion"), 1500);
+          return;
+        }
+        if (pendiente) aviso(`Cambios guardados. Te enviamos un enlace a ${pendiente} para confirmar el nuevo correo.`, "exito", 6000);
+        else aviso("Cambios guardados", "exito");
+        alGuardar?.();
+      } else {
+        errorEl.textContent = data.error || "No se pudo guardar";
+        errorEl.classList.remove("hidden");
+        if ((data as any).campo) form.querySelector<HTMLInputElement>(`#${(data as any).campo}`)?.focus();
+      }
+    });
+  }
+
+  const formDatos = document.getElementById("formDatos") as HTMLFormElement | null;
+  if (formDatos) conectar(formDatos, "/api/perfil", recargar);
+
+  document.querySelectorAll<HTMLFormElement>("form[data-perfil]").forEach((f) => conectar(f, "/api/perfil", recargar));
+
+  // Cancelar un cambio de correo pendiente
+  const cancelarCorreo = document.getElementById("cancelarCorreo") as HTMLButtonElement | null;
+  cancelarCorreo?.addEventListener("click", async () => {
+    cancelarCorreo.disabled = true;
+    const { ok, data } = await api("/api/perfil", "PUT", { cancelarCambioCorreo: true });
+    if (ok) {
+      aviso("Cambio de correo cancelado", "exito");
+      recargar();
+    } else {
+      cancelarCorreo.disabled = false;
+      aviso(data.error || "No se pudo cancelar", "error");
+    }
+  });
+
+  // Foto de perfil: subir / reemplazar / quitar
+  const FOTO_MAX = 2 * 1024 * 1024;
+  const fotoInput = document.getElementById("fotoInput") as HTMLInputElement | null;
+  const fotoCambiar = document.getElementById("fotoCambiar") as HTMLButtonElement | null;
+  const fotoQuitar = document.getElementById("fotoQuitar") as HTMLButtonElement | null;
+  const bloquearFoto = (b: boolean) => [fotoCambiar, fotoQuitar].forEach((btn) => btn && (btn.disabled = b));
+
+  fotoCambiar?.addEventListener("click", () => fotoInput?.click());
+  fotoInput?.addEventListener("change", async () => {
+    const archivo = fotoInput.files?.[0];
+    fotoInput.value = "";
+    if (!archivo) return;
+    if (!["image/jpeg", "image/png"].includes(archivo.type)) return aviso("Solo se aceptan imágenes JPG o PNG", "error");
+    if (archivo.size > FOTO_MAX) return aviso("La foto no puede pesar más de 2 MB", "error");
+
+    bloquearFoto(true);
+    const fd = new FormData();
+    fd.append("foto", archivo);
+    try {
+      const res = await fetch("/api/perfil/foto", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "No se pudo subir la foto");
+      window.dispatchEvent(new Event("mh:actividad"));
+      aviso("Foto actualizada", "exito");
+      recargar();
+    } catch (e) {
+      bloquearFoto(false);
+      aviso((e as Error).message, "error");
+    }
+  });
+
+  fotoQuitar?.addEventListener("click", async () => {
+    bloquearFoto(true);
+    const { ok, data } = await api("/api/perfil/foto", "DELETE");
+    if (ok) {
+      aviso("Foto eliminada", "exito");
+      recargar();
+    } else {
+      bloquearFoto(false);
+      aviso(data.error || "No se pudo quitar la foto", "error");
+    }
+  });
+
+  // Contraseña: indicadores de requisitos en vivo
+  const formPass = document.getElementById("formPassword") as HTMLFormElement | null;
+  if (formPass) {
+    const nueva = formPass.querySelector<HTMLInputElement>("#passNueva")!;
+    const conf = formPass.querySelector<HTMLInputElement>("#passConfirmar")!;
+    const marcar = (id: string, ok: boolean) => {
+      const punto = formPass.querySelector(`[data-req="${id}"] span`);
+      punto?.classList.toggle("bg-black", ok);
+      punto?.classList.toggle("bg-stone-400", !ok);
+    };
+    const revisar = () => {
+      const p = nueva.value;
+      REQUISITOS_PASSWORD.forEach((r) => marcar(r.id, r.cumple(p)));
+      marcar("match", !!p && p === conf.value);
+    };
+    nueva.addEventListener("input", revisar);
+    conf.addEventListener("input", revisar);
+
+    conectar(formPass, "/api/perfil/password", () => {
+      formPass.reset();
+      revisar();
+      recargar();
+    });
+  }
+</script>

@@ -53,6 +53,7 @@ const atajos = [
   { href: "/dashboard/paciente/rutinas",  label: "Mis rutinas",        desc: "Ejercicios asignados" },
   { href: "/dashboard/paciente/progreso", label: "Mi progreso",        desc: "Evolución de tu dolor" },
   { href: "/dashboard/paciente/citas",    label: "Ver mis citas",      desc: "Próximas y pasadas" },
+  { href: "/dashboard/paciente/expediente", label: "Mi expediente",    desc: "Consulta y sugiere cambios" },
 ];
 ---
 
@@ -88,7 +89,7 @@ const atajos = [
               <div>
                 <p class="text-2xl font-medium capitalize">{cita.tipo}</p>
                 <p class="text-base text-white/60 mt-1">
-                  Dr. {cita.medico.nombre} {cita.medico.apellido} · {cita.duracion} min
+                  {cita.medico ? `Dr. ${cita.medico.nombre} ${cita.medico.apellido} · ` : ""}{cita.duracion} min
                 </p>
               </div>
               <span class="text-2xl transition-transform duration-200 group-hover:translate-x-1">→</span>

@@ -1,0 +1,316 @@
+---
+import DashboardLayout from "../../../components/common/DashboardLayout.astro";
+import PageHeader from "../../../components/dashboard/PageHeader.astro";
+import SectionHeader from "../../../components/dashboard/SectionHeader.astro";
+import EmptyState from "../../../components/dashboard/EmptyState.astro";
+import SearchInput from "../../../components/dashboard/SearchInput.astro";
+import { card, chip, btnPrimary, btnSecondary, label, plural, fechaLarga } from "../../../components/dashboard/styles";
+import { getSessionFromRequest } from "../../../lib/session";
+import connectDB from "../../../lib/db";
+import { User } from "../../../models/User";
+import { URL_CONSULTA_CEDULA } from "../../../lib/verificacion";
+
+const session = getSessionFromRequest(Astro.request);
+if (!session || session.role !== "admin") return Astro.redirect("/login");
+
+await connectDB();
+
+// Las cuentas sin estado (anteriores a la verificación) cuentan como pendientes
+const FILTROS = {
+  pendiente: { label: "Por verificar", estado: { $in: ["pendiente", null] } },
+  aprobada:  { label: "Verificados",   estado: "aprobada" },
+  rechazada: { label: "Rechazados",    estado: "rechazada" },
+  todos:     { label: "Todos",         estado: undefined },
+} as const;
+type Filtro = keyof typeof FILTROS;
+
+const filtroParam = Astro.url.searchParams.get("estado") as Filtro | null;
+const filtro: Filtro = filtroParam && filtroParam in FILTROS ? filtroParam : "pendiente";
+
+const medicos: any[] = await User.find({ role: "medico" })
+  .select("nombre apellido email telefono cedulaProfesional especialidad estadoVerificacion motivoVerificacion verificadoPor verificadoEn createdAt")
+  .populate("verificadoPor", "nombre apellido")
+  .sort({ createdAt: -1 })
+  .lean();
+
+const estadoDe = (m: any): Exclude<Filtro, "todos"> => m.estadoVerificacion ?? "pendiente";
+const conteo = { pendiente: 0, aprobada: 0, rechazada: 0, todos: medicos.length };
+for (const m of medicos) conteo[estadoDe(m)]++;
+
+// Por verificar: los más antiguos primero (llevan más tiempo esperando)
+const lista = medicos
+  .filter((m) => filtro === "todos" || estadoDe(m) === filtro)
+  .sort((a, b) => (filtro === "pendiente" ? new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() : 0));
+
+const medicoId = Astro.url.searchParams.get("medico");
+const sel: any = medicos.find((m) => String(m._id) === medicoId) ?? null;
+const pacientesAsignados = sel ? await User.countDocuments({ role: "paciente", medicoAsignado: sel._id }) : 0;
+
+const ESTADO_TEXTO = { pendiente: "Por verificar", aprobada: "Verificado", rechazada: "Rechazado" };
+const hrefFiltro = (f: Filtro) => `/dashboard/admin/medicos?estado=${f}${sel ? `&medico=${sel._id}` : ""}`;
+
+const datosSel = sel
+  ? [
+      { label: "Cédula profesional", value: sel.cedulaProfesional, destacado: true },
+      { label: "Especialidad", value: sel.especialidad },
+      { label: "Teléfono", value: sel.telefono },
+      { label: "Registrado el", value: fechaLarga(new Date(sel.createdAt)) },
+      { label: "Pacientes asignados", value: String(pacientesAsignados) },
+      ...(sel.verificadoEn
+        ? [{
+            label: estadoDe(sel) === "aprobada" ? "Verificado por" : "Revisado por",
+            value: `${sel.verificadoPor ? `${sel.verificadoPor.nombre} ${sel.verificadoPor.apellido}` : "—"} · ${fechaLarga(new Date(sel.verificadoEn))}`,
+          }]
+        : []),
+    ]
+  : [];
+
+const fieldCls = "w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors";
+const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide";
+---
+
+<DashboardLayout title="Fisioterapeutas" role="admin" nombre={session.nombre} activeSection="/dashboard/admin/medicos">
+
+  <div class="max-w-6xl px-6 sm:px-10 py-10 lg:py-14 space-y-12">
+
+    <PageHeader eyebrow="Administración">
+      <Fragment slot="title"><strong>Fisioterapeutas</strong></Fragment>
+      {conteo.pendiente > 0 ? (
+        <>Hay <strong>{plural(conteo.pendiente, "cuenta", "cuentas")}</strong> esperando verificación. Compara la cédula con el
+        Registro Nacional de Profesionistas antes de aprobarla: hasta entonces no pueden atender pacientes.</>
+      ) : (
+        <>Todas las cuentas están revisadas. Tienes <strong>{plural(conteo.aprobada, "fisioterapeuta verificado", "fisioterapeutas verificados")}</strong>.</>
+      )}
+    </PageHeader>
+
+    <div class="flex flex-col lg:flex-row lg:items-center gap-6 justify-between">
+      <SearchInput placeholder="Buscar por nombre, correo, cédula o especialidad..." />
+      <nav class="flex flex-wrap gap-2" aria-label="Filtrar por estado">
+        {(Object.keys(FILTROS) as Filtro[]).map((f) => (
+          <a href={hrefFiltro(f)} aria-current={f === filtro ? "page" : undefined}
+            class={`text-base px-4 py-2 rounded-full border transition-colors duration-200
+              ${f === filtro ? "bg-black text-white border-black" : "border-stone-300 text-gray-700 hover:border-black"}`}>
+            {FILTROS[f].label} · {conteo[f]}
+          </a>
+        ))}
+      </nav>
+    </div>
+
+    <hr class="border-stone-300" />
+
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+
+      <!-- Lista -->
+      <div class="lg:col-span-4">
+        <SectionHeader title={`${FILTROS[filtro].label} · ${lista.length}`} />
+        {lista.length === 0 ? (
+          <EmptyState title="Sin cuentas" text={filtro === "pendiente" ? "No hay fisioterapeutas esperando verificación." : "No hay cuentas con este estado."} />
+        ) : (
+          <ul class="space-y-3">
+            {lista.map((m) => {
+              const activo = medicoId === String(m._id);
+              return (
+                <li data-buscar={`${m.nombre} ${m.apellido} ${m.email} ${m.cedulaProfesional ?? ""} ${m.especialidad ?? ""}`}>
+                  <a href={`/dashboard/admin/medicos?estado=${filtro}&medico=${m._id}`}
+                    class={`flex items-center gap-4 rounded-2xl border p-4 transition-colors duration-200
+                      ${activo ? "bg-black text-white border-black" : "bg-stone-50 border-stone-200 hover:border-black"}`}>
+                    <div class={`w-11 h-11 rounded-full flex items-center justify-center text-lg font-baloo font-bold shrink-0
+                      ${activo ? "bg-white text-black" : "bg-black text-white"}`}>
+                      {m.nombre.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-lg font-semibold truncate">Dr. {m.nombre} {m.apellido}</p>
+                      <p class={`text-base truncate ${activo ? "text-white/70" : "text-gray-600"}`}>
+                        {filtro === "todos" ? ESTADO_TEXTO[estadoDe(m)] : m.especialidad || m.email}
+                      </p>
+                    </div>
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <!-- Detalle -->
+      <div class="lg:col-span-8 flex flex-col">
+        <SectionHeader title="Cuenta" />
+
+        {!sel ? (
+          <EmptyState title="Selecciona un fisioterapeuta" text="Elige una cuenta de la lista para revisar sus datos profesionales." />
+        ) : (
+          <div class="space-y-10" id="detalleMedico" data-id={String(sel._id)} data-nombre={`Dr. ${sel.nombre} ${sel.apellido}`}>
+
+            <!-- Identidad -->
+            <div class={`${card} flex flex-col sm:flex-row sm:items-center justify-between gap-4`}>
+              <div class="flex items-center gap-4 min-w-0">
+                <div class="w-14 h-14 rounded-full bg-black flex items-center justify-center text-white text-2xl font-baloo font-bold shrink-0">
+                  {sel.nombre.charAt(0).toUpperCase()}
+                </div>
+                <div class="min-w-0">
+                  <h2 class="text-2xl font-baloo tracking-wide truncate"><strong>Dr. {sel.nombre} {sel.apellido}</strong></h2>
+                  <p class="text-base text-gray-600 truncate">{sel.email}</p>
+                </div>
+              </div>
+              <span class={`${chip(estadoDe(sel) === "aprobada")} shrink-0 self-start sm:self-auto`}>{ESTADO_TEXTO[estadoDe(sel)]}</span>
+            </div>
+
+            {estadoDe(sel) === "rechazada" && sel.motivoVerificacion && (
+              <div class="border border-stone-300 rounded-2xl px-6 py-4">
+                <p class={label}>Motivo del rechazo</p>
+                <p class="text-lg text-gray-900 mt-1 break-words">{sel.motivoVerificacion}</p>
+              </div>
+            )}
+
+            <!-- Datos profesionales -->
+            <div>
+              <SectionHeader title="Datos profesionales">
+                <a href={URL_CONSULTA_CEDULA} target="_blank" rel="noopener noreferrer" class={btnSecondary}>
+                  Consultar en la SEP ↗
+                </a>
+              </SectionHeader>
+              <dl class={`${card} grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6`}>
+                {datosSel.map(({ label: l, value, destacado }) => (
+                  <div>
+                    <dt class={label}>{l}</dt>
+                    <dd class="mt-1">
+                      {!value ? (
+                        <span class="text-lg text-gray-400 italic">Sin registrar</span>
+                      ) : destacado ? (
+                        <span class="flex items-center gap-3">
+                          <span class="text-3xl font-baloo font-bold tracking-wider">{value}</span>
+                          <button type="button" data-copiar={value} class="text-sm text-gray-600 underline underline-offset-4 hover:text-black">Copiar</button>
+                        </span>
+                      ) : (
+                        <span class="text-lg font-medium text-gray-900 break-words">{value}</span>
+                      )}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <p class="text-base text-gray-600 mt-4">
+                En la consulta de la SEP busca la cédula y confirma que el nombre coincida y que la profesión corresponda a fisioterapia o rehabilitación.
+              </p>
+            </div>
+
+            <!-- Acciones -->
+            <div>
+              <SectionHeader title="Verificación" />
+              <div class={`${card} flex flex-col sm:flex-row sm:items-center justify-between gap-4`}>
+                <p class="text-base text-gray-700">
+                  {estadoDe(sel) === "aprobada"
+                    ? "La cuenta está verificada. Si detectas un problema puedes revocarla: dejará de poder atender pacientes de inmediato."
+                    : estadoDe(sel) === "rechazada"
+                      ? "La cuenta fue rechazada. Si el fisioterapeuta corrige sus datos volverá a «Por verificar»."
+                      : "Al aprobarla podrá asignar pacientes, agendar citas y llevar expedientes."}
+                </p>
+                <div class="flex gap-2 shrink-0">
+                  {estadoDe(sel) !== "rechazada" && (
+                    <button id="rechazarBtn" class={btnSecondary}>{estadoDe(sel) === "aprobada" ? "Revocar" : "Rechazar"}</button>
+                  )}
+                  {estadoDe(sel) !== "aprobada" && (
+                    <button id="aprobarBtn" class={btnPrimary}>Aprobar</button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  </div>
+
+  <!-- Modal rechazar / revocar -->
+  <div id="modalRechazo" class="hidden fixed inset-0 z-50 bg-black/30 dark:bg-[#000]/60 flex items-center justify-center p-4">
+    <form id="formRechazo" novalidate class="bg-white rounded-lg border border-gray-200 shadow-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <h2 class="font-baloo tracking-wide text-2xl mb-1"><strong id="rechazoTitulo">Rechazar cuenta</strong></h2>
+      <p class="text-base text-gray-600 mb-5">El fisioterapeuta recibirá este motivo por correo para que pueda corregir sus datos.</p>
+      <div class="space-y-3">
+        <div>
+          <label for="rechazoMotivo" class={labelCls}>Motivo</label>
+          <textarea id="rechazoMotivo" rows="3" maxlength="500" placeholder="Ej: La cédula no aparece en el Registro Nacional de Profesionistas"
+            class={`${fieldCls} resize-none`}></textarea>
+        </div>
+        <p id="rechazoError" class="hidden text-base text-red-600"></p>
+        <div class="flex gap-2 pt-1">
+          <button type="button" id="cancelarRechazo" class="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-base font-medium hover:border-gray-400 transition-colors">Cancelar</button>
+          <button type="submit" id="confirmarRechazo" class="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg text-base font-medium hover:bg-red-700 transition-colors disabled:opacity-60">Rechazar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</DashboardLayout>
+
+<script>
+  import { api, aviso, confirmar, modal, unaVez, errorEn, $ } from "../../../scripts/ui";
+
+  const detalle = document.getElementById("detalleMedico");
+  const id = detalle?.dataset.id;
+  const nombre = detalle?.dataset.nombre ?? "";
+
+  const resolver = async (accion: "aprobar" | "rechazar", motivo?: string) => {
+    const { ok, data } = await api(`/api/admin/medico/${id}`, "PUT", { accion, motivo });
+    if (ok) {
+      aviso(accion === "aprobar" ? "Cuenta verificada. Le avisamos por correo." : "Cuenta rechazada. Le avisamos por correo.", "exito");
+      setTimeout(() => location.reload(), 500);
+    }
+    return { ok, error: data.error };
+  };
+
+  // Copiar la cédula para pegarla en la consulta de la SEP
+  document.querySelectorAll<HTMLButtonElement>("[data-copiar]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(b.dataset.copiar!);
+        aviso("Cédula copiada", "exito", 2000);
+      } catch {
+        aviso("No se pudo copiar", "error");
+      }
+    }),
+  );
+
+  const btnAprobar = document.getElementById("aprobarBtn") as HTMLButtonElement | null;
+  if (btnAprobar) {
+    unaVez(btnAprobar, async () => {
+      const si = await confirmar({
+        titulo: "¿Aprobar esta cuenta?",
+        mensaje: `${nombre} podrá asignar pacientes y acceder a sus expedientes. Confirma que verificaste su cédula.`,
+        aceptar: "Sí, aprobar",
+      });
+      if (!si) return;
+      const r = await resolver("aprobar");
+      if (!r.ok) aviso(r.error || "No se pudo aprobar", "error");
+    }, "Aprobando...");
+  }
+
+  const btnRechazar = document.getElementById("rechazarBtn");
+  if (btnRechazar) {
+    const form = $<HTMLFormElement>("formRechazo");
+    const m = modal("modalRechazo", () => {
+      form.reset();
+      errorEn("rechazoError");
+    });
+    $("cancelarRechazo").addEventListener("click", m.cerrar);
+
+    const revocar = btnRechazar.textContent?.trim() === "Revocar";
+    $("rechazoTitulo").textContent = revocar ? "Revocar verificación" : "Rechazar cuenta";
+    $("confirmarRechazo").textContent = revocar ? "Revocar" : "Rechazar";
+    btnRechazar.addEventListener("click", m.abrir);
+
+    let enviando = false;
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (enviando) return;
+      const motivo = $<HTMLTextAreaElement>("rechazoMotivo").value.trim();
+      if (motivo.length < 5) return errorEn("rechazoError", "Explica el motivo para que el fisioterapeuta pueda corregirlo.");
+      enviando = true;
+      $<HTMLButtonElement>("confirmarRechazo").disabled = true;
+      const r = await resolver("rechazar", motivo);
+      if (!r.ok) {
+        enviando = false;
+        $<HTMLButtonElement>("confirmarRechazo").disabled = false;
+        errorEn("rechazoError", r.error || "No se pudo guardar");
+      }
+    });
+  }
+</script>

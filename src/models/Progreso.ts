@@ -1,4 +1,5 @@
-import mongoose, { Schema, type Document, type Model } from "mongoose";
+import mongoose, { Schema, type Document } from "mongoose";
+import { definirModelo } from "../lib/modelo";
 
 export interface IProgreso extends Document {
   paciente: mongoose.Types.ObjectId;
@@ -34,5 +35,4 @@ const ProgresoSchema = new Schema<IProgreso>(
 
 ProgresoSchema.index({ paciente: 1, fecha: -1 });
 
-export const Progreso = (mongoose.models.Progreso ||
-  mongoose.model<IProgreso>("Progreso", ProgresoSchema)) as Model<IProgreso>;
+export const Progreso = definirModelo<IProgreso>("Progreso", ProgresoSchema);

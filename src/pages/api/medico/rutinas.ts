@@ -1,39 +1,28 @@
 import type { APIRoute } from "astro";
 import connectDB from "../../../lib/db";
 import { Rutina } from "../../../models/Rutina";
-import { getSessionFromRequest } from "../../../lib/session";
+import { getSessionFromRequest, json } from "../../../lib/session";
+import { esMiPaciente, esIdValido } from "../../../lib/medico";
+import { PERIODOS, ejercicioSinArchivo, textoFrecuencia, validarEjercicios, type Periodo } from "../../../lib/rutina";
 
 // GET /api/medico/rutinas
 export const GET: APIRoute = async ({ request, url }) => {
   try {
     const session = getSessionFromRequest(request);
-    if (!session || session.role !== "medico") {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    if (!session || session.role !== "medico") return json({ error: "No autorizado" }, 403);
 
     await connectDB();
-
     const pacienteId = url.searchParams.get("paciente");
     const filtro: Record<string, unknown> = { medico: session.userId };
-    if (pacienteId) filtro.paciente = pacienteId;
+    if (esIdValido(pacienteId)) filtro.paciente = pacienteId;
 
     const rutinas = await Rutina.find(filtro)
       .populate("paciente", "nombre apellido email")
       .sort({ createdAt: -1 });
-
-    return new Response(JSON.stringify(rutinas), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json(rutinas);
   } catch (error) {
     console.error("GET rutinas medico error:", error);
-    return new Response(JSON.stringify({ error: "Error interno" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json({ error: "Error interno" }, 500);
   }
 };
 
@@ -41,32 +30,45 @@ export const GET: APIRoute = async ({ request, url }) => {
 export const POST: APIRoute = async ({ request }) => {
   try {
     const session = getSessionFromRequest(request);
-    if (!session || session.role !== "medico") {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
+    if (!session || session.role !== "medico") return json({ error: "No autorizado" }, 403);
+
+    const body = await request.json();
+    await connectDB();
+
+    if (!(await esMiPaciente(session.userId, body.paciente))) {
+      return json({ error: "Selecciona uno de tus pacientes" }, 400);
     }
 
-    await connectDB();
-    const body = await request.json();
+    const nombre = String(body.nombre ?? "").trim();
+    if (!nombre) return json({ error: "El nombre de la rutina es requerido" }, 400);
+
+    const veces = Number(body.frecuenciaVeces);
+    const periodo = body.frecuenciaPeriodo as Periodo;
+    if (!Number.isInteger(veces) || veces < 1 || veces > 31 || !(periodo in PERIODOS)) {
+      return json({ error: "Elige una frecuencia válida" }, 400);
+    }
+
+    const validacion = validarEjercicios(body.ejercicios ?? [], session.userId);
+    if ("error" in validacion) return json({ error: validacion.error }, 400);
+    if (validacion.ejercicios.length === 0) return json({ error: "Agrega al menos un ejercicio" }, 400);
+    const sinVideo = await ejercicioSinArchivo(validacion.ejercicios);
+    if (sinVideo) return json({ error: `«${sinVideo}»: no se encontró el video, súbelo de nuevo` }, 400);
 
     const rutina = await Rutina.create({
-      ...body,
+      nombre,
+      objetivo: String(body.objetivo ?? "").trim() || undefined,
+      descripcion: String(body.descripcion ?? "").trim() || undefined,
+      paciente: body.paciente,
       medico: session.userId,
+      frecuenciaVeces: veces,
+      frecuenciaPeriodo: periodo,
+      frecuencia: textoFrecuencia(veces, periodo),
+      ejercicios: validacion.ejercicios,
     });
 
-    const populated = await rutina.populate("paciente", "nombre apellido email");
-
-    return new Response(JSON.stringify(populated), {
-      status: 201,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json(await rutina.populate("paciente", "nombre apellido email"), 201);
   } catch (error) {
     console.error("POST rutinas medico error:", error);
-    return new Response(JSON.stringify({ error: "Error interno" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json({ error: "Error interno" }, 500);
   }
 };

@@ -1,4 +1,5 @@
-import mongoose, { Schema, type Document, type Model } from "mongoose";
+import mongoose, { Schema, type Document } from "mongoose";
+import { definirModelo } from "../lib/modelo";
 
 export interface ICita extends Document {
   paciente: mongoose.Types.ObjectId;
@@ -10,6 +11,8 @@ export interface ICita extends Document {
   notas?: string;
   notasMedico?: string;
   sala?: string;
+  canceladaPor?: "medico" | "paciente";
+  motivoCancelacion?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +36,8 @@ const CitaSchema = new Schema<ICita>(
     notas: { type: String },
     notasMedico: { type: String },
     sala: { type: String },
+    canceladaPor: { type: String, enum: ["medico", "paciente"] },
+    motivoCancelacion: { type: String, maxlength: 500 },
   },
   { timestamps: true },
 );
@@ -40,5 +45,4 @@ const CitaSchema = new Schema<ICita>(
 CitaSchema.index({ medico: 1, fecha: 1 });
 CitaSchema.index({ paciente: 1, fecha: 1 });
 
-export const Cita = (mongoose.models.Cita ||
-  mongoose.model<ICita>("Cita", CitaSchema)) as Model<ICita>;
+export const Cita = definirModelo<ICita>("Cita", CitaSchema);

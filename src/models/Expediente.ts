@@ -1,4 +1,5 @@
-import mongoose, { Schema, type Document, type Model } from "mongoose";
+import mongoose, { Schema, type Document } from "mongoose";
+import { definirModelo } from "../lib/modelo";
 
 export interface IExpediente extends Document {
   paciente: mongoose.Types.ObjectId;
@@ -51,8 +52,4 @@ const ExpedienteSchema = new Schema<IExpediente>(
   { timestamps: true },
 );
 
-export const Expediente = (mongoose.models.Expediente ||
-  mongoose.model<IExpediente>(
-    "Expediente",
-    ExpedienteSchema,
-  )) as Model<IExpediente>;
+export const Expediente = definirModelo<IExpediente>("Expediente", ExpedienteSchema);

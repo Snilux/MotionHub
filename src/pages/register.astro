@@ -46,28 +46,54 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
             <form id="registerForm" class="space-y-2">
                 <!-- Three Column Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    <!-- Column 1: Email and Name -->
+                    <!-- Column 1: Name and Email -->
+                    <!-- (mismo espaciado que la columna 2 para que los campos queden alineados) -->
                     <div
-                        class="backdrop-blur-xl bg-white/50 rounded-xl shadow-2xl p-6 space-y-2"
+                        class="backdrop-blur-xl bg-white/50 rounded-xl shadow-2xl p-6 space-y-4"
                     >
                         <!-- Name Input -->
                         <div>
                             <label
-                                for="name"
+                                for="nombre"
                                 class="block text-sm font-medium text-gray-700 mb-2"
                             >
-                                Nombre completo
+                                Nombre
                             </label>
                             <input
                                 type="text"
-                                id="name"
-                                name="name"
+                                id="nombre"
+                                name="nombre"
                                 required
-                                placeholder="Juan Pérez"
+                                autocomplete="given-name"
+                                placeholder="Juan"
                                 class="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder:text-gray-400"
                             />
                             <p
-                                id="nameError"
+                                id="nombreError"
+                                class="mt-1 text-xs text-red-500 hidden"
+                            >
+                            </p>
+                        </div>
+
+                        <!-- Last Name Input -->
+                        <div>
+                            <label
+                                for="apellido"
+                                class="block text-sm font-medium text-gray-700 mb-2"
+                            >
+                                Apellido
+                            </label>
+                            <input
+                                type="text"
+                                id="apellido"
+                                name="apellido"
+                                required
+                                autocomplete="family-name"
+                                placeholder="Pérez"
+                                class="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder:text-gray-400"
+                            />
+                            <p
+                                id="apellidoError"
                                 class="mt-1 text-xs text-red-500 hidden"
                             >
                             </p>
@@ -97,9 +123,9 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
                         </div>
                     </div>
 
-                    <!-- Column 2: Passwords -->
+                    <!-- Column 2: Passwords (alineadas con nombre y apellido; la fortaleza ocupa el lugar del correo) -->
                     <div
-                        class="backdrop-blur-xl bg-white/50 rounded-xl shadow-2xl p-6 space-y-5"
+                        class="backdrop-blur-xl bg-white/50 rounded-xl shadow-2xl p-6 space-y-4"
                     >
                         <!-- Password Input -->
                         <div>
@@ -145,36 +171,6 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
                                     </svg>
                                 </button>
                             </div>
-                            <!-- Password Strength Indicator -->
-                            <div class="mt-2 space-y-1">
-                                <div class="flex gap-1">
-                                    <div
-                                        id="strength-1"
-                                        class="h-1 flex-1 bg-gray-200 rounded transition-colors"
-                                    >
-                                    </div>
-                                    <div
-                                        id="strength-2"
-                                        class="h-1 flex-1 bg-gray-200 rounded transition-colors"
-                                    >
-                                    </div>
-                                    <div
-                                        id="strength-3"
-                                        class="h-1 flex-1 bg-gray-200 rounded transition-colors"
-                                    >
-                                    </div>
-                                    <div
-                                        id="strength-4"
-                                        class="h-1 flex-1 bg-gray-200 rounded transition-colors"
-                                    >
-                                    </div>
-                                </div>
-                                <p
-                                    id="strengthText"
-                                    class="text-xs text-gray-500"
-                                >
-                                </p>
-                            </div>
                             <p
                                 id="passwordError"
                                 class="mt-1 text-xs text-red-500 hidden"
@@ -203,6 +199,45 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
                                 class="mt-1 text-xs text-red-500 hidden"
                             >
                             </p>
+                        </div>
+
+                        <!-- Password Strength Indicator -->
+                        <div>
+                            <p class="block text-sm font-medium text-gray-700 mb-2">
+                                Seguridad de la contraseña
+                            </p>
+                            <div class="space-y-1">
+                                <div class="flex gap-1">
+                                    <div
+                                        id="strength-1"
+                                        class="h-1 flex-1 bg-gray-200 rounded transition-colors"
+                                    >
+                                    </div>
+                                    <div
+                                        id="strength-2"
+                                        class="h-1 flex-1 bg-gray-200 rounded transition-colors"
+                                    >
+                                    </div>
+                                    <div
+                                        id="strength-3"
+                                        class="h-1 flex-1 bg-gray-200 rounded transition-colors"
+                                    >
+                                    </div>
+                                    <div
+                                        id="strength-4"
+                                        class="h-1 flex-1 bg-gray-200 rounded transition-colors"
+                                    >
+                                    </div>
+                                </div>
+                                <p
+                                    id="strengthText"
+                                    class="text-xs text-gray-500"
+                                >
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    Mínimo 8 caracteres, con mayúscula, minúscula y un número.
+                                </p>
+                            </div>
                         </div>
                     </div>
 
@@ -252,7 +287,7 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
                                 <input
                                     type="radio"
                                     name="user-type"
-                                    value="fisioterapeuta"
+                                    value="medico"
                                     class="sr-only"
                                 />
                                 <div class="text-center">
@@ -284,6 +319,70 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
                     </div>
                 </div>
 
+                <!-- Professional Data (solo fisioterapeutas) -->
+                <div
+                    id="camposMedico"
+                    transition:name="registro-profesional"
+                    class="hidden backdrop-blur-xl bg-white/50 rounded-xl shadow-2xl p-6 space-y-4"
+                >
+                    <div>
+                        <p class="text-sm font-medium text-gray-700">
+                            Datos profesionales
+                        </p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Verificaremos tu cédula antes de activar tu cuenta. Mientras tanto
+                            podrás entrar, pero no atender pacientes.
+                        </p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div>
+                            <label
+                                for="cedula"
+                                class="block text-sm font-medium text-gray-700 mb-2"
+                            >
+                                Cédula profesional
+                            </label>
+                            <input
+                                type="text"
+                                id="cedula"
+                                name="cedula"
+                                inputmode="numeric"
+                                maxlength="8"
+                                placeholder="Ej: 12345678"
+                                class="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder:text-gray-400"
+                            />
+                            <p
+                                id="cedulaError"
+                                class="mt-1 text-xs text-red-500 hidden"
+                            >
+                            </p>
+                        </div>
+                        <div>
+                            <label
+                                for="especialidad"
+                                class="block text-sm font-medium text-gray-700 mb-2"
+                            >
+                                Especialidad
+                            </label>
+                            <input
+                                type="text"
+                                id="especialidad"
+                                name="especialidad"
+                                maxlength="100"
+                                placeholder="Ej: Fisioterapia deportiva"
+                                class="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder:text-gray-400"
+                            />
+                            <p
+                                id="especialidadError"
+                                class="mt-1 text-xs text-red-500 hidden"
+                            >
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bloque inferior: se desliza junto cuando aparece la tarjeta profesional -->
+                <div transition:name="registro-acciones" class="space-y-2">
                 <!-- Bottom Section: Terms, Buttons, Links (separate card) -->
                 <div
                     class="backdrop-blur-xl bg-white/50 rounded-xl shadow-2xl p-6 space-y-5"
@@ -349,15 +448,15 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
 
                 <!-- Social Register -->
                 <div class="flex justify-center gap-2">
-                    <button
-                        type="button"
+                    <a
+                        href="/api/auth/google"
                         class="flex items-center justify-center gap-2 px-4 py-3 bg-white/50 border border-gray-200 rounded-xl hover:bg-white/80 transition-all duration-200 w-full shadow-2xl"
                     >
                         <Icon name="google" />
                         <span class="text-sm font-medium text-gray-700"
                             >Google</span
                         >
-                    </button>
+                    </a>
                 </div>
 
                 <!-- Login Link -->
@@ -371,6 +470,7 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
                         </a>
                     </p>
                 </div>
+                </div>
             </form>
         </div>
     </div>
@@ -381,6 +481,9 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
     </div>
 
     <script>
+        import { errorPassword } from "../lib/password";
+        import { CEDULA_RE } from "../lib/verificacion";
+
         // ============================================
         // UTILIDADES DE SANITIZACIÓN Y SEGURIDAD
         // ============================================
@@ -395,55 +498,26 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
         // ============================================
         // FUNCIONES DE VALIDACIÓN
         // ============================================
-        const validateName = (
-            name: string,
+        const validateNamePart = (
+            value: string,
+            campo: "nombre" | "apellido",
         ): { valid: boolean; error: string } => {
-            const sanitized = sanitizeInput(name);
+            const sanitized = sanitizeInput(value);
+            const etiqueta = campo === "nombre" ? "El nombre" : "El apellido";
 
             if (!sanitized) {
+                return { valid: false, error: `${etiqueta} es obligatorio` };
+            }
+
+            if (sanitized.length < 2) {
                 return {
                     valid: false,
-                    error: "El nombre completo es obligatorio",
+                    error: `${etiqueta} debe tener al menos 2 caracteres`,
                 };
             }
 
-            if (sanitized.length < 6) {
-                return {
-                    valid: false,
-                    error: "El nombre debe tener al menos 6 caracteres",
-                };
-            }
-
-            if (sanitized.length > 100) {
-                return { valid: false, error: "El nombre es demasiado largo" };
-            }
-
-            // Verifica que no sea solo caracteres repetidos
-            const uniqueChars = new Set(
-                sanitized.toLowerCase().replace(/\s/g, ""),
-            ).size;
-            if (uniqueChars < 3) {
-                return {
-                    valid: false,
-                    error: "Por favor ingresa un nombre válido",
-                };
-            }
-
-            // Verifica que contenga al menos dos palabras
-            const words = sanitized.split(/\s+/).filter((w) => w.length > 0);
-            if (words.length < 2) {
-                return {
-                    valid: false,
-                    error: "Ingresa tu nombre completo (nombre y apellido)",
-                };
-            }
-
-            // Verifica que cada palabra tenga al menos 2 caracteres
-            if (words.some((word) => word.length < 2)) {
-                return {
-                    valid: false,
-                    error: "Cada parte del nombre debe tener al menos 2 caracteres",
-                };
+            if (sanitized.length > 60) {
+                return { valid: false, error: `${etiqueta} es demasiado largo` };
             }
 
             // Solo permite letras, espacios, guiones y apóstrofes
@@ -451,10 +525,40 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
             if (!nameRegex.test(sanitized)) {
                 return {
                     valid: false,
-                    error: "El nombre solo puede contener letras",
+                    error: `${etiqueta} solo puede contener letras`,
                 };
             }
 
+            return { valid: true, error: "" };
+        };
+
+        // Misma regla que el servidor (src/lib/verificacion.ts)
+        const validateCedula = (
+            value: string,
+        ): { valid: boolean; error: string } => {
+            const cedula = value.replace(/[\s-]/g, "");
+            if (!cedula) {
+                return {
+                    valid: false,
+                    error: "La cédula profesional es obligatoria",
+                };
+            }
+            if (!CEDULA_RE.test(cedula)) {
+                return {
+                    valid: false,
+                    error: "La cédula debe tener 7 u 8 dígitos",
+                };
+            }
+            return { valid: true, error: "" };
+        };
+
+        const validateEspecialidad = (
+            value: string,
+        ): { valid: boolean; error: string } => {
+            const sanitized = sanitizeInput(value);
+            if (sanitized.length < 3) {
+                return { valid: false, error: "Indica tu especialidad" };
+            }
             return { valid: true, error: "" };
         };
 
@@ -525,48 +629,11 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
                 };
             }
 
-            if (sanitized.length < 8) {
-                return {
-                    valid: false,
-                    error: "Mínimo 8 caracteres",
-                    strength: 0,
-                };
-            }
-
-            if (sanitized.length > 128) {
-                return {
-                    valid: false,
-                    error: "La contraseña es demasiado larga",
-                    strength: 0,
-                };
-            }
-
+            // Misma regla que el servidor (src/lib/password.ts)
             const strength = calculatePasswordStrength(sanitized);
-
-            if (strength < 2) {
-                return {
-                    valid: false,
-                    error: "Contraseña débil. Usa mayúsculas, minúsculas y números",
-                    strength,
-                };
-            }
-
-            // Verificar patrones comunes débiles
-            const weakPatterns = [
-                /^123456/i,
-                /^password/i,
-                /^qwerty/i,
-                /^abc123/i,
-                /^111111/i,
-                /^admin/i,
-            ];
-
-            if (weakPatterns.some((pattern) => pattern.test(sanitized))) {
-                return {
-                    valid: false,
-                    error: "Esta contraseña es muy común",
-                    strength,
-                };
+            const error = errorPassword(sanitized);
+            if (error) {
+                return { valid: false, error, strength };
             }
 
             return { valid: true, error: "", strength };
@@ -680,7 +747,21 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
         // INICIALIZACIÓN
         // ============================================
         const form = document.getElementById("registerForm") as HTMLFormElement;
-        const nameInput = document.getElementById("name") as HTMLInputElement;
+        const nombreInput = document.getElementById("nombre") as HTMLInputElement;
+        const apellidoInput = document.getElementById(
+            "apellido",
+        ) as HTMLInputElement;
+        const cedulaInput = document.getElementById("cedula") as HTMLInputElement;
+        const especialidadInput = document.getElementById(
+            "especialidad",
+        ) as HTMLInputElement;
+        const camposMedico = document.getElementById("camposMedico");
+        const esMedico = () =>
+            (
+                document.querySelector(
+                    'input[name="user-type"]:checked',
+                ) as HTMLInputElement
+            )?.value === "medico";
         const emailInput = document.getElementById("email") as HTMLInputElement;
         const passwordInput = document.getElementById(
             "password",
@@ -723,14 +804,53 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
         });
 
         // Validación en tiempo real
-        nameInput?.addEventListener("blur", () => {
-            const validation = validateName(nameInput.value);
-            if (!validation.valid) {
-                showError("nameError", validation.error);
-            } else {
-                clearError("nameError");
-            }
+        // Valida un campo al salir de él
+        const alSalir = (
+            input: HTMLInputElement | null,
+            errorId: string,
+            validar: (v: string) => { valid: boolean; error: string },
+        ) =>
+            input?.addEventListener("blur", () => {
+                const validation = validar(input.value);
+                if (!validation.valid) showError(errorId, validation.error);
+                else clearError(errorId);
+            });
+
+        alSalir(nombreInput, "nombreError", (v) => validateNamePart(v, "nombre"));
+        alSalir(apellidoInput, "apellidoError", (v) =>
+            validateNamePart(v, "apellido"),
+        );
+        alSalir(cedulaInput, "cedulaError", validateCedula);
+        alSalir(especialidadInput, "especialidadError", validateEspecialidad);
+
+        // Solo números en la cédula
+        cedulaInput?.addEventListener("input", () => {
+            cedulaInput.value = cedulaInput.value.replace(/\D/g, "").slice(0, 8);
         });
+
+        // Datos profesionales solo para fisioterapeutas. Se muestran con una
+        // View Transition (la misma API que usan las transiciones de Astro entre
+        // páginas): la tarjeta "registro-profesional" entra deslizándose y el
+        // bloque "registro-acciones" se recorre en vez de saltar.
+        const mostrarCamposMedico = () => {
+            const mostrar = esMedico();
+            if (camposMedico?.classList.contains("hidden") !== mostrar) return;
+            const aplicar = () => {
+                camposMedico?.classList.toggle("hidden", !mostrar);
+                if (!mostrar) {
+                    clearError("cedulaError");
+                    clearError("especialidadError");
+                }
+            };
+            const sinMovimiento = window.matchMedia(
+                "(prefers-reduced-motion: reduce)",
+            ).matches;
+            if (!document.startViewTransition || sinMovimiento) return aplicar();
+            document.startViewTransition(aplicar);
+        };
+        document
+            .querySelectorAll<HTMLInputElement>('input[name="user-type"]')
+            .forEach((r) => r.addEventListener("change", mostrarCamposMedico));
 
         emailInput?.addEventListener("blur", () => {
             const validation = validateEmail(emailInput.value);
@@ -774,7 +894,16 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
             e.preventDefault();
 
             // Limpiar errores previos
-            ["name", "email", "password", "confirmPassword", "terms"].forEach(
+            [
+                "nombre",
+                "apellido",
+                "email",
+                "password",
+                "confirmPassword",
+                "cedula",
+                "especialidad",
+                "terms",
+            ].forEach(
                 (field) => {
                     clearError(`${field}Error`);
                 },
@@ -782,7 +911,6 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
             hideFormMessages();
 
             // Obtener valores
-            const name = nameInput.value;
             const email = emailInput.value;
             const password = passwordInput.value;
             const confirmPassword = confirmPasswordInput.value;
@@ -796,10 +924,34 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
             // Validar todos los campos
             let hasErrors = false;
 
-            const nameValidation = validateName(name);
-            if (!nameValidation.valid) {
-                showError("nameError", nameValidation.error);
+            const nombreValidation = validateNamePart(nombreInput.value, "nombre");
+            if (!nombreValidation.valid) {
+                showError("nombreError", nombreValidation.error);
                 hasErrors = true;
+            }
+
+            const apellidoValidation = validateNamePart(
+                apellidoInput.value,
+                "apellido",
+            );
+            if (!apellidoValidation.valid) {
+                showError("apellidoError", apellidoValidation.error);
+                hasErrors = true;
+            }
+
+            if (userType === "medico") {
+                const cedulaValidation = validateCedula(cedulaInput.value);
+                if (!cedulaValidation.valid) {
+                    showError("cedulaError", cedulaValidation.error);
+                    hasErrors = true;
+                }
+                const especialidadValidation = validateEspecialidad(
+                    especialidadInput.value,
+                );
+                if (!especialidadValidation.valid) {
+                    showError("especialidadError", especialidadValidation.error);
+                    hasErrors = true;
+                }
             }
 
             const emailValidation = validateEmail(email);
@@ -850,11 +1002,15 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
             try {
                 // Enviar al API real
                 const formData = {
-                    nombre: sanitizeInput(name).split(" ")[0] || sanitizeInput(name),
-                    apellido: sanitizeInput(name).split(" ").slice(1).join(" ") || ".",
+                    nombre: sanitizeInput(nombreInput.value),
+                    apellido: sanitizeInput(apellidoInput.value),
                     email: sanitizeInput(email),
                     password,
                     role: userType === "medico" ? "medico" : "paciente",
+                    ...(userType === "medico" && {
+                        cedulaProfesional: cedulaInput.value.replace(/[\s-]/g, ""),
+                        especialidad: sanitizeInput(especialidadInput.value),
+                    }),
                 };
 
                 const response = await fetch("/api/auth/register", {
@@ -863,13 +1019,19 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
                     body: JSON.stringify(formData),
                 });
 
-                const data = await response.json();
-                if (data.redirect) {
-                  window.location.href = data.redirect;
-                } else {
-                  showFormMessage("success", "¡Cuenta creada exitosamente! Redirigiendo...");
-                  setTimeout(() => { window.location.href = "/login"; }, 1500);
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    showFormMessage(
+                        "error",
+                        data.error ||
+                            "Hubo un error al crear la cuenta. Por favor intenta de nuevo.",
+                    );
+                    return;
                 }
+                showFormMessage("success", "¡Cuenta creada exitosamente! Redirigiendo...");
+                setTimeout(() => {
+                    window.location.href = data.redirect || "/login";
+                }, 800);
             } catch (error) {
                 showFormMessage(
                     "error",
@@ -888,6 +1050,31 @@ import ThemeToggle from "../components/common/ThemeToggle.astro";
         input,
         button {
             transition: all 0.2s ease;
+        }
+    </style>
+
+    <style is:global>
+        /* Tarjeta de datos profesionales: entra deslizándose hacia abajo y sale al revés.
+           Misma duración y curva que las transiciones entre páginas (HeadAssets.astro);
+           el bloque "registro-acciones" usa la animación de grupo por defecto (se desplaza). */
+        ::view-transition-new(registro-profesional):only-child {
+            animation: registro-entrar 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+        ::view-transition-old(registro-profesional):only-child {
+            animation: registro-salir 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+
+        @keyframes registro-entrar {
+            from {
+                opacity: 0;
+                transform: translateY(-16px) scale(0.98);
+            }
+        }
+        @keyframes registro-salir {
+            to {
+                opacity: 0;
+                transform: translateY(-16px) scale(0.98);
+            }
         }
     </style>
 </Layout>

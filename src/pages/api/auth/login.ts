@@ -1,94 +1,67 @@
 import type { APIRoute } from "astro";
 import connectDB from "../../../lib/db";
 import { User } from "../../../models/User";
-import { signToken, createSessionCookie } from "../../../lib/session";
+import { json } from "../../../lib/session";
+import { iniciarSesion, tieneSesionActiva } from "../../../lib/auth";
+import { errorPassword } from "../../../lib/password";
+import { LIMITES, bloqueado, consumir, registrar, limpiar, demasiadosIntentos, ipCliente } from "../../../lib/rateLimit";
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async (context) => {
   try {
-    await connectDB();
-
-    const body = await request.json();
-    const { email, password } = body;
-
+    const { email, password, recordar } = await context.request.json().catch(() => ({}));
     if (!email || !password) {
-      return new Response(
-        JSON.stringify({ error: "Email y contraseña son requeridos" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+      return json({ error: "Email y contraseña son requeridos" }, 400);
     }
+    const correo = String(email).trim().toLowerCase();
+    const claveCorreo = `login:correo:${correo}`;
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    // Por IP se cuentan todos los intentos; por correo, solo los fallidos
+    const espera =
+      consumir(`login:ip:${ipCliente(context)}`, LIMITES.loginIp) ||
+      bloqueado(claveCorreo, LIMITES.loginCorreo);
+    if (espera) return demasiadosIntentos(espera);
+
+    await connectDB();
+    const user = await User.findOne({ email: correo });
     if (!user) {
-      return new Response(
-        JSON.stringify({ error: "Credenciales incorrectas" }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
+      registrar(claveCorreo, LIMITES.loginCorreo);
+      return json({ error: "Credenciales incorrectas" }, 401);
+    }
+
+    if (!user.password) {
+      return json(
+        { error: "Esta cuenta se creó con Google. Usa el botón «Google» para entrar." },
+        401,
       );
     }
 
-    const isValid = await user.comparePassword(password);
-    if (!isValid) {
-      return new Response(
-        JSON.stringify({ error: "Credenciales incorrectas" }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
-      );
+    if (!(await user.comparePassword(password))) {
+      registrar(claveCorreo, LIMITES.loginCorreo);
+      return json({ error: "Credenciales incorrectas" }, 401);
     }
+    limpiar(claveCorreo);
 
-    // Para médicos: verificar si ya hay una sesión activa → bloquear nuevo login
-    if (user.role === "medico") {
-      if (user.activeSessionToken) {
-        return new Response(
-          JSON.stringify({
-            error: "Ya tienes una sesión activa en otro dispositivo o navegador. Cierra esa sesión antes de iniciar una nueva.",
-            codigo: "SESION_ACTIVA",
-          }),
-          { status: 409, headers: { "Content-Type": "application/json" } }
-        );
-      }
-      // Sin sesión activa: registrar la nueva
-      const { randomUUID } = await import("crypto");
-      const sessionId = randomUUID();
-      await User.updateOne({ _id: user._id }, { activeSessionToken: sessionId });
-
-      const token = signToken({
-        userId: user._id.toString(),
-        email: user.email,
-        role: user.role,
-        nombre: user.nombre,
-        sessionId,
-      });
-
-      return new Response(JSON.stringify({ success: true, redirect: "/dashboard/medico" }), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          "Set-Cookie": createSessionCookie(token, "medico"),
+    // Médicos: si hay otra sesión abierta (y no expirada) se pide confirmación
+    // para cerrarla. Las sesiones expiradas ya no bloquean el acceso.
+    if (tieneSesionActiva(user)) {
+      return json(
+        {
+          error: "Ya tienes una sesión activa en otro dispositivo o navegador.",
+          codigo: "SESION_ACTIVA",
         },
-      });
+        409,
+      );
     }
 
-    // Pacientes: sesión normal sin restricción de unicidad
-    const { randomUUID } = await import("crypto");
-    const sessionId = randomUUID();
-    const token = signToken({
-      userId: user._id.toString(),
-      email: user.email,
-      role: user.role,
-      nombre: user.nombre,
-      sessionId,
-    });
+    const { cookie, redirect } = await iniciarSesion(user, { recordar: recordar === true });
 
-    return new Response(JSON.stringify({ success: true, redirect: "/dashboard/paciente" }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Set-Cookie": createSessionCookie(token, "paciente"),
-      },
-    });
+    // Cuentas antiguas con una contraseña que ya no cumple la regla actual:
+    // entran, pero se les lleva al perfil para que la cambien.
+    const destino = errorPassword(password) ? `${redirect}/perfil?cambiar-password=1` : redirect;
+
+    return json({ success: true, redirect: destino }, 200, { "Set-Cookie": cookie });
   } catch (error) {
     console.error("Login error:", error);
-    return new Response(JSON.stringify({ error: "Error interno del servidor" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json({ error: "Error interno del servidor" }, 500);
   }
 };

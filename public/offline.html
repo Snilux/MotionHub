@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#fafaf9" />
+    <link rel="icon" href="/icon.svg" />
+    <title>Sin conexión – MotionHub</title>
+    <script>
+      // Mismo tema que eligió el usuario en la app (ver HeadAssets.astro)
+      (() => {
+        let tema = null;
+        try { tema = localStorage.getItem("theme"); } catch {}
+        const oscuro = tema ? tema === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.classList.toggle("dark", oscuro);
+        if (oscuro) document.querySelector('meta[name="theme-color"]').content = "#181818";
+      })();
+    </script>
+    <style>
+      /* Paleta del dashboard (stone) — página autónoma: debe funcionar sin red */
+      :root {
+        --fondo: #f5f5f4;
+        --panel: #fafaf9;
+        --borde: #d6d3d1;
+        --texto: #111827;
+        --suave: #57534e;
+        --marca: #000000;
+        --sobre-marca: #ffffff;
+        color-scheme: light;
+      }
+      .dark {
+        --fondo: #111111;
+        --panel: #181818;
+        --borde: #3f3f46;
+        --texto: #f4f4f5;
+        --suave: #a1a1aa;
+        --marca: #f4f4f5;
+        --sobre-marca: #111111;
+        color-scheme: dark;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        background: var(--fondo);
+        color: var(--texto);
+        font-family: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      header {
+        background: var(--panel);
+        border-bottom: 1px solid var(--borde);
+        padding: 0.75rem 1.5rem;
+        padding-top: max(0.75rem, env(safe-area-inset-top));
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        font-size: 0.85rem;
+      }
+      header img { width: 26px; height: 26px; }
+      .dark header img { filter: invert(1); }
+      main {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        padding: 2.5rem 1.5rem;
+        padding-bottom: max(2.5rem, env(safe-area-inset-bottom));
+      }
+      .contenido { max-width: 32rem; margin: 0 auto; width: 100%; }
+      .eyebrow {
+        font-size: 0.875rem;
+        color: var(--suave);
+        font-weight: 300;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        margin: 0;
+      }
+      h1 {
+        font-family: "Baloo Bhaijaan 2 Variable", system-ui, sans-serif;
+        font-size: 2.5rem;
+        line-height: 1.1;
+        margin: 0.5rem 0 0;
+      }
+      p.texto {
+        font-size: 1.125rem;
+        line-height: 1.6;
+        font-weight: 300;
+        color: var(--suave);
+        margin: 1rem 0 2rem;
+      }
+      .tarjeta {
+        background: var(--panel);
+        border: 1px solid var(--borde);
+        border-radius: 1rem;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 2rem;
+        font-size: 1rem;
+        line-height: 1.6;
+        color: var(--suave);
+      }
+      .tarjeta strong { color: var(--texto); font-weight: 600; }
+      button {
+        font: inherit;
+        font-size: 1rem;
+        font-weight: 500;
+        color: var(--texto);
+        background: transparent;
+        border: 1px solid var(--marca);
+        border-radius: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        cursor: pointer;
+        transition: background-color 0.2s, color 0.2s;
+      }
+      button:hover, button:focus-visible { background: var(--marca); color: var(--sobre-marca); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <img src="/icon.svg" alt="" />
+      MOTIONHUB
+    </header>
+    <main>
+      <div class="contenido">
+        <p class="eyebrow">Sin conexión</p>
+        <h1><strong>No hay internet</strong></h1>
+        <p class="texto">
+          No pudimos cargar esta página. Revisa tu conexión a internet e inténtalo de nuevo.
+        </p>
+        <div class="tarjeta">
+          Por tu privacidad, MotionHub <strong>no guarda tus citas, rutinas ni expediente</strong> en este
+          dispositivo, así que necesitas conexión para consultarlos.
+        </div>
+        <button type="button" id="reintentar">Reintentar</button>
+      </div>
+    </main>
+    <script>
+      document.getElementById("reintentar").addEventListener("click", () => location.reload());
+      // Al recuperar la conexión, vuelve a cargar sola
+      window.addEventListener("online", () => location.reload());
+    </script>
+  </body>
+</html>

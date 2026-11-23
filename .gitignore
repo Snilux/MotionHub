@@ -28,3 +28,6 @@ pnpm-debug.log*
 .env.local
 .env.example
 .env.production
+
+# archivos subidos en desarrollo fuera de Docker (UPLOADS_DIR por defecto)
+uploads/

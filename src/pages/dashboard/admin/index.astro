@@ -1,0 +1,145 @@
+---
+import DashboardLayout from "../../../components/common/DashboardLayout.astro";
+import PageHeader from "../../../components/dashboard/PageHeader.astro";
+import SectionHeader from "../../../components/dashboard/SectionHeader.astro";
+import EmptyState from "../../../components/dashboard/EmptyState.astro";
+import { chip, meses, diasSemana, plural, fechaLarga } from "../../../components/dashboard/styles";
+import { getSessionFromRequest } from "../../../lib/session";
+import connectDB from "../../../lib/db";
+import { User } from "../../../models/User";
+import { Cita } from "../../../models/Cita";
+import { Expediente } from "../../../models/Expediente";
+
+const session = getSessionFromRequest(Astro.request);
+if (!session || session.role !== "admin") return Astro.redirect("/login");
+
+await connectDB();
+
+const hoy = new Date();
+const hace30 = new Date(hoy.getTime() - 30 * 24 * 3600_000);
+// Las cuentas de médico sin estado (anteriores a la verificación) cuentan como pendientes
+const pendienteFiltro = { role: "medico", estadoVerificacion: { $in: ["pendiente", null] } };
+
+const [verificados, porVerificar, pacientes, citasMes, expedientes, altasMes, cola, recientes] = await Promise.all([
+  User.countDocuments({ role: "medico", estadoVerificacion: "aprobada" }),
+  User.countDocuments(pendienteFiltro),
+  User.countDocuments({ role: "paciente" }),
+  Cita.countDocuments({ fecha: { $gte: hace30, $lte: hoy }, estado: { $ne: "cancelada" } }),
+  Expediente.countDocuments(),
+  User.countDocuments({ role: { $in: ["medico", "paciente"] }, createdAt: { $gte: hace30 } }),
+  User.find(pendienteFiltro).select("nombre apellido especialidad cedulaProfesional createdAt").sort({ createdAt: 1 }).limit(5).lean(),
+  User.find({ role: { $in: ["medico", "paciente"] } })
+    .select("nombre apellido role estadoVerificacion createdAt")
+    .sort({ createdAt: -1 })
+    .limit(6)
+    .lean(),
+]);
+
+const resumen = [
+  { label: "Fisioterapeutas verificados", value: verificados },
+  { label: "Pacientes", value: pacientes },
+  { label: "Expedientes clínicos", value: expedientes },
+  { label: "Citas · últimos 30 días", value: citasMes },
+];
+
+const diasEsperando = (d: Date) => Math.max(0, Math.floor((hoy.getTime() - new Date(d).getTime()) / (24 * 3600_000)));
+---
+
+<DashboardLayout title="Administración" role="admin" nombre={session.nombre} activeSection="/dashboard/admin">
+
+  <div class="max-w-6xl px-6 sm:px-10 py-10 lg:py-14 space-y-12">
+
+    <PageHeader eyebrow={`${diasSemana[hoy.getDay()]}, ${hoy.getDate()} ${meses[hoy.getMonth()]} ${hoy.getFullYear()}`}>
+      <Fragment slot="title">Hola, <strong>{session.nombre}</strong></Fragment>
+      {porVerificar > 0 ? (
+        <>Hay <strong>{plural(porVerificar, "fisioterapeuta", "fisioterapeutas")}</strong> esperando verificación.</>
+      ) : (
+        <>No hay fisioterapeutas pendientes de verificar.</>
+      )}
+      {" "}En los últimos 30 días se crearon <strong>{plural(altasMes, "cuenta nueva", "cuentas nuevas")}</strong>.
+      {porVerificar > 0 && (
+        <a slot="action" href="/dashboard/admin/medicos"
+          class="shrink-0 self-start sm:self-auto text-base font-medium border border-black px-5 py-2.5 rounded-lg hover:bg-black hover:text-white transition-colors duration-200">
+          Verificar ahora
+        </a>
+      )}
+    </PageHeader>
+
+    <!-- Fila 1: por verificar | resumen -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div class="lg:col-span-7 flex flex-col">
+        <SectionHeader title={`Por verificar · ${porVerificar}`}>
+          {porVerificar > 0 && <a href="/dashboard/admin/medicos" class="text-base font-medium hover:underline underline-offset-4">Ver todos →</a>}
+        </SectionHeader>
+
+        {cola.length === 0 ? (
+          <EmptyState title="Todo al día" text="Cuando un fisioterapeuta se registre aparecerá aquí para verificar su cédula." />
+        ) : (
+          <ul class="divide-y divide-stone-300 border-y border-stone-300">
+            {cola.map((m: any) => {
+              const dias = diasEsperando(m.createdAt);
+              return (
+                <li>
+                  <a href={`/dashboard/admin/medicos?medico=${m._id}`} class="group flex items-center gap-5 py-5">
+                    <div class="w-11 h-11 rounded-full bg-black flex items-center justify-center text-white text-lg font-baloo font-bold shrink-0">
+                      {m.nombre.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-lg font-medium truncate group-hover:underline underline-offset-4">Dr. {m.nombre} {m.apellido}</p>
+                      <p class="text-base text-gray-500 font-light truncate">
+                        {m.especialidad || "Sin especialidad"} · Cédula {m.cedulaProfesional || "sin registrar"}
+                      </p>
+                    </div>
+                    <span class="text-base text-gray-600 shrink-0">{dias === 0 ? "Hoy" : plural(dias, "día", "días")}</span>
+                    <span class="text-xl text-gray-400 transition-all duration-200 group-hover:text-black group-hover:translate-x-1">→</span>
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <div class="lg:col-span-5 flex flex-col">
+        <SectionHeader title="Resumen" />
+        <dl class="flex-1 divide-y divide-stone-300 border-y border-stone-300">
+          {resumen.map(({ label, value }) => (
+            <div class="flex items-baseline justify-between gap-4 py-5">
+              <dt class="text-lg text-gray-700">{label}</dt>
+              <dd class="text-4xl font-baloo font-bold">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+
+    <hr class="border-stone-300" />
+
+    <!-- Altas recientes -->
+    <section>
+      <SectionHeader title="Cuentas recientes">
+        <a href="/dashboard/admin/pacientes" class="text-base font-medium hover:underline underline-offset-4">Ver pacientes →</a>
+      </SectionHeader>
+      {recientes.length === 0 ? (
+        <EmptyState title="Sin cuentas" text="Aún no se ha registrado nadie." />
+      ) : (
+        <ul class="divide-y divide-stone-300 border-y border-stone-300">
+          {recientes.map((u: any) => (
+            <li class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 py-5">
+              <p class="sm:w-40 shrink-0 text-lg font-baloo font-bold text-gray-700">{fechaLarga(new Date(u.createdAt))}</p>
+              <p class="flex-1 min-w-0 text-lg font-medium text-gray-900 truncate">
+                {u.role === "medico" ? "Dr. " : ""}{u.nombre} {u.apellido}
+              </p>
+              <span class="text-base text-gray-600">{u.role === "medico" ? "Fisioterapeuta" : "Paciente"}</span>
+              {u.role === "medico" && (
+                <span class={`${chip(u.estadoVerificacion === "aprobada")} self-start sm:self-auto`}>
+                  {u.estadoVerificacion === "aprobada" ? "Verificado" : u.estadoVerificacion === "rechazada" ? "Rechazado" : "Pendiente"}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  </div>
+</DashboardLayout>

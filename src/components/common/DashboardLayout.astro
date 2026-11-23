@@ -5,10 +5,11 @@ import "@fontsource-variable/baloo-bhaijaan-2";
 import Title from "./Title.astro";
 import HeadAssets from "./HeadAssets.astro";
 import ThemeToggle from "./ThemeToggle.astro";
+import InstallPrompt from "./InstallPrompt.astro";
 
 interface Props {
   title: string;
-  role: "medico" | "paciente";
+  role: "medico" | "paciente" | "admin";
   nombre: string;
   activeSection?: string;
 }
@@ -64,9 +65,33 @@ const pacienteLinks = [
     label: "Mi Progreso",
     icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
   },
+  {
+    href: "/dashboard/paciente/expediente",
+    label: "Mi Expediente",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
+  },
 ];
 
-const links = role === "medico" ? medicoLinks : pacienteLinks;
+// Escudo con palomita: verificación de cuentas
+const iconoVerificacion = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>`;
+
+const adminLinks = [
+  { href: "/dashboard/admin", label: "Inicio", icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>` },
+  { href: "/dashboard/admin/medicos", label: "Fisioterapeutas", icon: iconoVerificacion },
+  { href: "/dashboard/admin/pacientes", label: "Pacientes", icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>` },
+];
+
+// Médico sin verificar: solo ve el estado de su verificación (el middleware bloquea el resto)
+const medicoSinVerificar = role === "medico" && Astro.locals.medicoVerificado === false;
+const medicoPendienteLinks = [
+  { href: "/dashboard/medico/verificacion", label: "Verificación", icon: iconoVerificacion },
+];
+
+const links =
+  role === "admin" ? adminLinks
+  : role === "paciente" ? pacienteLinks
+  : medicoSinVerificar ? medicoPendienteLinks
+  : medicoLinks;
 
 const perfilHref = `/dashboard/${role}/perfil`;
 
@@ -90,9 +115,9 @@ const ui = {
     <HeadAssets />
   </head>
   <body class={`${ui.body} min-h-screen flex font-sans`} data-role={role}>
-    <!-- Banner expiración sesión médico -->
+    <!-- Banner expiración sesión (médicos y administradores) -->
     {
-      role === "medico" && (
+      role !== "paciente" && (
         <div
           id="sessionWarnBanner"
           class="hidden fixed top-0 left-0 right-0 z-[100] bg-black text-white text-xs tracking-wide px-5 py-2.5 flex items-center justify-between"
@@ -105,10 +130,10 @@ const ui = {
             . Guarda tu trabajo.
           </span>
           <button
-            onclick="document.getElementById('sessionWarnBanner').classList.add('hidden')"
-            class="ml-4 opacity-60 hover:opacity-100 text-base leading-none"
+            id="seguirConectadoBtn"
+            class="ml-4 border border-white/60 rounded-md px-3 py-1 hover:bg-white hover:text-black transition-colors"
           >
-            ✕
+            Seguir conectado
           </button>
         </div>
       )
@@ -282,9 +307,11 @@ const ui = {
     </div>
 
     <!-- ── MAIN ── -->
-    <main transition:animate="slide" class={`flex-1 lg:ml-56 pt-14 lg:pt-0 min-h-screen ${ui.body}`}>
+    <main transition:animate="slide" class={`flex-1 max-lg:min-w-0 lg:ml-56 pt-14 lg:pt-0 min-h-screen ${ui.body}`}>
       <slot />
     </main>
+
+    <InstallPrompt />
 
     <script>
       async function logout() {
@@ -310,26 +337,47 @@ const ui = {
       });
 
       const ROLE = document.body.dataset.role;
-      if (ROLE === "medico") {
+      if (ROLE === "medico" || ROLE === "admin") {
+        // La sesión del médico (y del administrador) expira tras 10 min sin actividad. El servidor la
+        // renueva en cada petición; aquí reiniciamos el contador igual.
         const SESSION_MS = 10 * 60 * 1000;
         const WARN_MS = 9 * 60 * 1000;
-        setTimeout(() => {
-          const banner = document.getElementById("sessionWarnBanner");
-          if (banner) {
+        const banner = document.getElementById("sessionWarnBanner");
+        const countdown = document.getElementById("sessionCountdown");
+        let tWarn: ReturnType<typeof setTimeout>;
+        let tFin: ReturnType<typeof setTimeout>;
+        let iv: ReturnType<typeof setInterval>;
+
+        const programar = () => {
+          clearTimeout(tWarn);
+          clearTimeout(tFin);
+          clearInterval(iv);
+          banner?.classList.add("hidden");
+          tWarn = setTimeout(() => {
+            if (!banner) return;
             banner.classList.remove("hidden");
             let secs = 60;
-            const countdown = document.getElementById("sessionCountdown");
-            const iv = setInterval(() => {
+            if (countdown) countdown.textContent = String(secs);
+            iv = setInterval(() => {
               secs--;
-              if (countdown) countdown.textContent = String(secs);
+              if (countdown) countdown.textContent = String(Math.max(secs, 0));
               if (secs <= 0) clearInterval(iv);
             }, 1000);
-          }
-        }, WARN_MS);
-        setTimeout(async () => {
-          await fetch("/api/auth/logout", { method: "POST" });
-          window.location.href = "/login?razon=expiracion";
-        }, SESSION_MS);
+          }, WARN_MS);
+          tFin = setTimeout(async () => {
+            await fetch("/api/auth/logout", { method: "POST" });
+            window.location.href = "/login?razon=expiracion";
+          }, SESSION_MS);
+        };
+
+        programar();
+        // Cada llamada a la API (ver src/scripts/ui.ts) renueva la sesión
+        window.addEventListener("mh:actividad", programar);
+        document.getElementById("seguirConectadoBtn")?.addEventListener("click", async () => {
+          const res = await fetch(`/api/${ROLE}/sesion`);
+          if (res.ok) programar();
+          else window.location.href = "/login?razon=expiracion";
+        });
       }
     </script>
   </body>

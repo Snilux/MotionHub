@@ -4,7 +4,7 @@ import PageHeader from "../../../components/dashboard/PageHeader.astro";
 import SectionHeader from "../../../components/dashboard/SectionHeader.astro";
 import EmptyState from "../../../components/dashboard/EmptyState.astro";
 import SearchInput from "../../../components/dashboard/SearchInput.astro";
-import { card, chip, hora, plural, diaRelativo, fechaLarga } from "../../../components/dashboard/styles";
+import { card, chip, hora, plural, diaRelativo, fechaLarga, btnPrimary, btnSecondary } from "../../../components/dashboard/styles";
 import { getSessionFromRequest } from "../../../lib/session";
 import connectDB from "../../../lib/db";
 import { Cita } from "../../../models/Cita";
@@ -19,10 +19,17 @@ const citas = await Cita.find({ paciente: session.userId })
   .populate("medico","nombre apellido especialidad")
   .sort({ fecha: -1 });
 
-const proximas = citas
-  .filter((c: any) => new Date(c.fecha) >= hoy && c.estado !== "cancelada")
-  .reverse(); // de la más cercana a la más lejana
-const pasadas  = citas.filter((c: any) => new Date(c.fecha) <  hoy || c.estado === "completada" || c.estado === "cancelada");
+// Próximas: futuras que siguen en pie. El resto (pasadas, completadas o canceladas) va al historial.
+const esProxima = (c: any) => new Date(c.fecha) >= hoy && (c.estado === "pendiente" || c.estado === "confirmada");
+const proximas = citas.filter(esProxima).reverse(); // de la más cercana a la más lejana
+const pasadas  = citas.filter((c: any) => !esProxima(c));
+const HISTORIAL_MAX = 20;
+
+// El médico puede haberse eliminado: no romper la página
+const nombreMedico = (c: any) => (c.medico ? `Dr. ${c.medico.nombre} ${c.medico.apellido}` : "Fisioterapeuta no disponible");
+// Una cita pasada que nadie marcó como completada no se muestra como "pendiente"
+const estadoHistorial = (c: any) =>
+  c.estado === "pendiente" || c.estado === "confirmada" ? "sin registrar" : c.estado;
 
 // Agrupa las próximas citas por día
 const porDia = new Map<string, any[]>();
@@ -44,7 +51,7 @@ const dias = [...porDia.values()];
       <strong>{plural(pasadas.length, "cita", "citas")}</strong> en tu historial.
     </PageHeader>
 
-    <SearchInput placeholder="Buscar cita por tipo o fisioterapeuta..." />
+    {citas.length > 0 && <SearchInput placeholder="Buscar cita por tipo o fisioterapeuta..." />}
 
     {dias.length === 0 ? (
       <>
@@ -53,7 +60,7 @@ const dias = [...porDia.values()];
       </>
     ) : (
       dias.map((citasDia) => (
-        <>
+        <div data-buscar-grupo class="space-y-12">
           <hr class="border-stone-300" />
           <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
             <div class="lg:col-span-3">
@@ -65,7 +72,7 @@ const dias = [...porDia.values()];
               {citasDia.map((c: any) => {
                 const f = new Date(c.fecha);
                 return (
-                  <article class={`${card} space-y-4`}>
+                  <article data-buscar={`${c.tipo} ${nombreMedico(c)} ${c.estado} ${c.notas ?? ""}`} class={`${card} space-y-4`}>
                     <div class="flex flex-col sm:flex-row sm:items-center gap-5">
                       <div class="sm:w-28 shrink-0">
                         <p class="text-3xl font-baloo font-bold leading-none">{hora(f)}</p>
@@ -74,8 +81,8 @@ const dias = [...porDia.values()];
                       <div class="flex-1 min-w-0 sm:border-l sm:border-stone-200 sm:pl-5">
                         <p class="text-xl font-semibold text-gray-900 capitalize">{c.tipo}</p>
                         <p class="text-base text-gray-600 truncate">
-                          Dr. {c.medico.nombre} {c.medico.apellido}
-                          {c.medico.especialidad ? ` · ${c.medico.especialidad}` : ""}
+                          {nombreMedico(c)}
+                          {c.medico?.especialidad ? ` · ${c.medico.especialidad}` : ""}
                         </p>
                       </div>
                       <span class={`${chip(c.estado === "confirmada")} self-start sm:self-auto`}>{c.estado}</span>
@@ -83,35 +90,133 @@ const dias = [...porDia.values()];
                     {c.notas && (
                       <p class="text-base text-gray-700 border-t border-stone-200 pt-4">{c.notas}</p>
                     )}
+                    <div class="flex flex-wrap items-center gap-2 border-t border-stone-200 pt-4">
+                      {c.estado === "pendiente" ? (
+                        <>
+                          <p class="text-base text-gray-600 mr-auto">¿Asistirás a esta cita?</p>
+                          <button data-confirmar={String(c._id)} class={btnPrimary}>Confirmar asistencia</button>
+                        </>
+                      ) : (
+                        <p class="text-base text-gray-600 mr-auto">Cita confirmada.</p>
+                      )}
+                      <button
+                        data-cancelar={String(c._id)}
+                        data-resumen={`${c.tipo} · ${diaRelativo(f)}, ${hora(f)}`}
+                        class={`${btnSecondary} hover:!bg-red-600 hover:!border-red-600`}
+                      >
+                        Cancelar cita
+                      </button>
+                    </div>
                   </article>
                 );
               })}
             </div>
           </section>
-        </>
+        </div>
       ))
     )}
 
     {pasadas.length > 0 && (
-      <>
+      <div data-buscar-grupo class="space-y-12">
         <hr class="border-stone-300" />
         <section>
           <SectionHeader title={`Historial · ${pasadas.length}`} />
           <ul class="divide-y divide-stone-300 border-y border-stone-300">
-            {pasadas.slice(0, 10).map((c: any) => (
-              <li class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 py-5">
+            {pasadas.slice(0, HISTORIAL_MAX).map((c: any) => (
+              <li data-buscar={`${c.tipo} ${nombreMedico(c)} ${estadoHistorial(c)}`} class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 py-5">
                 <p class="sm:w-40 shrink-0 text-lg font-baloo font-bold text-gray-700">{fechaLarga(new Date(c.fecha))}</p>
                 <div class="flex-1 min-w-0">
                   <p class="text-lg font-medium text-gray-900 capitalize">{c.tipo}</p>
-                  <p class="text-base text-gray-600 truncate">Dr. {c.medico.nombre} {c.medico.apellido}</p>
+                  <p class="text-base text-gray-600 truncate">{nombreMedico(c)}</p>
+                  {c.estado === "cancelada" && c.canceladaPor && (
+                    <p class="text-sm text-gray-500 mt-0.5">
+                      Cancelada por {c.canceladaPor === "paciente" ? "ti" : "tu fisioterapeuta"}
+                      {c.motivoCancelacion ? ` · ${c.motivoCancelacion}` : ""}
+                    </p>
+                  )}
                 </div>
-                <span class={`${chip(false)} self-start sm:self-auto`}>{c.estado}</span>
+                <span class={`${chip(false)} self-start sm:self-auto`}>{estadoHistorial(c)}</span>
               </li>
             ))}
           </ul>
+          {pasadas.length > HISTORIAL_MAX && (
+            <p class="text-base text-gray-500 mt-4">Se muestran las {HISTORIAL_MAX} más recientes.</p>
+          )}
         </section>
-      </>
+      </div>
     )}
 
   </div>
+<!-- Modal cancelar cita -->
+  <div id="modalCancelar" class="hidden fixed inset-0 z-50 bg-black/30 dark:bg-[#000]/60 flex items-center justify-center p-4">
+    <form id="formCancelar" class="bg-white rounded-lg border border-gray-200 shadow-lg p-6 w-full max-w-md">
+      <h2 class="font-baloo tracking-wide text-2xl mb-1"><strong>¿Cancelar esta cita?</strong></h2>
+      <p id="cancelarResumen" class="text-base text-gray-600 mb-5 capitalize"></p>
+      <label for="cancelarMotivo" class="text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide">
+        Motivo <span class="normal-case tracking-normal text-gray-400">(opcional, lo verá tu fisioterapeuta)</span>
+      </label>
+      <textarea id="cancelarMotivo" rows="3" maxlength="500" placeholder="Ej: tengo un compromiso de trabajo" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors resize-none"></textarea>
+      <p id="cancelarError" class="hidden text-base text-red-600 mt-3"></p>
+      <div class="flex gap-2 mt-5">
+        <button type="button" data-cerrar class="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-base font-medium hover:border-gray-400 transition-colors">Volver</button>
+        <button type="submit" id="cancelarEnviar" class="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg text-base font-medium hover:bg-red-700 transition-colors disabled:opacity-60">Cancelar cita</button>
+      </div>
+    </form>
+  </div>
 </DashboardLayout>
+
+<script>
+  import { api, aviso, modal, errorEn, $ } from "../../../scripts/ui";
+
+  // Confirmar asistencia
+  document.querySelectorAll<HTMLButtonElement>("[data-confirmar]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      const { ok, data } = await api(`/api/paciente/cita/${btn.dataset.confirmar}`, "PUT", { accion: "confirmar" });
+      if (ok) {
+        aviso("Asistencia confirmada. Avisamos a tu fisioterapeuta.", "exito");
+        setTimeout(() => location.reload(), 600);
+      } else {
+        btn.disabled = false;
+        aviso(data.error || "No se pudo confirmar la cita", "error");
+      }
+    });
+  });
+
+  // Cancelar (con motivo opcional)
+  const form = $<HTMLFormElement>("formCancelar");
+  const m = modal("modalCancelar", () => {
+    form.reset();
+    errorEn("cancelarError");
+  });
+  form.querySelector("[data-cerrar]")!.addEventListener("click", m.cerrar);
+  let citaId = "";
+
+  document.querySelectorAll<HTMLButtonElement>("[data-cancelar]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      citaId = btn.dataset.cancelar!;
+      $("cancelarResumen").textContent = btn.dataset.resumen ?? "";
+      m.abrir();
+    });
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const enviar = $<HTMLButtonElement>("cancelarEnviar");
+    if (enviar.disabled) return;
+    enviar.disabled = true;
+    const { ok, data } = await api(`/api/paciente/cita/${citaId}`, "PUT", {
+      accion: "cancelar",
+      motivo: $<HTMLTextAreaElement>("cancelarMotivo").value.trim(),
+    });
+    if (ok) {
+      m.cerrar();
+      aviso("Cita cancelada. Avisamos a tu fisioterapeuta.", "exito");
+      setTimeout(() => location.reload(), 600);
+    } else {
+      enviar.disabled = false;
+      errorEn("cancelarError", data.error || "No se pudo cancelar la cita");
+    }
+  });
+</script>

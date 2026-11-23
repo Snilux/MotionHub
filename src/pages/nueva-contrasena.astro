@@ -2,102 +2,163 @@
 import Title from "../components/common/Title.astro";
 import Layout from "../layouts/Layout.astro";
 import AnimationBgAuth from "../components/common/AnimationBgAuth.astro";
+import ThemeToggle from "../components/common/ThemeToggle.astro";
+import connectDB from "../lib/db";
+import { usuarioPorTokenReset } from "../lib/auth";
+import { REQUISITOS_PASSWORD } from "../lib/password";
 
 const token = Astro.url.searchParams.get("token");
 if (!token) {
   return Astro.redirect("/reset-password");
 }
+
+// Se valida el enlace antes de mostrar el formulario
+await connectDB();
+const usuario = await usuarioPorTokenReset(token);
+const enlaceValido = !!usuario;
+
+const fieldCls =
+  "w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400";
+const requisitos = [
+  ...REQUISITOS_PASSWORD.map(({ id, texto }) => ({ id, texto })),
+  { id: "match", texto: "Ambas contraseñas coinciden" },
+];
 ---
 
 <Layout title="Nueva contraseña">
+  <ThemeToggle class="fixed top-4 right-4 z-20 bg-white/60 backdrop-blur-xl shadow-md" />
   <div class="relative isolate min-h-screen flex items-center justify-center p-4 overflow-hidden">
     <div class="absolute inset-0 -z-10"><AnimationBgAuth /></div>
     <div class="w-full max-w-md relative z-10">
       <div class="text-center mb-4">
-        <a href="/"><Title size="lg" /></a>
+        <a href="/" transition:name="brand-logo"><Title size="lg" /></a>
       </div>
-      <div class="backdrop-blur-xl bg-white/50 rounded-3xl shadow-2xl p-8">
-        <div class="mb-6">
-          <h2 class="text-3xl font-medium mb-2">Nueva contraseña</h2>
-          <p class="font-light opacity-80">Ingresa tu nueva contraseña</p>
-        </div>
+      <div transition:name="auth-card" class="backdrop-blur-xl bg-white/50 rounded-3xl shadow-2xl p-8">
+        {enlaceValido ? (
+          <>
+            <div class="mb-6">
+              <h2 class="text-3xl font-medium mb-2">Nueva contraseña</h2>
+              <p class="font-light opacity-80">
+                Elige una nueva contraseña para <strong>{usuario!.email}</strong>.
+                Al guardarla se cerrarán tus sesiones en otros dispositivos.
+              </p>
+            </div>
 
-        <div class="space-y-5">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Nueva contraseña</label>
-            <input
-              type="password"
-              id="password"
-              placeholder="••••••••"
-              class="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Confirmar contraseña</label>
-            <input
-              type="password"
-              id="confirm"
-              placeholder="••••••••"
-              class="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-            />
-          </div>
+            <form id="nuevaForm" class="space-y-5" novalidate>
+              <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Nueva contraseña</label>
+                <input type="password" id="password" autocomplete="new-password" placeholder="••••••••" class={fieldCls} />
+              </div>
+              <div>
+                <label for="confirm" class="block text-sm font-medium text-gray-700 mb-2">Confirmar contraseña</label>
+                <input type="password" id="confirm" autocomplete="new-password" placeholder="••••••••" class={fieldCls} />
+              </div>
 
-          <div id="errorMsg" class="hidden text-sm text-red-600 bg-red-50 px-3 py-2 rounded-xl"></div>
-          <div id="successMsg" class="hidden text-sm text-green-700 bg-green-50 px-3 py-2 rounded-xl"></div>
+              <ul class="space-y-1.5">
+                {requisitos.map((r) => (
+                  <li data-req={r.id} class="flex items-center gap-2.5 text-sm text-gray-700">
+                    <span class="w-2 h-2 rounded-full bg-gray-300 shrink-0 transition-colors" />
+                    {r.texto}
+                  </li>
+                ))}
+              </ul>
 
-          <button
-            id="submitBtn"
-            class="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-600 transition-all shadow-lg shadow-blue-500/30"
-          >
-            Actualizar contraseña
-          </button>
+              <div id="errorMsg" class="hidden text-sm text-red-600 bg-red-50 px-3 py-2 rounded-xl"></div>
+              <div id="successMsg" class="hidden text-sm text-green-700 bg-green-50 px-3 py-2 rounded-xl"></div>
 
-          <div class="text-center">
-            <a href="/login" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
-              ← Volver al inicio de sesión
+              <button
+                id="submitBtn"
+                type="submit"
+                class="w-full bg-linear-to-r from-blue-600 to-blue-500 text-white keep-light py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-600 transition-all shadow-lg shadow-blue-500/30 disabled:opacity-60"
+              >
+                Actualizar contraseña
+              </button>
+            </form>
+          </>
+        ) : (
+          <div class="text-center py-2 space-y-4">
+            <h2 class="text-3xl font-medium">Enlace no válido</h2>
+            <p class="font-light opacity-80">
+              Este enlace para restablecer la contraseña ya se usó o expiró (duran 1 hora).
+              Solicita uno nuevo para continuar.
+            </p>
+            <a
+              href="/reset-password"
+              class="inline-block w-full bg-linear-to-r from-blue-600 to-blue-500 text-white keep-light py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-600 transition-all shadow-lg shadow-blue-500/30"
+            >
+              Solicitar otro enlace
             </a>
           </div>
+        )}
+
+        <div class="text-center mt-5">
+          <a href="/login" class="text-sm text-blue-600 dark:text-blue-300 hover:text-blue-700 dark:hover:text-blue-200 font-medium">
+            ← Volver al inicio de sesión
+          </a>
         </div>
       </div>
     </div>
   </div>
 </Layout>
 
-<script define:vars={{ token }}>
-  document.getElementById("submitBtn")?.addEventListener("click", async () => {
-    const password = document.getElementById("password").value;
-    const confirm = document.getElementById("confirm").value;
-    const errorEl = document.getElementById("errorMsg");
-    const successEl = document.getElementById("successMsg");
+<script>
+  import { errorPassword, REQUISITOS_PASSWORD } from "../lib/password";
 
-    errorEl.classList.add("hidden");
-    successEl.classList.add("hidden");
+  const token = new URLSearchParams(window.location.search).get("token");
+  const form = document.getElementById("nuevaForm") as HTMLFormElement | null;
 
-    if (!password || password.length < 6) {
-      errorEl.textContent = "La contraseña debe tener al menos 6 caracteres";
+  if (form) {
+    const pass = document.getElementById("password") as HTMLInputElement;
+    const conf = document.getElementById("confirm") as HTMLInputElement;
+    const btn = document.getElementById("submitBtn") as HTMLButtonElement;
+    const errorEl = document.getElementById("errorMsg")!;
+    const successEl = document.getElementById("successMsg")!;
+
+    // Indicadores de requisitos en vivo (misma regla que el servidor)
+    const marcar = (id: string, ok: boolean) => {
+      const punto = form.querySelector(`[data-req="${id}"] span`);
+      punto?.classList.toggle("bg-green-500", ok);
+      punto?.classList.toggle("bg-gray-300", !ok);
+    };
+    const revisar = () => {
+      REQUISITOS_PASSWORD.forEach((r) => marcar(r.id, r.cumple(pass.value)));
+      marcar("match", !!pass.value && pass.value === conf.value);
+    };
+    pass.addEventListener("input", revisar);
+    conf.addEventListener("input", revisar);
+
+    const mostrarError = (msg: string) => {
+      errorEl.textContent = msg;
       errorEl.classList.remove("hidden");
-      return;
-    }
-    if (password !== confirm) {
-      errorEl.textContent = "Las contraseñas no coinciden";
-      errorEl.classList.remove("hidden");
-      return;
-    }
+    };
 
-    const res = await fetch("/api/auth/reset-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, password }),
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (btn.disabled) return;
+      errorEl.classList.add("hidden");
+
+      const error = errorPassword(pass.value);
+      if (error) return mostrarError(error);
+      if (pass.value !== conf.value) return mostrarError("Las contraseñas no coinciden");
+
+      btn.disabled = true;
+      btn.textContent = "Guardando...";
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password: pass.value }),
+      }).catch(() => null);
+      const data = res ? await res.json().catch(() => ({})) : { error: "Sin conexión con el servidor" };
+
+      if (res?.ok) {
+        successEl.textContent = "¡Contraseña actualizada! Te llevamos a iniciar sesión...";
+        successEl.classList.remove("hidden");
+        setTimeout(() => (window.location.href = "/login?razon=password_restablecida"), 1800);
+      } else {
+        btn.disabled = false;
+        btn.textContent = "Actualizar contraseña";
+        mostrarError(data.error || "No se pudo actualizar la contraseña");
+      }
     });
-    const data = await res.json();
-
-    if (res.ok) {
-      successEl.textContent = "¡Contraseña actualizada! Redirigiendo...";
-      successEl.classList.remove("hidden");
-      setTimeout(() => (window.location.href = "/login"), 2000);
-    } else {
-      errorEl.textContent = data.error || "Error al actualizar";
-      errorEl.classList.remove("hidden");
-    }
-  });
+  }
 </script>

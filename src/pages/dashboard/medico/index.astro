@@ -7,6 +7,7 @@ import { meses, diasSemana, hora, plural, diaRelativo } from "../../../component
 import connectDB from "../../../lib/db";
 import { User } from "../../../models/User";
 import { Cita } from "../../../models/Cita";
+import { SolicitudExpediente } from "../../../models/SolicitudExpediente";
 import { getSessionFromRequest } from "../../../lib/session";
 
 const session = getSessionFromRequest(Astro.request);
@@ -24,6 +25,10 @@ const [totalPacientes, citasHoy, citasPendientes] = await Promise.all([
   Cita.countDocuments({ medico: session.userId, estado: "pendiente", fecha: { $gte: hoy } }),
 ]);
 
+// Sugerencias de pacientes a sus expedientes, por revisar
+const misPacientes = await User.find({ role: "paciente", medicoAsignado: session.userId }).distinct("_id");
+const sugerenciasPendientes = await SolicitudExpediente.countDocuments({ paciente: { $in: misPacientes }, estado: "pendiente" });
+
 const proximasCitas = await Cita.find({
   medico: session.userId,
   fecha: { $gte: hoy },
@@ -36,9 +41,10 @@ const proximasCitas = await Cita.find({
 const [siguiente, ...agenda] = proximasCitas as any[];
 
 const atajos = [
-  { href: "/dashboard/medico/pacientes",   label: "Agregar paciente", desc: "Asigna un nuevo paciente" },
-  { href: "/dashboard/medico/rutinas",     label: "Crear rutina",     desc: "Diseña un programa de ejercicio" },
-  { href: "/dashboard/medico/expedientes", label: "Ver expedientes",  desc: "Historial clínico completo" },
+  { href: "/dashboard/medico/citas?nuevo=1",       label: "Agendar cita",     desc: "Programa una nueva cita" },
+  { href: "/dashboard/medico/pacientes?nuevo=1",   label: "Agregar paciente", desc: "Asigna un nuevo paciente" },
+  { href: "/dashboard/medico/rutinas?nuevo=1",     label: "Crear rutina",     desc: "Diseña un programa de ejercicio" },
+  { href: "/dashboard/medico/expedientes?nuevo=1", label: "Nuevo expediente", desc: "Registra el historial clínico" },
 ];
 ---
 
@@ -51,6 +57,9 @@ const atajos = [
       Tienes <strong>{plural(citasHoy, "cita", "citas")}</strong> en las próximas 24 horas,
       <strong>{citasPendientes}</strong> por confirmar y acompañas a
       <strong>{plural(totalPacientes, "paciente", "pacientes")}</strong> en su recuperación.
+      {sugerenciasPendientes > 0 && (
+        <> Tienes <a href="/dashboard/medico/expedientes" class="underline underline-offset-4"><strong>{plural(sugerenciasPendientes, "sugerencia", "sugerencias")}</strong></a> de pacientes por revisar en sus expedientes.</>
+      )}
     </PageHeader>
 
     <!-- Fila 1: siguiente cita | por confirmar -->

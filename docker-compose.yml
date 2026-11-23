@@ -9,12 +9,15 @@ services:
     volumes:
       - .:/app                  # código local ↔ contenedor en vivo
       - /app/node_modules       # aísla node_modules del contenedor
+      - uploads-data:/data/uploads   # archivos subidos (fotos de perfil, videos de ejercicios); persisten entre reinicios
     env_file:
       - .env
     environment:
       - HOST=0.0.0.0
+      - UPLOADS_DIR=/data/uploads
       # La URL usa el nombre del servicio "mongo" como hostname
       - MONGODB_URI=mongodb://mongo:27017/motionhub
+      - TZ=America/Mexico_City   # hora local para mostrar las citas
     depends_on:
       mongo:
         condition: service_healthy
@@ -39,3 +42,4 @@ services:
 
 volumes:
   mongo-data:
+  uploads-data:

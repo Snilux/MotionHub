@@ -7,7 +7,9 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "seed": "node src/scripts/seed.js"
+    "seed": "node src/scripts/seed.js",
+    "admin:crear": "node --env-file-if-exists=.env src/scripts/crear-admin.js",
+    "email:prueba": "node --env-file-if-exists=.env src/scripts/email-prueba.js"
   },
   "dependencies": {
     "@astrojs/node": "^10.0.5",
@@ -23,6 +25,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.4.1",
     "nodemailer": "^8.0.5",
+    "pdf-lib": "^1.17.1",
     "tailwindcss": "^4.1.18"
   }
 }

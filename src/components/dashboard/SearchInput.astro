@@ -1,5 +1,7 @@
 ---
-// Buscador (solo diseño por ahora, sin lógica de filtrado)
+// Buscador del dashboard. Filtra en vivo los elementos de la página que tengan
+// el atributo `data-buscar="texto a buscar"`. Los contenedores con
+// `data-buscar-grupo` se ocultan si todos sus elementos quedan ocultos.
 interface Props {
   placeholder: string;
 }
@@ -7,24 +9,65 @@ interface Props {
 const { placeholder } = Astro.props;
 ---
 
-<div class="relative w-full max-w-xl">
-  <svg
-    class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    aria-hidden="true"
-  >
-    <circle cx="11" cy="11" r="7"></circle>
-    <path d="M21 21l-4.3-4.3"></path>
-  </svg>
-  <input
-    type="search"
-    placeholder={placeholder}
-    aria-label={placeholder}
-    class="w-full bg-stone-50 border border-stone-300 rounded-xl pl-12 pr-4 py-3 text-base text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-black transition-colors"
-  />
+<div class="w-full max-w-xl">
+  <div class="relative">
+    <svg
+      class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="11" cy="11" r="7"></circle>
+      <path d="M21 21l-4.3-4.3"></path>
+    </svg>
+    <input
+      type="search"
+      data-buscador
+      placeholder={placeholder}
+      aria-label={placeholder}
+      class="w-full bg-stone-50 border border-stone-300 rounded-xl pl-12 pr-4 py-3 text-base text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-black transition-colors"
+    />
+  </div>
+  <p data-buscador-vacio class="hidden text-base text-gray-600 mt-3">
+    No hay resultados para «<span></span>».
+  </p>
 </div>
+
+<script>
+  // Quita acentos y pasa a minúsculas para comparar
+  const normalizar = (s: string) =>
+    s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
+  document.querySelectorAll<HTMLInputElement>("[data-buscador]").forEach((input) => {
+    const vacio = input.closest("div.max-w-xl")?.querySelector<HTMLElement>("[data-buscador-vacio]");
+
+    const filtrar = () => {
+      const q = normalizar(input.value);
+      const palabras = q.split(/\s+/).filter(Boolean);
+      let visibles = 0;
+
+      document.querySelectorAll<HTMLElement>("[data-buscar]").forEach((el) => {
+        const texto = normalizar(el.dataset.buscar ?? el.textContent ?? "");
+        const coincide = palabras.every((p) => texto.includes(p));
+        el.classList.toggle("hidden", !coincide);
+        if (coincide) visibles++;
+      });
+
+      document.querySelectorAll<HTMLElement>("[data-buscar-grupo]").forEach((g) => {
+        const alguno = g.querySelector("[data-buscar]:not(.hidden)");
+        g.classList.toggle("hidden", !alguno);
+      });
+
+      if (vacio) {
+        vacio.querySelector("span")!.textContent = input.value;
+        vacio.classList.toggle("hidden", !q || visibles > 0);
+      }
+    };
+
+    input.addEventListener("input", filtrar);
+  });
+</script>

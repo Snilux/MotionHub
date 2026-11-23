@@ -1,0 +1,25 @@
+---
+import DashboardLayout from "../../../components/common/DashboardLayout.astro";
+import ProfileView from "../../../components/dashboard/ProfileView.astro";
+import { getSessionFromRequest } from "../../../lib/session";
+import connectDB from "../../../lib/db";
+import { User } from "../../../models/User";
+
+const session = getSessionFromRequest(Astro.request);
+if (!session || session.role !== "admin") return Astro.redirect("/login");
+
+await connectDB();
+const admin: any = await User.findById(session.userId).select(
+  "nombre apellido email telefono fechaNacimiento createdAt googleId password pendingEmail pendingEmailExpires fotoPerfil",
+);
+if (!admin) return Astro.redirect("/login");
+---
+
+<DashboardLayout title="Mi perfil" role="admin" nombre={session.nombre} activeSection="/dashboard/admin/perfil">
+  <ProfileView
+    usuario={admin}
+    subtitulo="Administrador de MotionHub"
+    identidad={[{ label: "Rol", value: "Administrador" }]}
+    fotoDesc="Se mostrará en el panel de administración."
+  />
+</DashboardLayout>
