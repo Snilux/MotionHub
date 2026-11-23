@@ -1,4 +1,5 @@
-import mongoose, { Schema, type Document, type Model } from "mongoose";
+import mongoose, { Schema, type Document } from "mongoose";
+import { definirModelo } from "../lib/modelo";
 
 export interface IEjercicio {
   nombre: string;
@@ -68,5 +69,4 @@ RutinaSchema.index({ paciente: 1, activa: 1 });
 RutinaSchema.index({ medico: 1 });
 RutinaSchema.index({ "ejercicios.video": 1 }, { sparse: true }); // permisos de /archivos/videos/...
 
-export const Rutina = (mongoose.models.Rutina ||
-  mongoose.model<IRutina>("Rutina", RutinaSchema)) as Model<IRutina>;
+export const Rutina = definirModelo<IRutina>("Rutina", RutinaSchema);

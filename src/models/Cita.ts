@@ -1,4 +1,5 @@
-import mongoose, { Schema, type Document, type Model } from "mongoose";
+import mongoose, { Schema, type Document } from "mongoose";
+import { definirModelo } from "../lib/modelo";
 
 export interface ICita extends Document {
   paciente: mongoose.Types.ObjectId;
@@ -44,5 +45,4 @@ const CitaSchema = new Schema<ICita>(
 CitaSchema.index({ medico: 1, fecha: 1 });
 CitaSchema.index({ paciente: 1, fecha: 1 });
 
-export const Cita = (mongoose.models.Cita ||
-  mongoose.model<ICita>("Cita", CitaSchema)) as Model<ICita>;
+export const Cita = definirModelo<ICita>("Cita", CitaSchema);

@@ -1,4 +1,5 @@
-import mongoose, { Schema, type Document, type Model } from "mongoose";
+import mongoose, { Schema, type Document } from "mongoose";
+import { definirModelo } from "../lib/modelo";
 import bcrypt from "bcryptjs";
 import { ESTADOS_VERIFICACION, type EstadoVerificacion } from "../lib/verificacion";
 
@@ -106,5 +107,4 @@ UserSchema.methods.comparePassword = async function (
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-export const User = (mongoose.models.User ||
-  mongoose.model<IUser>("User", UserSchema)) as Model<IUser>;
+export const User = definirModelo<IUser>("User", UserSchema);

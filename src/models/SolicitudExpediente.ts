@@ -1,4 +1,5 @@
-import mongoose, { Schema, type Document, type Model } from "mongoose";
+import mongoose, { Schema, type Document } from "mongoose";
+import { definirModelo } from "../lib/modelo";
 import { CAMPOS_SUGERIBLES, type CampoSugerible } from "../lib/expediente";
 
 // Sugerencia del paciente para modificar su expediente. No cambia nada hasta
@@ -43,8 +44,4 @@ const SolicitudExpedienteSchema = new Schema<ISolicitudExpediente>(
 
 SolicitudExpedienteSchema.index({ paciente: 1, estado: 1, createdAt: -1 });
 
-export const SolicitudExpediente = (mongoose.models.SolicitudExpediente ||
-  mongoose.model<ISolicitudExpediente>(
-    "SolicitudExpediente",
-    SolicitudExpedienteSchema,
-  )) as Model<ISolicitudExpediente>;
+export const SolicitudExpediente = definirModelo<ISolicitudExpediente>("SolicitudExpediente", SolicitudExpedienteSchema);
