@@ -1,0 +1,118 @@
+---
+// Invitación a instalar MotionHub como app (PWA). Solo en móvil y tablet (< lg):
+// en escritorio el navegador ya muestra su propio botón de instalar.
+// - Android/Chrome: usa el evento `beforeinstallprompt` (botón "Instalar").
+// - iPhone/iPad (Safari): no existe ese evento, así que se explica cómo hacerlo.
+// No aparece si la app ya está instalada ni durante 14 días tras "Ahora no".
+---
+
+<div
+  id="pwaInstalar"
+  hidden
+  role="dialog"
+  aria-labelledby="pwaInstalarTitulo"
+  class="lg:hidden fixed inset-x-4 z-40 bg-black text-white rounded-2xl shadow-2xl p-5 transition-all duration-300 opacity-0 translate-y-4"
+  style="bottom: calc(1rem + env(safe-area-inset-bottom, 0px));"
+>
+  <div class="flex items-start gap-4">
+    <img src="/icons/icon-192.png" alt="" width="48" height="48" class="w-12 h-12 rounded-xl shrink-0 ring-1 ring-white/20" />
+    <div class="flex-1 min-w-0">
+      <p id="pwaInstalarTitulo" class="text-lg font-baloo font-bold leading-tight">Instala MotionHub</p>
+      <p data-texto="android" class="text-base text-white/70 font-light mt-1">
+        Ábrela desde tu pantalla de inicio, como una app, sin pasar por el navegador.
+      </p>
+      <p data-texto="ios" hidden class="text-base text-white/70 font-light mt-1">
+        Toca <strong class="font-medium text-white">Compartir</strong>
+        <svg class="inline w-4 h-4 -mt-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        y luego <strong class="font-medium text-white">«Agregar a inicio»</strong>.
+      </p>
+    </div>
+  </div>
+  <div class="flex justify-end gap-2 mt-4">
+    <button type="button" data-accion="cerrar"
+      class="text-base font-medium px-4 py-2 rounded-lg text-white/80 hover:text-white transition-colors">
+      Ahora no
+    </button>
+    <button type="button" data-accion="instalar"
+      class="text-base font-medium px-5 py-2 rounded-lg bg-white text-black hover:bg-white/90 transition-colors">
+      Instalar
+    </button>
+  </div>
+</div>
+
+<script>
+  const CLAVE = "pwa-instalar-descartado";
+  const ESPERA_MS = 14 * 24 * 3600_000;
+
+  const banner = document.getElementById("pwaInstalar");
+  const instalada =
+    window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
+
+  const descartadoHace = () => {
+    try {
+      return Date.now() - Number(localStorage.getItem(CLAVE) || 0);
+    } catch {
+      return Infinity;
+    }
+  };
+  const recordarDescarte = () => {
+    try {
+      localStorage.setItem(CLAVE, String(Date.now()));
+    } catch {}
+  };
+
+  let promptDiferido: any = null;
+
+  const mostrar = (modo: "android" | "ios") => {
+    if (!banner || !banner.hidden) return;
+    banner.querySelectorAll<HTMLElement>("[data-texto]").forEach((p) => (p.hidden = p.dataset.texto !== modo));
+    const instalar = banner.querySelector<HTMLButtonElement>('[data-accion="instalar"]')!;
+    instalar.textContent = modo === "ios" ? "Entendido" : "Instalar";
+    banner.hidden = false;
+    requestAnimationFrame(() => banner.classList.remove("opacity-0", "translate-y-4"));
+  };
+
+  const ocultar = () => {
+    if (!banner || banner.hidden) return;
+    banner.classList.add("opacity-0", "translate-y-4");
+    setTimeout(() => (banner.hidden = true), 300);
+  };
+
+  if (banner && !instalada && descartadoHace() > ESPERA_MS) {
+    // Android / Chrome / Edge: el navegador avisa cuando la app se puede instalar
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      promptDiferido = e;
+      setTimeout(() => mostrar("android"), 2500);
+    });
+
+    // iPhone / iPad con Safari (no Chrome/Firefox para iOS, que no permiten instalar)
+    const ua = navigator.userAgent;
+    const esIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const esSafari = /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
+    if (esIOS && esSafari) setTimeout(() => mostrar("ios"), 4000);
+
+    banner.querySelector('[data-accion="cerrar"]')?.addEventListener("click", () => {
+      recordarDescarte();
+      ocultar();
+    });
+
+    banner.querySelector('[data-accion="instalar"]')?.addEventListener("click", async () => {
+      if (!promptDiferido) {
+        // iOS: "Entendido" solo cierra (la instalación se hace desde el menú Compartir)
+        recordarDescarte();
+        return ocultar();
+      }
+      promptDiferido.prompt();
+      const { outcome } = await promptDiferido.userChoice;
+      promptDiferido = null;
+      if (outcome !== "accepted") recordarDescarte();
+      ocultar();
+    });
+
+    window.addEventListener("appinstalled", () => {
+      promptDiferido = null;
+      ocultar();
+    });
+  }
+</script>

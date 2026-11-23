@@ -4,12 +4,52 @@
 // 2. Tema claro/oscuro aplicado antes del primer pintado.
 // 3. Contenido oculto hasta que fuentes y scripts (GSAP) estén listos, con fundido.
 // 4. Transición suave entre páginas (View Transitions entre documentos).
+// 5. PWA: manifiesto, íconos, color de la barra del sistema y service worker.
 import interUrl from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
 import balooUrl from "@fontsource-variable/baloo-bhaijaan-2/files/baloo-bhaijaan-2-latin-wght-normal.woff2?url";
+
+// Color de la barra del sistema (el mismo fondo que el encabezado móvil, bg-stone-50)
+const THEME_CLARO = "#fafaf9";
+const THEME_OSCURO = "#181818";
+// En desarrollo no se registra: interferiría con la recarga en caliente de Vite
+const registrarSW = import.meta.env.PROD;
 ---
 
 <link rel="preload" href={interUrl} as="font" type="font/woff2" crossorigin />
 <link rel="preload" href={balooUrl} as="font" type="font/woff2" crossorigin />
+
+<!-- PWA -->
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content={THEME_CLARO} data-claro={THEME_CLARO} data-oscuro={THEME_OSCURO} />
+<meta name="application-name" content="MotionHub" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="MotionHub" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+
+<script is:inline>
+  // La barra del sistema sigue al tema de la app (también al cambiarlo con el botón)
+  (() => {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    const aplicar = () => {
+      if (meta) meta.content = document.documentElement.classList.contains("dark") ? meta.dataset.oscuro : meta.dataset.claro;
+    };
+    new MutationObserver(aplicar).observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    aplicar();
+  })();
+</script>
+
+{registrarSW && (
+  <script is:inline>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch((e) => console.warn("Service worker:", e));
+      });
+    }
+  </script>
+)}
 
 <script is:inline>
   (() => {
