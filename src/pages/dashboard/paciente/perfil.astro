@@ -13,7 +13,7 @@ if (!session || session.role !== "paciente") return Astro.redirect("/login");
 
 await connectDB();
 const paciente: any = await User.findById(session.userId)
-  .select("nombre apellido email telefono fechaNacimiento diagnostico medicoAsignado createdAt")
+  .select("nombre apellido email telefono fechaNacimiento diagnostico medicoAsignado createdAt googleId password pendingEmail pendingEmailExpires fotoPerfil")
   .populate("medicoAsignado", "nombre apellido email especialidad");
 if (!paciente) return Astro.redirect("/login");
 

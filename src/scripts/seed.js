@@ -5,6 +5,11 @@
 
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import { rm } from "node:fs/promises";
+import path from "node:path";
+
+// Misma carpeta que usa la app (src/lib/storage.ts). En Docker: volumen uploads-data.
+const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || "./uploads");
 
 const MONGODB_URI =
   process.env.MONGODB_URI ||
@@ -21,6 +26,8 @@ const UserSchema = new mongoose.Schema(
     telefono: String,
     cedulaProfesional: String,
     especialidad: String,
+    estadoVerificacion: String,
+    motivoVerificacion: String,
     medicoAsignado: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     diagnostico: String,
   },
@@ -140,6 +147,10 @@ async function seed() {
   ]);
   console.log("🗑️  Colecciones limpiadas");
 
+  // Fotos de perfil: los usuarios a los que pertenecían ya no existen
+  await rm(path.join(UPLOADS_DIR, "avatars"), { recursive: true, force: true });
+  console.log("🗑️  Fotos de perfil borradas de", path.join(UPLOADS_DIR, "avatars"));
+
   // ── Médicos ──────────────────────────────────────────────────────────────
   const medico1 = await User.create({
     nombre: "Carlos",
@@ -148,8 +159,9 @@ async function seed() {
     password: await hash("medico123"),
     role: "medico",
     telefono: "222-100-0001",
-    cedulaProfesional: "FT-2019-001",
+    cedulaProfesional: "10234567",
     especialidad: "Fisioterapia deportiva",
+    estadoVerificacion: "aprobada",
   });
 
   const medico2 = await User.create({
@@ -159,8 +171,31 @@ async function seed() {
     password: await hash("medico123"),
     role: "medico",
     telefono: "222-100-0002",
-    cedulaProfesional: "FT-2021-042",
+    cedulaProfesional: "11876543",
     especialidad: "Rehabilitación neurológica",
+    estadoVerificacion: "aprobada",
+  });
+
+  // Recién registrado: espera a que un administrador verifique su cédula
+  await User.create({
+    nombre: "Luis",
+    apellido: "Herrera",
+    email: "luis@motionhub.com",
+    password: await hash("Medico1234"),
+    role: "medico",
+    telefono: "222-100-0003",
+    cedulaProfesional: "12345678",
+    especialidad: "Fisioterapia geriátrica",
+    estadoVerificacion: "pendiente",
+  });
+
+  // ── Administrador ────────────────────────────────────────────────────────
+  await User.create({
+    nombre: "Admin",
+    apellido: "MotionHub",
+    email: "admin@motionhub.com",
+    password: await hash("Motion2026Admin"),
+    role: "admin",
   });
 
   // ── Pacientes ────────────────────────────────────────────────────────────
@@ -196,6 +231,69 @@ async function seed() {
     medicoAsignado: medico2._id,
     diagnostico: "Hemiplegia post-ACV",
   });
+
+  // ── Usuarios extra para pruebas ──────────────────────────────────────────
+  // Dominio .test (reservado, nunca entrega correo): el .env tiene SMTP real y
+  // las notificaciones no deben llegar a nadie.
+  const PASS_PRUEBA = await hash("Prueba1234");
+
+  const [medico3, medico4, medico5] = await User.insertMany([
+    {
+      nombre: "Sofía", apellido: "Mendoza", email: "sofia@motionhub.test", password: PASS_PRUEBA,
+      role: "medico", telefono: "222-100-0004", cedulaProfesional: "13456789",
+      especialidad: "Fisioterapia pediátrica", estadoVerificacion: "aprobada",
+    },
+    {
+      nombre: "Diego", apellido: "Castillo", email: "diego@motionhub.test", password: PASS_PRUEBA,
+      role: "medico", telefono: "222-100-0005", cedulaProfesional: "14567890",
+      especialidad: "Fisioterapia ortopédica", estadoVerificacion: "aprobada",
+    },
+    {
+      nombre: "Valeria", apellido: "Ruiz", email: "valeria@motionhub.test", password: PASS_PRUEBA,
+      role: "medico", telefono: "222-100-0006", cedulaProfesional: "15678901",
+      especialidad: "Fisioterapia cardiorrespiratoria", estadoVerificacion: "aprobada",
+    },
+  ]);
+
+  await User.insertMany([
+    {
+      nombre: "Ricardo", apellido: "Salas", email: "ricardo@motionhub.test", password: PASS_PRUEBA,
+      role: "medico", telefono: "222-100-0007", cedulaProfesional: "16789012",
+      especialidad: "Terapia manual", estadoVerificacion: "pendiente",
+    },
+    {
+      nombre: "Patricia", apellido: "Vega", email: "patricia@motionhub.test", password: PASS_PRUEBA,
+      role: "medico", telefono: "222-100-0008", cedulaProfesional: "1789012",
+      especialidad: "Fisioterapia deportiva", estadoVerificacion: "rechazada",
+      motivoVerificacion: "La cédula no coincide con el nombre registrado en la SEP.",
+    },
+  ]);
+
+  const pacientesExtra = await User.insertMany([
+    { nombre: "Laura", apellido: "Jiménez", email: "laura@motionhub.test", medicoAsignado: medico1._id,
+      diagnostico: "Tendinopatía rotuliana", telefono: "222-200-0004" },
+    { nombre: "Andrés", apellido: "Morales", email: "andres@motionhub.test", medicoAsignado: medico1._id,
+      diagnostico: "Esguince de tobillo grado II", telefono: "222-200-0005" },
+    { nombre: "Camila", apellido: "Reyes", email: "camila@motionhub.test", medicoAsignado: medico2._id,
+      diagnostico: "Esclerosis múltiple, fase de mantenimiento", telefono: "222-200-0006" },
+    { nombre: "Fernando", apellido: "Cruz", email: "fernando@motionhub.test", medicoAsignado: medico2._id,
+      diagnostico: "Lesión medular incompleta T10", telefono: "222-200-0007" },
+    { nombre: "Daniela", apellido: "Ortiz", email: "daniela@motionhub.test", medicoAsignado: medico3._id,
+      diagnostico: "Escoliosis idiopática juvenil", telefono: "222-200-0008" },
+    { nombre: "Emilio", apellido: "Navarro", email: "emilio@motionhub.test", medicoAsignado: medico3._id,
+      diagnostico: "Pie plano flexible", telefono: "222-200-0009" },
+    { nombre: "Gabriela", apellido: "Flores", email: "gabriela@motionhub.test", medicoAsignado: medico4._id,
+      diagnostico: "Prótesis total de cadera izquierda", telefono: "222-200-0010" },
+    { nombre: "Héctor", apellido: "Aguilar", email: "hector@motionhub.test", medicoAsignado: medico4._id,
+      diagnostico: "Hombro congelado (capsulitis adhesiva)", telefono: "222-200-0011" },
+    { nombre: "Isabel", apellido: "Domínguez", email: "isabel@motionhub.test", medicoAsignado: medico5._id,
+      diagnostico: "EPOC, rehabilitación pulmonar", telefono: "222-200-0012" },
+    { nombre: "Jorge", apellido: "Peña", email: "jorge@motionhub.test", medicoAsignado: medico5._id,
+      diagnostico: "Rehabilitación post-infarto, fase II", telefono: "222-200-0013" },
+    // Sin fisioterapeuta asignado (para probar la búsqueda y asignación)
+    { nombre: "Karla", apellido: "Rosales", email: "karla@motionhub.test", telefono: "222-200-0014" },
+    { nombre: "Mario", apellido: "Ibarra", email: "mario@motionhub.test", telefono: "222-200-0015" },
+  ].map((p) => ({ ...p, password: PASS_PRUEBA, role: "paciente" })));
 
   console.log("👥 Usuarios creados");
 
@@ -251,6 +349,21 @@ async function seed() {
       estado: "completada",
     },
   ]);
+
+  // Una cita próxima y una pasada para cada paciente extra que tiene fisioterapeuta
+  const conMedico = pacientesExtra.filter((p) => p.medicoAsignado);
+  await Cita.insertMany(
+    conMedico.flatMap((p, i) => {
+      const proxima = daysFromNow(1 + (i % 6));
+      proxima.setHours(9 + (i % 8), 0, 0, 0); // horas distintas para no chocar
+      return [
+        { paciente: p._id, medico: p.medicoAsignado, fecha: proxima, duracion: 60,
+          tipo: i % 3 === 0 ? "evaluacion" : "tratamiento", estado: i % 2 ? "pendiente" : "confirmada" },
+        { paciente: p._id, medico: p.medicoAsignado, fecha: daysAgo(3 + i), duracion: 60,
+          tipo: "evaluacion", estado: "completada" },
+      ];
+    }),
+  );
 
   console.log("📅 Citas creadas");
 
@@ -457,6 +570,12 @@ async function seed() {
   console.log("════════════════════════════════════════");
   console.log("  CREDENCIALES DE ACCESO");
   console.log("════════════════════════════════════════");
+  console.log("  ADMINISTRADOR");
+  console.log("  📧 admin@motionhub.com");
+  console.log("  🔑 Motion2026Admin\n");
+  console.log("  MÉDICO SIN VERIFICAR (para probar la verificación)");
+  console.log("  📧 luis@motionhub.com");
+  console.log("  🔑 Medico1234\n");
   console.log("  MÉDICO 1 (Fisioterapia deportiva)");
   console.log("  📧 medico@motionhub.com");
   console.log("  🔑 medico123\n");
@@ -468,7 +587,14 @@ async function seed() {
   console.log("  🔑 paciente123\n");
   console.log("  PACIENTE 2 (Lumbalgia)");
   console.log("  📧 maria@motionhub.com");
-  console.log("  🔑 paciente123");
+  console.log("  🔑 paciente123\n");
+  console.log("  USUARIOS EXTRA DE PRUEBA (contraseña: Prueba1234)");
+  console.log("  Médicos aprobados:  sofia@ · diego@ · valeria@motionhub.test");
+  console.log("  Médico pendiente:   ricardo@motionhub.test");
+  console.log("  Médico rechazado:   patricia@motionhub.test");
+  console.log("  Pacientes:          laura@ · andres@ · camila@ · fernando@ · daniela@ · emilio@");
+  console.log("                      gabriela@ · hector@ · isabel@ · jorge@motionhub.test");
+  console.log("  Sin fisioterapeuta: karla@ · mario@motionhub.test");
   console.log("════════════════════════════════════════\n");
 
   await mongoose.disconnect();

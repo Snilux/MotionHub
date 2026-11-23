@@ -1,0 +1,70 @@
+// Almacenamiento de archivos subidos (fotos de perfil, etc.).
+// En Docker vive en el volumen `uploads-data`, montado en UPLOADS_DIR (/data/uploads).
+// En Mongo se guarda solo la ruta relativa ("avatars/<id>-<ts>.jpg"), nunca la absoluta,
+// para poder mover el volumen o cambiar UPLOADS_DIR sin tocar la base.
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import path from "node:path";
+import crypto from "node:crypto";
+
+export const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || "./uploads");
+
+export const TIPOS_IMAGEN = {
+  jpg: "image/jpeg",
+  png: "image/png",
+} as const;
+export type ExtImagen = keyof typeof TIPOS_IMAGEN;
+
+export const FOTO_MAX_BYTES = 2 * 1024 * 1024; // 2 MB
+
+/** Detecta JPG/PNG por su contenido (firma de bytes), no por el nombre del archivo. */
+export function tipoImagen(buf: Uint8Array): ExtImagen | null {
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "jpg";
+  const png = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  if (buf.length >= 8 && png.every((b, i) => buf[i] === b)) return "png";
+  return null;
+}
+
+/** Convierte una ruta relativa en absoluta dentro de UPLOADS_DIR; null si intenta salir (../). */
+export function rutaSegura(relativa: string): string | null {
+  const abs = path.resolve(UPLOADS_DIR, relativa);
+  return abs.startsWith(UPLOADS_DIR + path.sep) ? abs : null;
+}
+
+/** Guarda el archivo y devuelve su ruta relativa (lo que se guarda en Mongo). */
+export async function guardarArchivo(carpeta: string, prefijo: string, ext: string, datos: Uint8Array): Promise<string> {
+  const nombre = `${prefijo}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${ext}`;
+  const relativa = path.posix.join(carpeta, nombre);
+  const abs = rutaSegura(relativa);
+  if (!abs) throw new Error("Ruta de archivo no válida");
+  await mkdir(path.dirname(abs), { recursive: true });
+  await writeFile(abs, datos);
+  return relativa;
+}
+
+/** Borra un archivo; no falla si ya no existe. */
+export async function borrarArchivo(relativa: string | null | undefined): Promise<void> {
+  if (!relativa) return;
+  const abs = rutaSegura(relativa);
+  if (abs) await rm(abs, { force: true });
+}
+
+/** Lee un archivo; null si no existe o la ruta no es válida. */
+export async function leerArchivo(relativa: string): Promise<Buffer | null> {
+  const abs = rutaSegura(relativa);
+  if (!abs) return null;
+  try {
+    return await readFile(abs);
+  } catch {
+    return null;
+  }
+}
+
+/** Content-Type según la extensión (solo los tipos que la app acepta). */
+export function contentType(relativa: string): string | null {
+  const ext = path.extname(relativa).slice(1).toLowerCase();
+  if (ext === "jpeg") return TIPOS_IMAGEN.jpg;
+  return (TIPOS_IMAGEN as Record<string, string>)[ext] ?? null;
+}
+
+/** URL pública (con sesión) de un archivo guardado. */
+export const urlArchivo = (relativa: string | null | undefined) => (relativa ? `/archivos/${relativa}` : null);
