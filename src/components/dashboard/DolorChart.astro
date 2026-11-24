@@ -1,0 +1,96 @@
+---
+// Gráfica de evolución del dolor (antes / después de cada sesión).
+// La usan «Mi progreso» del paciente y «Progreso» del médico.
+interface Props {
+  datos: { fecha: string; antes: number; despues: number }[];
+}
+const { datos: chartData } = Astro.props;
+---
+
+<canvas id="dolorChart" height="220" class="w-full"></canvas>
+<script define:vars={{ chartData }}>
+  // Colores de la gráfica según el tema (el canvas no usa las clases de Tailwind)
+  const temas = {
+    claro:  { guia: "#e7e5e4", texto: "#57534e", antes: "#111827", despues: "#a8a29e" },
+    oscuro: { guia: "#3f3f46", texto: "#d4d4d8", antes: "#f4f4f5", despues: "#a1a1aa" },
+  };
+
+  function dibujar() {
+    const canvas = document.getElementById("dolorChart");
+    if (!canvas) return;
+    const c = document.documentElement.classList.contains("dark") ? temas.oscuro : temas.claro;
+    const W = canvas.offsetWidth || 700;
+    const H = 220;
+    canvas.setAttribute("width", W);
+    canvas.setAttribute("height", H);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const pad = { top: 12, bottom: 32, left: 32, right: 12 };
+    const w = W - pad.left - pad.right;
+    const h = H - pad.top - pad.bottom;
+    const n = chartData.length;
+    const step = n > 1 ? w / (n - 1) : w;
+
+    // Líneas guía
+    for (let i = 0; i <= 10; i += 2) {
+      const y = pad.top + h - (i / 10) * h;
+      ctx.strokeStyle = c.guia;
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+      ctx.fillStyle = c.texto;
+      ctx.font = "13px sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText(String(i), pad.left - 8, y + 4);
+    }
+
+    function drawLine(data, color, lineWidth) {
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.lineJoin = "round";
+      data.forEach((v, i) => {
+        const x = pad.left + i * step;
+        const y = pad.top + h - (v / 10) * h;
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      data.forEach((v, i) => {
+        const x = pad.left + i * step;
+        const y = pad.top + h - (v / 10) * h;
+        ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = color; ctx.fill();
+      });
+    }
+
+    drawLine(chartData.map(d => d.antes),   c.antes, 2.5);
+    drawLine(chartData.map(d => d.despues), c.despues, 2);
+
+    // Etiquetas de fecha
+    ctx.fillStyle = c.texto; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+    // En pantallas angostas (móvil) se salta etiquetas para que no se encimen
+    // y la última se alinea a la derecha para que no se corte
+    const angosta = W < 640;
+    const anchoEtiqueta = Math.max(...chartData.map((d) => ctx.measureText(d.fecha).width)) + 8;
+    const cada = angosta ? Math.max(1, Math.ceil(anchoEtiqueta / step)) : 1;
+    chartData.forEach((d, i) => {
+      const ultima = i === n - 1;
+      if (i % cada !== 0 && !ultima) return;
+      if (angosta && ultima && i % cada !== 0 && (i % cada) * step < anchoEtiqueta) return;
+      ctx.textAlign = angosta && ultima ? "right" : "center";
+      ctx.fillText(d.fecha, angosta && ultima ? W - 2 : pad.left + i * step, H - 8);
+    });
+  }
+
+  setTimeout(dibujar, 100);
+  // Redibuja al cambiar el ancho (girar el celular, redimensionar la ventana)
+  let tResize;
+  window.addEventListener("resize", () => {
+    clearTimeout(tResize);
+    tResize = setTimeout(dibujar, 150);
+  });
+  // Redibuja al cambiar de tema
+  new MutationObserver(dibujar).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
+</script>
