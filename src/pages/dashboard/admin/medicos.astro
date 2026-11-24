@@ -242,7 +242,7 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
 </DashboardLayout>
 
 <script>
-  import { api, aviso, confirmar, modal, unaVez, errorEn, $ } from "../../../scripts/ui";
+  import { api, aviso, confirmar, exito, modal, unaVez, errorEn, $ } from "../../../scripts/ui";
 
   const detalle = document.getElementById("detalleMedico");
   const id = detalle?.dataset.id;
@@ -251,8 +251,12 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
   const resolver = async (accion: "aprobar" | "rechazar", motivo?: string) => {
     const { ok, data } = await api(`/api/admin/medico/${id}`, "PUT", { accion, motivo });
     if (ok) {
-      aviso(accion === "aprobar" ? "Cuenta verificada. Le avisamos por correo." : "Cuenta rechazada. Le avisamos por correo.", "exito");
-      setTimeout(() => location.reload(), 500);
+      await exito(
+        accion === "aprobar" ? "Cuenta verificada" : "Cuenta rechazada",
+        accion === "aprobar"
+          ? `${nombre} ya puede asignar pacientes y acceder a sus expedientes. Le avisamos por correo.`
+          : `Le avisamos a ${nombre} por correo con el motivo para que pueda corregirlo.`,
+      );
     }
     return { ok, error: data.error };
   };

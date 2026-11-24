@@ -57,7 +57,7 @@ export const POST: APIRoute = async ({ request }) => {
     const actualizado = await User.findOneAndUpdate(
       { _id: pacienteId, role: "paciente", medicoAsignado: { $in: [null, undefined] } },
       { $set: { medicoAsignado: session.userId } },
-      { new: true },
+      { returnDocument: "after" },
     ).select(CAMPOS_PRIVADOS);
     if (!actualizado) return json({ error: "El paciente acaba de ser asignado a otro médico." }, 409);
 

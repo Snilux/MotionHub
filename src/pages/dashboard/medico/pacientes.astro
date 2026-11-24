@@ -58,7 +58,7 @@ const conExpediente = new Set(
                   {p.nombre.charAt(0).toUpperCase()}
                 </div>
                 <div class="min-w-0">
-                  <p class="text-xl font-semibold text-gray-900 truncate">{p.nombre} {p.apellido}</p>
+                  <p style={`view-transition-name: paciente-${p._id}`} class="text-xl font-semibold text-gray-900 truncate">{p.nombre} {p.apellido}</p>
                   <p class="text-base text-gray-600 truncate">{p.email}</p>
                 </div>
               </div>
@@ -85,6 +85,7 @@ const conExpediente = new Set(
                     {tieneExp ? "Expediente" : "+ Crear expediente"}
                   </a>
                   <a href={`/dashboard/medico/rutinas?paciente=${p._id}`} class={`${btnSecondary} whitespace-nowrap`}>Rutinas</a>
+                  <a href={`/dashboard/medico/progreso?paciente=${p._id}`} class={`${btnSecondary} whitespace-nowrap`}>Progreso</a>
                   <a href={`/dashboard/medico/citas?nuevo=1&paciente=${p._id}`} class={`${btnSecondary} whitespace-nowrap`}>Agendar cita</a>
                 </div>
                 <button
@@ -133,7 +134,7 @@ const conExpediente = new Set(
 </DashboardLayout>
 
 <script>
-  import { api, aviso, confirmar, modal, abrirSiNuevo, $ } from "../../../scripts/ui";
+  import { api, aviso, confirmar, exito, modal, abrirSiNuevo, $ } from "../../../scripts/ui";
 
   interface Resultado {
     _id: string;
@@ -252,12 +253,11 @@ const conExpediente = new Set(
     asignando = true;
     btn.disabled = true;
     const { ok, data } = await api("/api/medico/pacientes", "POST", { pacienteId: r._id });
-    asignando = false;
     if (ok) {
       m.cerrar();
-      aviso(`${r.nombre} ${r.apellido} fue asignado a tus pacientes`, "exito");
-      setTimeout(() => location.reload(), 600);
+      await exito("Paciente asignado", `${r.nombre} ${r.apellido} ya forma parte de tus pacientes.`);
     } else {
+      asignando = false;
       btn.disabled = false;
       mostrarAviso(data.error || "No se pudo asignar", "alerta");
     }
@@ -277,8 +277,7 @@ const conExpediente = new Set(
       btn.disabled = true;
       const res = await api(`/api/medico/pacientes?id=${btn.dataset.quitar}`, "DELETE");
       if (res.ok) {
-        aviso("Paciente quitado de tu lista", "exito");
-        setTimeout(() => location.reload(), 500);
+        await exito("Paciente quitado", `${btn.dataset.nombre} ya no está en tu lista. Sus citas futuras se cancelaron y sus rutinas quedaron en pausa.`);
       } else {
         btn.disabled = false;
         aviso(res.data.error || "No se pudo quitar al paciente", "error");

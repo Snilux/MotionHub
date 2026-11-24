@@ -347,3 +347,30 @@ export function enviarAvisoVerificacion(
     boton: { texto: aprobada ? "Ir a mi panel" : "Revisar mis datos", url: panelUrl },
   });
 }
+
+// ── Recordatorio de sesiones (al comenzar el día) ───────────────────────────
+
+export function enviarRecordatorioSesiones(
+  to: string,
+  nombre: string,
+  rutinas: { nombre: string; detalle: string }[],
+  rutinasUrl: string,
+  ajustesUrl: string,
+) {
+  const una = rutinas.length === 1;
+  return enviar({
+    to,
+    subject: `Hoy te toca ${una ? `«${rutinas[0].nombre}»` : `${rutinas.length} rutinas`} – MotionHub`,
+    titulo: una ? "Hoy te toca tu rutina" : "Hoy te tocan tus rutinas",
+    saludo: nombre,
+    parrafos: [
+      una
+        ? "Este es tu recordatorio para hacer hoy la rutina que te asignó tu fisioterapeuta."
+        : "Este es tu recordatorio para hacer hoy las rutinas que te asignó tu fisioterapeuta.",
+      "Al terminar, regístrala en MotionHub para que tu fisioterapeuta vea tu avance.",
+    ],
+    detalles: rutinas.map((r) => ({ label: r.nombre, value: r.detalle })),
+    boton: { texto: "Ver mis rutinas", url: rutinasUrl },
+    pie: `¿No quieres recibir estos correos? Desactívalos en «Mis rutinas › Recordatorios»: ${ajustesUrl}`,
+  });
+}

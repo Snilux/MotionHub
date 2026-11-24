@@ -23,7 +23,7 @@ const RUTAS_ROL: Record<Rol, string[]> = {
   paciente: ["/dashboard/paciente", "/api/paciente"],
   admin:    ["/dashboard/admin", "/api/admin"],
 };
-const COMMON_ROUTES   = ["/api/perfil", "/archivos/"]; // cualquier rol con sesión
+const COMMON_ROUTES   = ["/api/perfil", "/api/push", "/archivos/"]; // cualquier rol con sesión
 const AUTH_ROUTES     = ["/login", "/register", "/reset-password", "/nueva-contrasena", "/completar-registro"];
 
 // Headers que impiden al navegador cachear páginas protegidas.

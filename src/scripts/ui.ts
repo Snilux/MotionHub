@@ -29,6 +29,67 @@ export function aviso(mensaje: string, tipo: TipoAviso = "info", ms = 3500) {
   }, ms);
 }
 
+type TipoAlerta = "exito" | "info" | "error";
+
+const ICONOS_ALERTA: Record<TipoAlerta, string> = {
+  exito: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12.5 11 15.5 16 9.5"/></svg>`,
+  info: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+  error: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+};
+
+/**
+ * Alerta que el usuario debe cerrar: confirma que una acción se realizó (o por
+ * qué no). Resuelve al cerrarla con el botón, Escape o un clic fuera.
+ */
+export function alerta(opts: { titulo: string; mensaje?: string; tipo?: TipoAlerta; aceptar?: string }): Promise<void> {
+  const tipo = opts.tipo ?? "exito";
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "fixed inset-0 z-[60] bg-black/30 dark:bg-[#000]/60 flex items-center justify-center p-4";
+    overlay.innerHTML = `
+      <div role="alertdialog" aria-modal="true" class="bg-white rounded-lg border border-gray-200 shadow-lg p-6 w-full max-w-sm text-center">
+        <div class="mx-auto mb-3 w-12 h-12 rounded-full flex items-center justify-center ${
+          tipo === "error" ? "bg-red-50 text-red-600" : "bg-stone-100 text-gray-900"
+        }">${ICONOS_ALERTA[tipo]}</div>
+        <h2 class="font-baloo tracking-wide text-2xl mb-1"><strong></strong></h2>
+        <p class="text-base text-gray-600 mb-6"></p>
+        <button class="w-full px-4 py-2.5 rounded-lg text-base font-medium bg-black text-white hover:bg-gray-800 transition-colors"></button>
+      </div>`;
+    overlay.querySelector("strong")!.textContent = opts.titulo;
+    const p = overlay.querySelector("p")!;
+    if (opts.mensaje) p.textContent = opts.mensaje;
+    else p.remove();
+    const btn = overlay.querySelector("button")!;
+    btn.textContent = opts.aceptar ?? "Entendido";
+
+    const cerrar = () => {
+      document.removeEventListener("keydown", onKey);
+      overlay.remove();
+      resolve();
+    };
+    const onKey = (e: KeyboardEvent) => (e.key === "Escape" || e.key === "Enter") && (e.preventDefault(), cerrar());
+    btn.addEventListener("click", cerrar);
+    overlay.addEventListener("click", (e) => e.target === overlay && cerrar());
+    document.addEventListener("keydown", onKey);
+    document.body.appendChild(overlay);
+    btn.focus();
+  });
+}
+
+/**
+ * Confirma que la acción se realizó y, cuando el usuario cierra la alerta,
+ * recarga la página (o va a `destino`). Quien la llama no debe volver a
+ * habilitar el botón: así no se puede repetir la acción mientras tanto.
+ */
+let saliendo = false; // la página va a recargar o navegar: los botones no se vuelven a habilitar
+
+export async function exito(titulo: string, mensaje?: string, destino?: string) {
+  await alerta({ titulo, mensaje, tipo: "exito" });
+  saliendo = true;
+  if (destino) location.href = destino;
+  else location.reload();
+}
+
 /** Diálogo de confirmación. Resuelve true si el usuario acepta. */
 export function confirmar(opts: {
   titulo: string;
@@ -74,17 +135,19 @@ export function confirmar(opts: {
   });
 }
 
-/** fetch + JSON con manejo de sesión expirada y errores de red. */
+/** fetch + JSON (o FormData) con manejo de sesión expirada y errores de red. */
 export async function api<T = any>(
   url: string,
   method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
   body?: unknown,
 ): Promise<{ ok: boolean; status: number; data: T & { error?: string } }> {
   try {
+    // FormData (archivos) se envía tal cual: el navegador pone el Content-Type multipart
+    const esForm = body instanceof FormData;
     const res = await fetch(url, {
       method,
-      headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      headers: body !== undefined && !esForm ? { "Content-Type": "application/json" } : undefined,
+      body: body === undefined ? undefined : esForm ? body : JSON.stringify(body),
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) window.dispatchEvent(new Event("mh:actividad"));
@@ -147,6 +210,7 @@ export function unaVez(btn: HTMLButtonElement, accion: () => Promise<unknown>, t
     try {
       await accion();
     } finally {
+      if (saliendo) return; // la acción terminó bien y la página recarga: el botón sigue bloqueado
       enCurso = false;
       btn.disabled = false;
       btn.classList.remove("opacity-60", "cursor-wait");

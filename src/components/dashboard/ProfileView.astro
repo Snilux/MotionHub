@@ -232,7 +232,7 @@ const requisitos = [
 </div>
 
 <script>
-  import { api, aviso } from "../../scripts/ui";
+  import { alerta, api, aviso } from "../../scripts/ui";
   import { REQUISITOS_PASSWORD } from "../../lib/password";
 
   /**
@@ -240,7 +240,7 @@ const requisitos = [
    * `data-perfil` (incluidos los de cada rol) usan este mismo flujo.
    */
   // Recarga sin los avisos de la URL (?correo=..., ?cambiar-password=1)
-  const recargar = () => setTimeout(() => location.replace(location.pathname), 600);
+  const recargar = () => location.replace(location.pathname);
 
   function conectar(form: HTMLFormElement, url: string, alGuardar?: () => void) {
     const errorEl = form.querySelector<HTMLElement>("[data-error]")!;
@@ -258,21 +258,33 @@ const requisitos = [
       form.querySelectorAll<HTMLInputElement>("input[name]:not(:disabled)").forEach((i) => (datos[i.name] = i.value));
 
       const { ok, data } = await api(url, "PUT", datos);
-      enviando = false;
-      btn.disabled = false;
 
       if (ok) {
+        // El botón sigue bloqueado hasta recargar para no guardar dos veces
         const pendiente = (data as any).correoPendiente;
         // Médico que cambió su cédula: la cuenta vuelve a revisión
         if ((data as any).enRevision) {
-          aviso("Datos guardados. Tu cuenta volvió a revisión; te avisaremos por correo cuando esté verificada.", "info", 6000);
-          setTimeout(() => (location.href = "/dashboard/medico/verificacion"), 1500);
+          await alerta({
+            titulo: "Datos guardados",
+            mensaje: "Tu cuenta volvió a revisión. Te avisaremos por correo cuando un administrador la verifique.",
+            tipo: "info",
+          });
+          location.href = "/dashboard/medico/verificacion";
           return;
         }
-        if (pendiente) aviso(`Cambios guardados. Te enviamos un enlace a ${pendiente} para confirmar el nuevo correo.`, "exito", 6000);
-        else aviso("Cambios guardados", "exito");
+        const esPassword = url.endsWith("/password");
+        await alerta({
+          titulo: esPassword ? "Contraseña actualizada" : "Cambios guardados",
+          mensaje: esPassword
+            ? "Tu nueva contraseña ya está activa. Cerramos la sesión en tus otros dispositivos."
+            : pendiente
+              ? `Te enviamos un enlace a ${pendiente} para confirmar el nuevo correo. Tu correo no cambiará hasta que lo confirmes.`
+              : "Tus datos quedaron actualizados.",
+        });
         alGuardar?.();
       } else {
+        enviando = false;
+        btn.disabled = false;
         errorEl.textContent = data.error || "No se pudo guardar";
         errorEl.classList.remove("hidden");
         if ((data as any).campo) form.querySelector<HTMLInputElement>(`#${(data as any).campo}`)?.focus();
@@ -291,7 +303,7 @@ const requisitos = [
     cancelarCorreo.disabled = true;
     const { ok, data } = await api("/api/perfil", "PUT", { cancelarCambioCorreo: true });
     if (ok) {
-      aviso("Cambio de correo cancelado", "exito");
+      await alerta({ titulo: "Cambio de correo cancelado", mensaje: "Seguirás usando tu correo actual." });
       recargar();
     } else {
       cancelarCorreo.disabled = false;
@@ -322,7 +334,7 @@ const requisitos = [
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "No se pudo subir la foto");
       window.dispatchEvent(new Event("mh:actividad"));
-      aviso("Foto actualizada", "exito");
+      await alerta({ titulo: "Foto actualizada", mensaje: "Tu nueva foto de perfil ya está visible." });
       recargar();
     } catch (e) {
       bloquearFoto(false);
@@ -334,7 +346,7 @@ const requisitos = [
     bloquearFoto(true);
     const { ok, data } = await api("/api/perfil/foto", "DELETE");
     if (ok) {
-      aviso("Foto eliminada", "exito");
+      await alerta({ titulo: "Foto eliminada", mensaje: "Tu perfil volvió a mostrar tus iniciales." });
       recargar();
     } else {
       bloquearFoto(false);

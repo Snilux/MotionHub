@@ -4,6 +4,7 @@ import { Readable } from "node:stream";
 import path from "node:path";
 import { UPLOADS_DIR, contentType, rutaSegura, tamanoArchivo } from "../../lib/storage";
 import { CARPETA_VIDEOS, puedeVerVideo } from "../../lib/rutina";
+import { CARPETA_NOTAS_VOZ, puedeOirNotaVoz } from "../../lib/notaVoz";
 
 // GET /archivos/<ruta> - Entrega un archivo del volumen de subidas.
 // El middleware ya exige sesión válida (ruta común en src/middleware/index.ts).
@@ -22,6 +23,10 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   // Se usa la ruta normalizada para que "avatars/../videos/x.mp4" no evite la comprobación
   const normalizada = path.relative(UPLOADS_DIR, abs).split(path.sep).join("/");
   if (normalizada.startsWith(`${CARPETA_VIDEOS}/`) && !(await puedeVerVideo(normalizada, locals.session.userId))) {
+    return new Response("No encontrado", { status: 404 });
+  }
+  // Notas de voz: solo el paciente que la grabó y el médico de esa sesión
+  if (normalizada.startsWith(`${CARPETA_NOTAS_VOZ}/`) && !(await puedeOirNotaVoz(normalizada, locals.session.userId))) {
     return new Response("No encontrado", { status: 404 });
   }
 

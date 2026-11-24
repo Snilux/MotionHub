@@ -11,6 +11,7 @@ import { Rutina } from "../../../models/Rutina";
 import { User } from "../../../models/User";
 import { esIdValido } from "../../../lib/medico";
 import { PERIODOS } from "../../../lib/rutina";
+import { DIAS_SEMANA, MAX_DIA_MES } from "../../../lib/frecuencia";
 import { VIDEO_MAX_MB, urlArchivo } from "../../../lib/storage";
 
 const session = getSessionFromRequest(Astro.request);
@@ -43,6 +44,7 @@ const grupos = [
 
 const fieldCls = "w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors";
 const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase tracking-wide";
+const diaCls = "py-2 rounded-lg border border-gray-200 text-base font-medium hover:border-black transition-colors aria-pressed:bg-black aria-pressed:text-white aria-pressed:border-black";
 ---
 
 <DashboardLayout
@@ -149,6 +151,7 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
                         objetivo: r.objetivo ?? "",
                         frecuenciaVeces: r.frecuenciaVeces ?? 3,
                         frecuenciaPeriodo: r.frecuenciaPeriodo ?? "semana",
+                        frecuenciaDias: r.frecuenciaDias ?? [],
                         ejercicios: r.ejercicios.map((e: any) => ({
                           nombre: e.nombre,
                           descripcion: e.descripcion ?? "",
@@ -232,6 +235,22 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
                   <option value={k} selected={k === "semana"}>{v.label}</option>
                 ))}
               </select>
+            </div>
+
+            <!-- Días fijos (opcional): de la semana para rutinas diarias/semanales, del mes para mensuales -->
+            <label class="mt-3 inline-flex items-center gap-2 text-base text-gray-700 cursor-pointer select-none">
+              <input type="checkbox" id="diasFijos" class="w-4 h-4 accent-black" />
+              Elegir qué días la hace
+            </label>
+            <div id="diasSemana" class="hidden mt-2 grid grid-cols-7 gap-1.5" role="group" aria-label="Días de la semana">
+              {DIAS_SEMANA.map((d) => (
+                <button type="button" data-dia={d.n} aria-pressed="false" title={d.largo} aria-label={d.largo} class={diaCls}>{d.letra}</button>
+              ))}
+            </div>
+            <div id="diasMes" class="hidden mt-2 grid grid-cols-7 gap-1.5" role="group" aria-label="Días del mes">
+              {Array.from({ length: MAX_DIA_MES }, (_, i) => i + 1).map((n) => (
+                <button type="button" data-dia={n} aria-pressed="false" aria-label={`Día ${n}`} class={diaCls}>{n}</button>
+              ))}
             </div>
             <p id="frecuenciaResumen" class="text-sm text-gray-500 mt-1.5">El paciente hará la rutina 3 veces por semana.</p>
           </fieldset>
@@ -326,7 +345,8 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
 </DashboardLayout>
 
 <script>
-  import { api, aviso, confirmar, modal, abrirSiNuevo, errorEn, $ } from "../../../scripts/ui";
+  import { api, aviso, confirmar, exito, modal, abrirSiNuevo, errorEn, $ } from "../../../scripts/ui";
+  import { textoFrecuencia, type Periodo } from "../../../lib/frecuencia";
 
   const form = $<HTMLFormElement>("formRutina");
   const lista = document.getElementById("ejerciciosList");
@@ -464,6 +484,7 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
 
   const limpiar = () => {
     form.reset();
+    diasSel.clear(); // días fijos
     editandoId = null;
     $("rutinaTitulo").textContent = "Nueva rutina";
     $("rutinaSubtitulo").textContent = "Define el programa de ejercicios";
@@ -493,12 +514,54 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
   // Frecuencia: resumen legible
   const veces = document.getElementById("rutinaVeces") as HTMLSelectElement | null;
   const periodo = document.getElementById("rutinaPeriodo") as HTMLSelectElement | null;
+  // Días fijos: de la semana (rutina diaria o semanal) o del mes (mensual)
+  const diasFijos = document.getElementById("diasFijos") as HTMLInputElement | null;
+  const diasSel = new Set<number>();
+  let modoDias: "semana" | "mes" = "semana";
+  const gridDias = () => document.getElementById(modoDias === "mes" ? "diasMes" : "diasSemana")!;
+
+  /** Error de los días elegidos, o null si están bien (también se valida en el servidor). */
+  function errorDias(): string | null {
+    if (!diasFijos?.checked || !veces || !periodo) return null;
+    const n = Number(veces.value);
+    if (diasSel.size === 0) return "Elige al menos un día o desmarca «Elegir qué días la hace».";
+    if (periodo.value !== "dia" && diasSel.size !== n) {
+      return `Elige ${n} ${n === 1 ? "día" : "días"}, uno por cada sesión (llevas ${diasSel.size}).`;
+    }
+    return null;
+  }
+
   function actualizarResumen() {
     if (!veces || !periodo) return;
     const n = Number(veces.value);
-    $("frecuenciaResumen").textContent =
-      `El paciente hará la rutina ${n} ${n === 1 ? "vez" : "veces"} ${periodo.selectedOptions[0]?.text ?? ""}.`;
+    // Al cambiar entre semanal/diaria y mensual, los días elegidos dejan de tener sentido
+    const nuevoModo = periodo.value === "mes" ? "mes" : "semana";
+    if (nuevoModo !== modoDias) {
+      diasSel.clear();
+      modoDias = nuevoModo;
+    }
+    $("diasSemana").classList.toggle("hidden", !diasFijos?.checked || modoDias !== "semana");
+    $("diasMes").classList.toggle("hidden", !diasFijos?.checked || modoDias !== "mes");
+    gridDias().querySelectorAll<HTMLButtonElement>("[data-dia]").forEach((b) =>
+      b.setAttribute("aria-pressed", String(diasSel.has(Number(b.dataset.dia)))),
+    );
+
+    const dias = diasFijos?.checked ? [...diasSel] : [];
+    const error = errorDias();
+    const resumen = $("frecuenciaResumen");
+    resumen.classList.toggle("text-red-600", !!error);
+    resumen.classList.toggle("text-gray-500", !error);
+    resumen.textContent = error ?? `El paciente hará la rutina ${textoFrecuencia(n, periodo.value as Periodo, dias)}.`;
   }
+  diasFijos?.addEventListener("change", actualizarResumen);
+  document.querySelectorAll<HTMLButtonElement>("#diasSemana [data-dia], #diasMes [data-dia]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const d = Number(b.dataset.dia);
+      if (diasSel.has(d)) diasSel.delete(d);
+      else diasSel.add(d);
+      actualizarResumen();
+    }),
+  );
   veces?.addEventListener("change", actualizarResumen);
   periodo?.addEventListener("change", actualizarResumen);
 
@@ -556,6 +619,7 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
         objetivo: string;
         frecuenciaVeces: number;
         frecuenciaPeriodo: string;
+        frecuenciaDias: number[];
         ejercicios: EjercicioDatos[];
       };
       // Sin pacientes asignados el formulario no tiene campos
@@ -582,6 +646,10 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
         }
         veces.value = String(r.frecuenciaVeces);
         periodo.value = r.frecuenciaPeriodo;
+        modoDias = r.frecuenciaPeriodo === "mes" ? "mes" : "semana";
+        diasSel.clear();
+        r.frecuenciaDias.forEach((d) => diasSel.add(d));
+        if (diasFijos) diasFijos.checked = r.frecuenciaDias.length > 0;
         actualizarResumen();
       }
 
@@ -617,6 +685,8 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
       campo(tarjetas()[sinNombre], "nombre").focus();
       return errorEn("rutinaError", `El ejercicio ${sinNombre + 1} no tiene nombre.`);
     }
+    const errDias = errorDias();
+    if (errDias) return errorEn("rutinaError", errDias);
     const nombres = ejercicios.map((x) => x.nombre.toLowerCase());
     const repetido = nombres.findIndex((n, i) => nombres.indexOf(n) !== i);
     if (repetido >= 0) {
@@ -635,6 +705,7 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
       objetivo: $("rutinaObjetivo").value.trim(),
       frecuenciaVeces: Number(veces.value),
       frecuenciaPeriodo: periodo.value,
+      frecuenciaDias: diasFijos?.checked ? [...diasSel] : [],
       ejercicios,
     };
     const editando = editandoId;
@@ -647,8 +718,10 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
       pendientes.clear();
       // Se mantiene bloqueado hasta recargar para que no se cree dos veces
       m.cerrar();
-      aviso(editando ? "Rutina actualizada" : "Rutina creada", "exito");
-      setTimeout(() => location.reload(), 500);
+      await exito(
+        editando ? "Rutina actualizada" : "Rutina creada",
+        editando ? `Los cambios de «${nombre}» ya se ven en el panel del paciente.` : `«${nombre}» quedó asignada a tu paciente.`,
+      );
     } else {
       guardando = false;
       btn.disabled = false;
@@ -665,8 +738,10 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
       const activa = btn.dataset.activa === "true";
       const { ok, data } = await api(`/api/medico/rutina/${btn.dataset.toggle}`, "PUT", { activa: !activa });
       if (ok) {
-        aviso(activa ? "Rutina pausada" : "Rutina activada", "exito");
-        setTimeout(() => location.reload(), 400);
+        await exito(
+          activa ? "Rutina pausada" : "Rutina activada",
+          activa ? "El paciente verá que no necesita hacerla por ahora." : "El paciente ya puede volver a registrar sus sesiones.",
+        );
       } else {
         btn.disabled = false;
         aviso(data.error || "No se pudo actualizar", "error");
@@ -688,8 +763,7 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
       btn.disabled = true;
       const res = await api(`/api/medico/rutina/${btn.dataset.eliminar}`, "DELETE");
       if (res.ok) {
-        aviso("Rutina eliminada", "exito");
-        setTimeout(() => location.reload(), 400);
+        await exito("Rutina eliminada", `«${btn.dataset.nombre}» se borró definitivamente.`);
       } else {
         btn.disabled = false;
         aviso(res.data.error || "No se pudo eliminar", "error");

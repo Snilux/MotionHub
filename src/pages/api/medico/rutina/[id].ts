@@ -3,7 +3,7 @@ import connectDB from "../../../../lib/db";
 import { Rutina } from "../../../../models/Rutina";
 import { getSessionFromRequest, json } from "../../../../lib/session";
 import { esIdValido } from "../../../../lib/medico";
-import { PERIODOS, ejercicioSinArchivo, textoFrecuencia, validarEjercicios, videosDe, type Periodo } from "../../../../lib/rutina";
+import { ejercicioSinArchivo, textoFrecuencia, validarEjercicios, validarFrecuencia, videosDe } from "../../../../lib/rutina";
 import { borrarArchivos } from "../../../../lib/storage";
 
 export const GET: APIRoute = async ({ request, params }) => {
@@ -40,13 +40,17 @@ export const PUT: APIRoute = async ({ request, params }) => {
       $set.nombre = nombre;
     }
     if (body.objetivo !== undefined) $set.objetivo = String(body.objetivo).trim();
+    const $unset: Record<string, 1> = {};
     if (body.frecuenciaVeces !== undefined || body.frecuenciaPeriodo !== undefined) {
-      const veces = Number(body.frecuenciaVeces);
-      const periodo = body.frecuenciaPeriodo as Periodo;
-      if (!Number.isInteger(veces) || veces < 1 || veces > 31 || !(periodo in PERIODOS)) {
-        return json({ error: "Elige una frecuencia válida" }, 400);
-      }
-      Object.assign($set, { frecuenciaVeces: veces, frecuenciaPeriodo: periodo, frecuencia: textoFrecuencia(veces, periodo) });
+      const frec = validarFrecuencia(body.frecuenciaVeces, body.frecuenciaPeriodo, body.frecuenciaDias);
+      if ("error" in frec) return json({ error: frec.error }, 400);
+      Object.assign($set, {
+        frecuenciaVeces: frec.veces,
+        frecuenciaPeriodo: frec.periodo,
+        frecuencia: textoFrecuencia(frec.veces, frec.periodo, frec.dias),
+      });
+      if (frec.dias.length) $set.frecuenciaDias = frec.dias;
+      else $unset.frecuenciaDias = 1; // sin días fijos
     }
     if (body.ejercicios !== undefined) {
       const v = validarEjercicios(body.ejercicios, session.userId);
@@ -62,8 +66,8 @@ export const PUT: APIRoute = async ({ request, params }) => {
     // Se devuelve la versión anterior para saber qué videos dejaron de usarse
     const anterior = await Rutina.findOneAndUpdate(
       { _id: params.id, medico: session.userId },
-      { $set },
-      { new: false, runValidators: true },
+      Object.keys($unset).length ? { $set, $unset } : { $set },
+      { returnDocument: "before", runValidators: true },
     ).select("ejercicios.video");
     if (!anterior) return json({ error: "Rutina no encontrada" }, 404);
 

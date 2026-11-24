@@ -35,7 +35,7 @@ export const PUT: APIRoute = async ({ request, params }) => {
       const r = await SolicitudExpediente.findOneAndUpdate(
         { _id: solicitud._id, estado: "pendiente" },
         { estado: "rechazada", ...revision },
-        { new: true },
+        { returnDocument: "after" },
       );
       if (!r) return json({ error: "Esta sugerencia ya fue revisada" }, 409);
       notificarSugerencia(r, "rechazada", { origen: new URL(request.url).origin });
@@ -69,11 +69,11 @@ export const PUT: APIRoute = async ({ request, params }) => {
     const aprobada = await SolicitudExpediente.findOneAndUpdate(
       { _id: solicitud._id, estado: "pendiente" },
       { estado: "aprobada", valorAplicado: texto, ...revision },
-      { new: true },
+      { returnDocument: "after" },
     );
     if (!aprobada) return json({ error: "Esta sugerencia ya fue revisada" }, 409);
 
-    const expediente = await Expediente.findOneAndUpdate({ _id: solicitud.expediente, paciente: solicitud.paciente }, update, { new: true });
+    const expediente = await Expediente.findOneAndUpdate({ _id: solicitud.expediente, paciente: solicitud.paciente }, update, { returnDocument: "after" });
     if (!expediente) {
       await SolicitudExpediente.updateOne({ _id: solicitud._id }, { estado: "pendiente", $unset: { valorAplicado: 1, respuesta: 1, revisadaPor: 1, revisadaEn: 1 } });
       return json({ error: "Expediente no encontrado" }, 404);

@@ -1,5 +1,9 @@
 import mongoose, { Schema, type Document } from "mongoose";
 import { definirModelo } from "../lib/modelo";
+// Modelos a los que apunta (ref): deben estar registrados para poder usar populate()
+// aunque la página no los importe (en un servidor recién iniciado fallaría).
+import "./User";
+import "./Rutina";
 
 export interface IProgreso extends Document {
   paciente: mongoose.Types.ObjectId;
@@ -9,6 +13,9 @@ export interface IProgreso extends Document {
   dolorAntes: number; // 0-10
   dolorDespues: number; // 0-10
   notasPaciente?: string;
+  notaVoz?: string; // ruta relativa en el volumen de subidas ("notas-voz/<pacienteId>-<ts>-<rand>.weba")
+  notaVozDuracion?: number; // segundos
+  ventana?: string; // ventana de registro según la frecuencia (ver ventanaRegistro en lib/rutina)
   notasMedico?: string;
   completado: boolean;
   ejerciciosCompletados?: number;
@@ -25,6 +32,9 @@ const ProgresoSchema = new Schema<IProgreso>(
     dolorAntes: { type: Number, min: 0, max: 10, default: 0 },
     dolorDespues: { type: Number, min: 0, max: 10, default: 0 },
     notasPaciente: { type: String },
+    notaVoz: { type: String },
+    notaVozDuracion: { type: Number, min: 0 },
+    ventana: { type: String },
     notasMedico: { type: String },
     completado: { type: Boolean, default: false },
     ejerciciosCompletados: { type: Number, default: 0 },
@@ -34,5 +44,11 @@ const ProgresoSchema = new Schema<IProgreso>(
 );
 
 ProgresoSchema.index({ paciente: 1, fecha: -1 });
+ProgresoSchema.index({ notaVoz: 1 }, { sparse: true }); // permisos de /archivos/notas-voz/...
+// Una sola sesión por rutina en cada ventana (evita duplicados aunque lleguen dos envíos a la vez)
+ProgresoSchema.index(
+  { rutina: 1, ventana: 1 },
+  { unique: true, partialFilterExpression: { ventana: { $exists: true } } },
+);
 
 export const Progreso = definirModelo<IProgreso>("Progreso", ProgresoSchema);

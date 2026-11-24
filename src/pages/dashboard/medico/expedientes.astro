@@ -406,7 +406,7 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
 </DashboardLayout>
 
 <script>
-  import { api, aviso, confirmar, descargar, modal, unaVez, abrirSiNuevo, errorEn, $ } from "../../../scripts/ui";
+  import { alerta, api, aviso, confirmar, descargar, exito, modal, unaVez, abrirSiNuevo, errorEn, $ } from "../../../scripts/ui";
 
   // Exportar expediente a PDF
   const btnPdf = document.getElementById("exportarPdfBtn") as HTMLButtonElement | null;
@@ -414,7 +414,7 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
     unaVez(btnPdf, async () => {
       const error = await descargar(`/api/medico/expediente-pdf?paciente=${btnPdf.dataset.paciente}`, "expediente.pdf");
       if (error) aviso(error, "error");
-      else aviso("Expediente exportado", "exito");
+      else await alerta({ titulo: "Expediente exportado", mensaje: "El PDF se descargó en tu dispositivo (carpeta de descargas)." });
     }, "Generando...");
   }
 
@@ -472,13 +472,16 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
     const { ok, data } = editandoPaciente
       ? await api("/api/medico/expediente", "PUT", { pacienteId: paciente, ...datos })
       : await api("/api/medico/expediente", "POST", { paciente, ...datos });
-    guardando = false;
-    $<HTMLButtonElement>("guardarExp").disabled = false;
-
     if (ok) {
-      aviso(editandoPaciente ? "Expediente actualizado" : "Expediente creado", "exito");
-      setTimeout(() => (location.href = `/dashboard/medico/expedientes?paciente=${paciente}`), 400);
+      // Sigue bloqueado hasta salir de la página para que no se guarde dos veces
+      await exito(
+        editandoPaciente ? "Expediente actualizado" : "Expediente creado",
+        editandoPaciente ? "Los cambios quedaron guardados en el expediente." : "El expediente del paciente quedó creado.",
+        `/dashboard/medico/expedientes?paciente=${paciente}`,
+      );
     } else {
+      guardando = false;
+      $<HTMLButtonElement>("guardarExp").disabled = false;
       errorEn("expError", data.error || "No se pudo guardar");
     }
   });
@@ -500,8 +503,7 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
     $<HTMLButtonElement>("guardarNota").disabled = true;
     const { ok, data } = await api("/api/medico/expediente", "PUT", { pacienteId, notaEvolucion: nota });
     if (ok) {
-      aviso("Nota agregada", "exito");
-      setTimeout(() => location.reload(), 400);
+      await exito("Nota agregada", "La nota de evolución quedó guardada en el expediente.");
     } else {
       guardandoNota = false;
       $<HTMLButtonElement>("guardarNota").disabled = false;
@@ -566,14 +568,19 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
     $<HTMLButtonElement>("aprobarRev").disabled = true;
     $<HTMLButtonElement>("rechazarRev").disabled = true;
     const r = await api(`/api/medico/solicitud/${s.id}`, "PUT", { accion, valor, respuesta });
-    revisando = false;
-    $<HTMLButtonElement>("aprobarRev").disabled = false;
-    $<HTMLButtonElement>("rechazarRev").disabled = false;
-
     if (r.ok) {
-      aviso(accion === "aprobar" ? "Sugerencia integrada al expediente" : "Sugerencia rechazada", "exito");
-      setTimeout(() => location.reload(), 400);
+      // Los botones siguen bloqueados hasta recargar para no revisar dos veces
+      mRev.cerrar();
+      await exito(
+        accion === "aprobar" ? "Sugerencia integrada" : "Sugerencia rechazada",
+        accion === "aprobar"
+          ? "El cambio quedó guardado en el expediente y el paciente lo verá como integrado."
+          : "El expediente no cambió y el paciente verá que la sugerencia no se integró.",
+      );
     } else {
+      revisando = false;
+      $<HTMLButtonElement>("aprobarRev").disabled = false;
+      $<HTMLButtonElement>("rechazarRev").disabled = false;
       errorEn("revError", r.data.error || "No se pudo guardar la revisión");
     }
   };

@@ -1,0 +1,282 @@
+---
+import DashboardLayout from "../../../components/common/DashboardLayout.astro";
+import PageHeader from "../../../components/dashboard/PageHeader.astro";
+import SectionHeader from "../../../components/dashboard/SectionHeader.astro";
+import EmptyState from "../../../components/dashboard/EmptyState.astro";
+import SearchInput from "../../../components/dashboard/SearchInput.astro";
+import DolorChart from "../../../components/dashboard/DolorChart.astro";
+import { card, chip, label, meses, plural, fechaLarga, hora } from "../../../components/dashboard/styles";
+import { getSessionFromRequest } from "../../../lib/session";
+import connectDB from "../../../lib/db";
+import { esIdValido } from "../../../lib/medico";
+import { urlArchivo } from "../../../lib/storage";
+import { Progreso } from "../../../models/Progreso";
+import { User } from "../../../models/User";
+
+// Sesiones que los pacientes registran al terminar las rutinas de este médico:
+// dolor antes/después, ejercicios hechos y sus notas (de texto y de voz).
+const session = getSessionFromRequest(Astro.request);
+if (!session || session.role !== "medico") return Astro.redirect("/login");
+
+await connectDB();
+const pacienteParam = Astro.url.searchParams.get("paciente");
+const pacienteId = esIdValido(pacienteParam) ? pacienteParam : null;
+const filtro: Record<string, unknown> = { medico: session.userId };
+if (pacienteId) filtro.paciente = pacienteId;
+
+const [registrosRaw, pacientes] = await Promise.all([
+  Progreso.find(filtro)
+    .populate("paciente", "nombre apellido")
+    .populate("rutina", "nombre")
+    .sort({ fecha: -1 })
+    .limit(pacienteId ? 60 : 100),
+  User.find({ role: "paciente", medicoAsignado: session.userId })
+    .select("_id nombre apellido")
+    .sort({ nombre: 1 }),
+]);
+const registros = registrosRaw.filter((r: any) => r.paciente); // ignora pacientes eliminados
+
+// Paciente filtrado: puede que ya no esté asignado, pero sus sesiones con este médico siguen aquí
+const pacienteFiltrado: any = pacienteId
+  ? pacientes.find((p: any) => String(p._id) === pacienteId) ?? registros[0]?.paciente ?? null
+  : null;
+
+const promedio = (xs: number[]) => (xs.length ? Math.round((xs.reduce((s, x) => s + x, 0) / xs.length) * 10) / 10 : 0);
+const promedioAntes = promedio(registros.map((r: any) => r.dolorAntes));
+const promedioDespues = promedio(registros.map((r: any) => r.dolorDespues));
+const conVoz = registros.filter((r: any) => r.notaVoz).length;
+const haceUnaSemana = Date.now() - 7 * 24 * 3600_000;
+const ultimaSemana = registros.filter((r: any) => new Date(r.fecha).getTime() >= haceUnaSemana).length;
+
+const resumen = [
+  { label: "Sesiones registradas", value: registros.length },
+  { label: "En los últimos 7 días", value: ultimaSemana },
+  { label: "Dolor promedio antes", value: promedioAntes, sufijo: "/10" },
+  { label: "Dolor promedio después", value: promedioDespues, sufijo: "/10" },
+];
+
+// Con un paciente elegido: su evolución (últimas 10 sesiones)
+const chartData = pacienteFiltrado
+  ? [...registros].reverse().slice(-10).map((r: any) => ({
+      fecha: `${new Date(r.fecha).getDate()} ${meses[new Date(r.fecha).getMonth()]}`,
+      antes: r.dolorAntes,
+      despues: r.dolorDespues,
+    }))
+  : [];
+
+// Sin filtro: resumen por paciente (sesiones, última sesión y cambio de dolor promedio)
+const porPaciente = pacienteFiltrado
+  ? []
+  : [...registros
+      .reduce((mapa, r: any) => {
+        const id = String(r.paciente._id);
+        const p = mapa.get(id) ?? { id, nombre: `${r.paciente.nombre} ${r.paciente.apellido}`, sesiones: 0, ultima: r.fecha, alivio: [] as number[], voz: 0 };
+        p.sesiones++;
+        p.alivio.push(r.dolorAntes - r.dolorDespues);
+        if (r.notaVoz) p.voz++;
+        return mapa.set(id, p);
+      }, new Map<string, any>())
+      .values()];
+
+const duracion = (s?: number) => (s ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}` : "");
+---
+
+<DashboardLayout title="Progreso" role="medico" nombre={session.nombre} activeSection="/dashboard/medico/progreso">
+  <div class="max-w-6xl px-6 sm:px-10 py-10 lg:py-14 space-y-12">
+
+    <PageHeader eyebrow="Seguimiento">
+      <Fragment slot="title">
+        {pacienteFiltrado ? (
+          <>Progreso de <strong style={`view-transition-name: paciente-${pacienteId}`} class="inline-block">{pacienteFiltrado.nombre} {pacienteFiltrado.apellido}</strong></>
+        ) : (
+          <><strong>Progreso</strong> de pacientes</>
+        )}
+      </Fragment>
+      {registros.length === 0 ? (
+        <>Aún no hay sesiones registradas{pacienteFiltrado ? " de este paciente" : ""}. Aparecen aquí cuando un paciente registra una sesión desde <strong>Mis Rutinas</strong>.</>
+      ) : (
+        <>
+          {pacienteFiltrado ? "Ha registrado" : "Tus pacientes han registrado"} <strong>{plural(registros.length, "sesión", "sesiones")}</strong>.
+          En promedio, el dolor pasa de <strong>{promedioAntes}</strong> a <strong>{promedioDespues}</strong>
+          {conVoz > 0 && <> y hay <strong>{plural(conVoz, "nota de voz", "notas de voz")}</strong> para escuchar</>}.
+        </>
+      )}
+
+      <form slot="action" method="get" class="shrink-0 self-start sm:self-auto">
+        <label for="filtroPaciente" class="sr-only">Paciente</label>
+        <select
+          id="filtroPaciente"
+          name="paciente"
+          class="bg-white border border-stone-300 rounded-lg px-4 py-2.5 text-base text-gray-900 focus:outline-none focus:border-black transition-colors"
+        >
+          <option value="">Todos los pacientes</option>
+          {pacientes.map((p: any) => (
+            <option value={String(p._id)} selected={String(p._id) === pacienteId}>{p.nombre} {p.apellido}</option>
+          ))}
+        </select>
+        <noscript><button type="submit" class="ml-2 underline">Ver</button></noscript>
+      </form>
+    </PageHeader>
+
+    {pacienteId && (
+      <a href="/dashboard/medico/progreso" class="inline-flex text-base text-gray-600 hover:text-gray-900">
+        ← Ver el progreso de todos los pacientes
+      </a>
+    )}
+
+    {registros.length > 0 && (
+      <>
+        <hr class="border-stone-300" />
+
+        <!-- Fila 1: gráfica del paciente (o resumen por paciente) | resumen -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div class="lg:col-span-8 flex flex-col">
+            {pacienteFiltrado ? (
+              <>
+                <SectionHeader title="Evolución del dolor">
+                  <div class="flex items-center gap-5 text-base text-gray-600">
+                    <span class="flex items-center gap-2"><span class="w-4 h-0.5 bg-gray-900 inline-block"></span> Antes</span>
+                    <span class="flex items-center gap-2"><span class="w-4 h-0.5 bg-stone-400 inline-block"></span> Después</span>
+                  </div>
+                </SectionHeader>
+                {chartData.length > 1 ? (
+                  <div class={`${card} flex-1`}>
+                    <DolorChart datos={chartData} />
+                  </div>
+                ) : (
+                  <EmptyState title="Aún no hay suficientes datos" text="Con al menos dos sesiones registradas verás su evolución." />
+                )}
+              </>
+            ) : (
+              <>
+                <SectionHeader title={`Por paciente · ${porPaciente.length}`} />
+                <ul class="flex-1 divide-y divide-stone-300 border-y border-stone-300">
+                  {porPaciente.map((p) => {
+                    const alivio = promedio(p.alivio);
+                    return (
+                      <li>
+                        <a
+                          href={`/dashboard/medico/progreso?paciente=${p.id}`}
+                          class="group flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 py-5 hover:bg-stone-50 -mx-2 px-2 rounded-lg transition-colors"
+                        >
+                          <span style={`view-transition-name: paciente-${p.id}`} class="flex-1 min-w-0 text-lg font-semibold text-gray-900 truncate">{p.nombre}</span>
+                          <span class="text-base text-gray-600">
+                            {plural(p.sesiones, "sesión", "sesiones")} · última {fechaLarga(new Date(p.ultima))}
+                            {p.voz > 0 && <> · {plural(p.voz, "nota de voz", "notas de voz")}</>}
+                          </span>
+                          <span class="text-base text-gray-600 sm:w-36 sm:text-right">
+                            {alivio > 0 ? <>Dolor <strong class="font-baloo text-xl text-gray-900">−{alivio}</strong> por sesión</> : "Sin alivio promedio"}
+                          </span>
+                          <span class="hidden sm:inline text-gray-400 group-hover:text-gray-900 transition-colors" aria-hidden="true">→</span>
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
+          </div>
+
+          <div class="lg:col-span-4 flex flex-col">
+            <SectionHeader title="Resumen" />
+            <dl class="flex-1 divide-y divide-stone-300 border-y border-stone-300">
+              {resumen.map(({ label: l, value, sufijo }) => (
+                <div class="flex items-baseline justify-between gap-4 py-5">
+                  <dt class="text-lg text-gray-700">{l}</dt>
+                  <dd>
+                    <span class="text-4xl font-baloo font-bold">{value}</span>
+                    {sufijo && <span class="text-base text-gray-500 ml-0.5">{sufijo}</span>}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </section>
+
+        <hr class="border-stone-300" />
+
+        <!-- Historial de sesiones con notas -->
+        <div class="space-y-6">
+          <SearchInput placeholder="Buscar por paciente, rutina o nota..." />
+          <section data-buscar-grupo>
+            <SectionHeader title={`Historial de sesiones · ${registros.length}`} />
+            <ul class="divide-y divide-stone-300 border-y border-stone-300">
+              {registros.map((r: any) => {
+                const mejora = r.dolorDespues < r.dolorAntes;
+                const fecha = new Date(r.fecha);
+                const nombrePaciente = `${r.paciente.nombre} ${r.paciente.apellido}`;
+                return (
+                  <li data-buscar={`${nombrePaciente} ${r.rutina?.nombre ?? ""} ${r.notasPaciente ?? ""}`} class="py-5">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+                      <div class="sm:w-40 shrink-0">
+                        <p class="text-lg font-baloo font-bold text-gray-700">{fechaLarga(fecha)}</p>
+                        <p class="text-sm text-gray-500">{hora(fecha)}</p>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        {!pacienteFiltrado && (
+                          <a href={`/dashboard/medico/progreso?paciente=${r.paciente._id}`} class="text-lg font-semibold text-gray-900 hover:underline truncate block">
+                            {nombrePaciente}
+                          </a>
+                        )}
+                        <p class={`${pacienteFiltrado ? "text-lg font-medium text-gray-900" : "text-base text-gray-600"} truncate`}>
+                          {r.rutina?.nombre || "Sesión libre"}
+                          {r.totalEjercicios > 0 && <span class="text-gray-500"> · {r.ejerciciosCompletados}/{r.totalEjercicios} ejercicios</span>}
+                        </p>
+                      </div>
+                      <p class="flex items-baseline gap-2 text-base text-gray-600">
+                        Dolor
+                        <span class="text-2xl font-baloo font-bold text-gray-500">{r.dolorAntes}</span>
+                        →
+                        <span class={`text-2xl font-baloo font-bold ${mejora ? "text-gray-900" : "text-gray-500"}`}>{r.dolorDespues}</span>
+                        {mejora && <span class="text-base font-semibold text-gray-900">↓</span>}
+                      </p>
+                      <span class={`${chip(r.completado)} self-start sm:self-auto`}>
+                        {r.completado ? "Completada" : "Parcial"}
+                      </span>
+                    </div>
+
+                    {(r.notasPaciente || r.notaVoz) && (
+                      <div class="mt-4 sm:ml-46 bg-white border border-stone-200 rounded-xl p-4 space-y-3">
+                        <p class={label}>Nota del paciente</p>
+                        {r.notasPaciente && <p class="text-base text-gray-800 whitespace-pre-line">{r.notasPaciente}</p>}
+                        {r.notaVoz && (
+                          <div class="flex items-center gap-3">
+                            <audio src={urlArchivo(r.notaVoz)} controls preload="none" class="w-full max-w-md h-10"></audio>
+                            {r.notaVozDuracion && <span class="text-sm text-gray-500 shrink-0">{duracion(r.notaVozDuracion)}</span>}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        </div>
+      </>
+    )}
+
+    {registros.length === 0 && (
+      <>
+        <hr class="border-stone-300" />
+        <EmptyState title="Sin sesiones registradas" text="Cuando tus pacientes registren sus sesiones, verás aquí su dolor, sus notas y sus notas de voz." />
+      </>
+    )}
+  </div>
+</DashboardLayout>
+
+<script>
+  // Al elegir un paciente se recarga la página filtrada (con la transición de vista)
+  const select = document.getElementById("filtroPaciente") as HTMLSelectElement | null;
+  select?.addEventListener("change", () => select.form?.requestSubmit());
+
+  // Solo suena una nota de voz a la vez
+  document.addEventListener(
+    "play",
+    (e) => {
+      if (!(e.target instanceof HTMLAudioElement)) return;
+      document.querySelectorAll("audio").forEach((a) => a !== e.target && a.pause());
+    },
+    true,
+  );
+</script>

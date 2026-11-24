@@ -16,6 +16,10 @@ interface ImportMetaEnv {
   readonly GOOGLE_CLIENT_ID: string;
   readonly GOOGLE_CLIENT_SECRET: string;
   readonly TRUST_PROXY?: string;
+  readonly VAPID_PUBLIC_KEY?: string;
+  readonly VAPID_PRIVATE_KEY?: string;
+  readonly VAPID_SUBJECT?: string;
+  readonly CRON_SECRET?: string;
 }
 
 interface ImportMeta {

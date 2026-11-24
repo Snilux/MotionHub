@@ -27,6 +27,18 @@ export type ExtVideo = keyof typeof TIPOS_VIDEO;
 export const VIDEO_MAX_MB = 100;
 export const VIDEO_MAX_BYTES = VIDEO_MAX_MB * 1024 * 1024;
 
+// Notas de voz (carpeta "notas-voz/"). Cada navegador graba en un formato:
+// Chrome/Edge/Firefox en WebM u Ogg (Opus) y Safari/iOS en MP4 (AAC).
+export const TIPOS_AUDIO = {
+  weba: "audio/webm",
+  ogg: "audio/ogg",
+  m4a: "audio/mp4",
+} as const;
+export type ExtAudio = keyof typeof TIPOS_AUDIO;
+
+export const NOTA_VOZ_MAX_SEG = 180; // 3 minutos
+export const NOTA_VOZ_MAX_BYTES = 5 * 1024 * 1024; // de sobra para 3 min de voz
+
 /** Detecta JPG/PNG por su contenido (firma de bytes), no por el nombre del archivo. */
 export function tipoImagen(buf: Uint8Array): ExtImagen | null {
   if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "jpg";
@@ -43,6 +55,15 @@ export function tipoVideo(buf: Uint8Array): ExtVideo | null {
   if (buf.length >= 12 && String.fromCharCode(...buf.subarray(4, 8)) === "ftyp") {
     return String.fromCharCode(...buf.subarray(8, 12)) === "qt  " ? "mov" : "mp4";
   }
+  return null;
+}
+
+/** Detecta WebM/Ogg/MP4 de audio por su contenido (firma de bytes). */
+export function tipoAudio(buf: Uint8Array): ExtAudio | null {
+  if (buf.length >= 4 && buf[0] === 0x4f && buf[1] === 0x67 && buf[2] === 0x67 && buf[3] === 0x53) return "ogg"; // "OggS"
+  const video = tipoVideo(buf); // WebM y MP4 comparten firma con los videos
+  if (video === "webm") return "weba";
+  if (video === "mp4" || video === "mov") return "m4a";
   return null;
 }
 
@@ -102,7 +123,12 @@ export async function borrarArchivos(rutas: string[]): Promise<void> {
 export function contentType(relativa: string): string | null {
   const ext = path.extname(relativa).slice(1).toLowerCase();
   if (ext === "jpeg") return TIPOS_IMAGEN.jpg;
-  return (TIPOS_IMAGEN as Record<string, string>)[ext] ?? (TIPOS_VIDEO as Record<string, string>)[ext] ?? null;
+  return (
+    (TIPOS_IMAGEN as Record<string, string>)[ext] ??
+    (TIPOS_VIDEO as Record<string, string>)[ext] ??
+    (TIPOS_AUDIO as Record<string, string>)[ext] ??
+    null
+  );
 }
 
 /** URL pública (con sesión) de un archivo guardado. */

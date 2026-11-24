@@ -147,9 +147,11 @@ async function seed() {
   ]);
   console.log("🗑️  Colecciones limpiadas");
 
-  // Fotos de perfil: los usuarios a los que pertenecían ya no existen
-  await rm(path.join(UPLOADS_DIR, "avatars"), { recursive: true, force: true });
-  console.log("🗑️  Fotos de perfil borradas de", path.join(UPLOADS_DIR, "avatars"));
+  // Archivos subidos: los usuarios, rutinas y sesiones a los que pertenecían ya no existen
+  for (const carpeta of ["avatars", "videos", "notas-voz"]) {
+    await rm(path.join(UPLOADS_DIR, carpeta), { recursive: true, force: true });
+  }
+  console.log("🗑️  Fotos de perfil, videos y notas de voz borrados de", UPLOADS_DIR);
 
   // ── Médicos ──────────────────────────────────────────────────────────────
   const medico1 = await User.create({
