@@ -166,7 +166,7 @@ const dias = [...porDia.values()];
 </DashboardLayout>
 
 <script>
-  import { api, aviso, modal, errorEn, $ } from "../../../scripts/ui";
+  import { api, aviso, exito, modal, errorEn, $ } from "../../../scripts/ui";
 
   // Confirmar asistencia
   document.querySelectorAll<HTMLButtonElement>("[data-confirmar]").forEach((btn) => {
@@ -175,8 +175,7 @@ const dias = [...porDia.values()];
       btn.disabled = true;
       const { ok, data } = await api(`/api/paciente/cita/${btn.dataset.confirmar}`, "PUT", { accion: "confirmar" });
       if (ok) {
-        aviso("Asistencia confirmada. Avisamos a tu fisioterapeuta.", "exito");
-        setTimeout(() => location.reload(), 600);
+        await exito("Asistencia confirmada", "Le avisamos a tu fisioterapeuta que asistirás a la cita.");
       } else {
         btn.disabled = false;
         aviso(data.error || "No se pudo confirmar la cita", "error");
@@ -212,8 +211,7 @@ const dias = [...porDia.values()];
     });
     if (ok) {
       m.cerrar();
-      aviso("Cita cancelada. Avisamos a tu fisioterapeuta.", "exito");
-      setTimeout(() => location.reload(), 600);
+      await exito("Cita cancelada", "Le avisamos a tu fisioterapeuta que no podrás asistir.");
     } else {
       enviar.disabled = false;
       errorEn("cancelarError", data.error || "No se pudo cancelar la cita");

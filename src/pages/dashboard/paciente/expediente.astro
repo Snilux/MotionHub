@@ -220,7 +220,7 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
 </DashboardLayout>
 
 <script>
-  import { api, aviso, confirmar, modal, errorEn, $ } from "../../../scripts/ui";
+  import { api, aviso, confirmar, exito, modal, errorEn, $ } from "../../../scripts/ui";
 
   const modalEl = document.getElementById("modalSug");
   if (modalEl) {
@@ -276,13 +276,13 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
         valorPropuesto,
         comentario: $<HTMLTextAreaElement>("sugComentario").value.trim(),
       });
-      enviando = false;
-      $<HTMLButtonElement>("enviarSug").disabled = false;
-
       if (ok) {
-        aviso("Sugerencia enviada a tu fisioterapeuta", "exito");
-        setTimeout(() => location.reload(), 400);
+        // Sigue bloqueado hasta recargar para que no se envíe dos veces
+        m.cerrar();
+        await exito("Sugerencia enviada", "Tu fisioterapeuta la revisará. Verás aquí si la integra a tu expediente.");
       } else {
+        enviando = false;
+        $<HTMLButtonElement>("enviarSug").disabled = false;
         errorEn("sugError", data.error || "No se pudo enviar");
       }
     });
@@ -295,8 +295,7 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
       b.disabled = true;
       const r = await api(`/api/paciente/expediente?solicitud=${b.dataset.cancelar}`, "DELETE");
       if (r.ok) {
-        aviso("Sugerencia cancelada", "exito");
-        setTimeout(() => location.reload(), 400);
+        await exito("Sugerencia cancelada", "Tu fisioterapeuta ya no la verá.");
       } else {
         b.disabled = false;
         aviso(r.data.error || "No se pudo cancelar", "error");

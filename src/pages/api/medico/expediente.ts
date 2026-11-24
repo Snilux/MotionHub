@@ -92,7 +92,7 @@ export const PUT: APIRoute = async ({ request }) => {
     }
     if (!Object.keys(update).length) return json({ error: "No hay cambios que guardar" }, 400);
 
-    const expediente = await Expediente.findOneAndUpdate({ paciente: pacienteId }, update, { new: true });
+    const expediente = await Expediente.findOneAndUpdate({ paciente: pacienteId }, update, { returnDocument: "after" });
     if (!expediente) return json({ error: "Expediente no encontrado" }, 404);
 
     return json(expediente);

@@ -103,3 +103,15 @@
         overflow-x: clip;
     }
 }
+
+/*
+ * Botones deshabilitados (mientras se guarda una acción o ya se realizó):
+ * se ven atenuados y no responden al pasar el cursor, en toda la app.
+ */
+@layer base {
+    button:disabled,
+    button[aria-disabled="true"] {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+}

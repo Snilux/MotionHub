@@ -265,7 +265,7 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
 </DashboardLayout>
 
 <script>
-  import { api, aviso, confirmar, modal, abrirSiNuevo, errorEn, $ } from "../../../scripts/ui";
+  import { api, aviso, confirmar, exito, modal, abrirSiNuevo, errorEn, $ } from "../../../scripts/ui";
 
   interface CitaDatos {
     id: string;
@@ -369,15 +369,18 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
         })
       : await api("/api/medico/citas", "POST", { ...datos, paciente });
 
-    guardando = false;
-    btn.disabled = false;
-
     if (ok) {
+      // El botón sigue bloqueado hasta recargar para que la cita no se guarde dos veces
       const fueEdicion = !!editando;
+      const nombre = campos.paciente?.selectedOptions[0]?.text ?? "tu paciente"; // antes de que el modal limpie el formulario
       m.cerrar();
-      aviso(fueEdicion ? "Cita actualizada" : "Cita agendada", "exito");
-      setTimeout(() => location.reload(), 500);
+      await exito(
+        fueEdicion ? "Cita actualizada" : "Cita agendada",
+        `La cita con ${nombre} quedó ${fueEdicion ? "actualizada" : "agendada"}.`,
+      );
     } else {
+      guardando = false;
+      btn.disabled = false;
       errorEn("citaError", data.error || "No se pudo guardar la cita");
     }
   });
@@ -387,14 +390,13 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
     const c: CitaDatos = JSON.parse(art.dataset.cita!);
     let ocupado = false;
 
-    const ejecutar = async (fn: () => Promise<{ ok: boolean; data: any }>, exito: string) => {
+    const ejecutar = async (fn: () => Promise<{ ok: boolean; data: any }>, titulo: string, mensaje?: string) => {
       if (ocupado) return;
       ocupado = true;
       art.querySelectorAll("button").forEach((b) => (b.disabled = true));
       const { ok, data } = await fn();
       if (ok) {
-        aviso(exito, "exito");
-        setTimeout(() => location.reload(), 500);
+        await exito(titulo, mensaje ?? `Cita de ${c.pacienteNombre}.`);
       } else {
         aviso(data.error || "No se pudo completar la acción", "error");
         ocupado = false;
@@ -406,9 +408,9 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
       btn.addEventListener("click", async () => {
         switch (btn.dataset.accion) {
           case "confirmar":
-            return ejecutar(() => api(`/api/medico/cita/${c.id}`, "PUT", { estado: "confirmada" }), "Cita confirmada");
+            return ejecutar(() => api(`/api/medico/cita/${c.id}`, "PUT", { estado: "confirmada" }), "Cita confirmada", `Confirmaste la cita de ${c.pacienteNombre}.`);
           case "completar":
-            return ejecutar(() => api(`/api/medico/cita/${c.id}`, "PUT", { estado: "completada" }), "Cita marcada como completada");
+            return ejecutar(() => api(`/api/medico/cita/${c.id}`, "PUT", { estado: "completada" }), "Cita completada", `La cita de ${c.pacienteNombre} quedó marcada como completada.`);
           case "editar":
             return abrirEdicion(c);
           case "cancelar":
@@ -418,7 +420,7 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
               aceptar: "Cancelar cita",
               cancelar: "Volver",
             }))) return;
-            return ejecutar(() => api(`/api/medico/cita/${c.id}`, "PUT", { estado: "cancelada" }), "Cita cancelada");
+            return ejecutar(() => api(`/api/medico/cita/${c.id}`, "PUT", { estado: "cancelada" }), "Cita cancelada", `Cancelaste la cita de ${c.pacienteNombre}. Le avisamos por correo.`);
           case "eliminar":
             if (!(await confirmar({
               titulo: "¿Eliminar esta cita?",
@@ -426,7 +428,7 @@ const labelCls = "text-sm text-gray-600 font-medium block mb-1.5 uppercase track
               aceptar: "Eliminar",
               peligro: true,
             }))) return;
-            return ejecutar(() => api(`/api/medico/cita/${c.id}`, "DELETE"), "Cita eliminada");
+            return ejecutar(() => api(`/api/medico/cita/${c.id}`, "DELETE"), "Cita eliminada", `La cita de ${c.pacienteNombre} se borró definitivamente.`);
         }
       });
     });
