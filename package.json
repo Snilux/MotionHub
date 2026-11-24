@@ -26,6 +26,7 @@
     "mongoose": "^9.4.1",
     "nodemailer": "^8.0.5",
     "pdf-lib": "^1.17.1",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.1.18",
+    "web-push": "^3.6.7"
   }
 }

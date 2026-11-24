@@ -3,7 +3,7 @@ import connectDB from "../../../lib/db";
 import { Rutina } from "../../../models/Rutina";
 import { getSessionFromRequest, json } from "../../../lib/session";
 import { esMiPaciente, esIdValido } from "../../../lib/medico";
-import { PERIODOS, ejercicioSinArchivo, textoFrecuencia, validarEjercicios, type Periodo } from "../../../lib/rutina";
+import { ejercicioSinArchivo, textoFrecuencia, validarEjercicios, validarFrecuencia } from "../../../lib/rutina";
 
 // GET /api/medico/rutinas
 export const GET: APIRoute = async ({ request, url }) => {
@@ -42,11 +42,8 @@ export const POST: APIRoute = async ({ request }) => {
     const nombre = String(body.nombre ?? "").trim();
     if (!nombre) return json({ error: "El nombre de la rutina es requerido" }, 400);
 
-    const veces = Number(body.frecuenciaVeces);
-    const periodo = body.frecuenciaPeriodo as Periodo;
-    if (!Number.isInteger(veces) || veces < 1 || veces > 31 || !(periodo in PERIODOS)) {
-      return json({ error: "Elige una frecuencia válida" }, 400);
-    }
+    const frec = validarFrecuencia(body.frecuenciaVeces, body.frecuenciaPeriodo, body.frecuenciaDias);
+    if ("error" in frec) return json({ error: frec.error }, 400);
 
     const validacion = validarEjercicios(body.ejercicios ?? [], session.userId);
     if ("error" in validacion) return json({ error: validacion.error }, 400);
@@ -60,9 +57,10 @@ export const POST: APIRoute = async ({ request }) => {
       descripcion: String(body.descripcion ?? "").trim() || undefined,
       paciente: body.paciente,
       medico: session.userId,
-      frecuenciaVeces: veces,
-      frecuenciaPeriodo: periodo,
-      frecuencia: textoFrecuencia(veces, periodo),
+      frecuenciaVeces: frec.veces,
+      frecuenciaPeriodo: frec.periodo,
+      frecuenciaDias: frec.dias.length ? frec.dias : undefined,
+      frecuencia: textoFrecuencia(frec.veces, frec.periodo, frec.dias),
       ejercicios: validacion.ejercicios,
     });
 

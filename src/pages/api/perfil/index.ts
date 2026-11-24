@@ -73,6 +73,10 @@ export const PUT: APIRoute = async ({ request }) => {
       if (tel && !/^[+\d\s()-]{7,20}$/.test(tel)) return json({ error: "Teléfono inválido" }, 400);
       user.telefono = tel || undefined;
     }
+    // Pacientes: recibir o no el recordatorio diario por correo
+    if (typeof body.recordatoriosCorreo === "boolean" && user.role === "paciente") {
+      user.recordatoriosCorreo = body.recordatoriosCorreo;
+    }
     if (body.fechaNacimiento !== undefined) {
       if (!body.fechaNacimiento) {
         user.fechaNacimiento = undefined;

@@ -23,6 +23,7 @@ export interface IRutina extends Document {
   frecuencia: string; // texto legible, ej: "3 veces por semana"
   frecuenciaVeces?: number;
   frecuenciaPeriodo?: "dia" | "semana" | "mes";
+  frecuenciaDias?: number[]; // días elegidos por el médico: de la semana (0 = dom) o del mes (1–28); vacío = cualquiera
   objetivo?: string;
   activa: boolean;
   fechaInicio: Date;
@@ -57,6 +58,7 @@ const RutinaSchema = new Schema<IRutina>(
     frecuencia: { type: String, required: true },
     frecuenciaVeces: { type: Number, min: 1 },
     frecuenciaPeriodo: { type: String, enum: ["dia", "semana", "mes"] },
+    frecuenciaDias: { type: [Number], default: undefined },
     objetivo: { type: String },
     activa: { type: Boolean, default: true },
     fechaInicio: { type: Date, default: Date.now },

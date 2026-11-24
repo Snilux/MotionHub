@@ -38,6 +38,9 @@ export interface IUser extends Document {
   sesionesDesde?: Date | null;
   // Foto de perfil: ruta relativa dentro del volumen de subidas (src/lib/storage.ts)
   fotoPerfil?: string;
+  // Recordatorios de sesiones (pacientes)
+  recordatoriosCorreo?: boolean; // recibir el recordatorio por correo (por defecto sí)
+  recordatorioEnviado?: string; // último día (AAAA-MM-DD) en que se le envió: evita duplicados
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -89,6 +92,8 @@ const UserSchema = new Schema<IUser>(
     activeSessionExpires: { type: Date, default: null },
     sesionesDesde: { type: Date, default: null },
     fotoPerfil: { type: String },
+    recordatoriosCorreo: { type: Boolean, default: true },
+    recordatorioEnviado: { type: String },
   },
   { timestamps: true }
 );

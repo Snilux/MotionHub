@@ -10,7 +10,9 @@ import mongoose from "mongoose";
 import connectDB from "../../../lib/db";
 import { Rutina } from "../../../models/Rutina";
 import { Progreso } from "../../../models/Progreso";
-import { urlArchivo } from "../../../lib/storage";
+import { User } from "../../../models/User";
+import { NOTA_VOZ_MAX_SEG, urlArchivo } from "../../../lib/storage";
+import { estadoRegistro } from "../../../lib/frecuencia";
 
 const session = getSessionFromRequest(Astro.request);
 if (!session || session.role !== "paciente") return Astro.redirect("/login");
@@ -30,12 +32,24 @@ const [rutinas, ultimas] = await Promise.all([
 ]);
 const ultimaSesion = new Map(ultimas.map((u: any) => [String(u._id), u]));
 
+// Sesiones recientes de cada rutina (desde el inicio del mes o del lunes, lo que sea antes):
+// con ellas se evalúa si hoy puede registrar (días, máximo del periodo y ventana)
+const ahora = new Date();
+const lunes = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - ((ahora.getDay() + 6) % 7));
+const primeroMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+const recientes = await Progreso.find({ paciente: session.userId, fecha: { $gte: lunes < primeroMes ? lunes : primeroMes } })
+  .select("rutina fecha")
+  .lean();
+const fechasDe = (id: string) => recientes.filter((p: any) => String(p.rutina) === id).map((p: any) => p.fecha);
+
 const grupos = [
   { titulo: "Activas", items: rutinas.filter((r: any) => r.activa) },
   { titulo: "Pausadas", items: rutinas.filter((r: any) => !r.activa) },
 ].filter((g) => g.items.length > 0);
 
 const activas = rutinas.filter((r: any) => r.activa).length;
+const yo = await User.findById(session.userId).select("recordatoriosCorreo").lean();
+const correoRecordatorio = (yo as any)?.recordatoriosCorreo !== false;
 const fieldLabel = "text-sm text-gray-600 font-medium uppercase tracking-wide";
 ---
 
@@ -48,6 +62,27 @@ const fieldLabel = "text-sm text-gray-600 font-medium uppercase tracking-wide";
       Tienes <strong>{plural(activas, "rutina activa", "rutinas activas")}</strong>.
       Abre una para ver sus ejercicios y registra tu sesión al terminar.
     </PageHeader>
+
+    {activas > 0 && (
+      // Recordatorios: cada mañana se avisa qué rutinas tocan (push en este dispositivo y/o correo)
+      <section id="recordatorios" class={`${card} flex flex-col md:flex-row md:items-center justify-between gap-5`}>
+        <div class="flex items-start gap-4 min-w-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 mt-0.5 text-gray-900" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <div class="min-w-0">
+            <p class="text-xl font-semibold text-gray-900">Recordatorios</p>
+            <p class="text-base text-gray-600 mt-1">Cada mañana te avisamos qué rutinas te tocan ese día.</p>
+            <p id="pushEstado" class="hidden text-sm text-gray-700 bg-stone-100 rounded-lg px-3 py-2 mt-2" role="status"></p>
+          </div>
+        </div>
+        <div class="flex flex-col sm:flex-row md:flex-col md:items-end gap-3 shrink-0">
+          <button type="button" id="pushBtn" class={`${btnSecondary} hidden`}>Activar notificaciones</button>
+          <label class="inline-flex items-center gap-2 text-base text-gray-700 cursor-pointer select-none">
+            <input type="checkbox" id="correoRecordatorio" checked={correoRecordatorio} class="w-4 h-4 accent-black" />
+            Recibir también por correo
+          </label>
+        </div>
+      </section>
+    )}
 
     {rutinas.length > 0 && <SearchInput placeholder="Buscar rutina o ejercicio..." />}
 
@@ -65,6 +100,8 @@ const fieldLabel = "text-sm text-gray-600 font-medium uppercase tracking-wide";
             <div class="space-y-6">
               {items.map((r: any) => {
                 const ultima: any = ultimaSesion.get(String(r._id));
+                // ¿Puede registrarla ahora? (días elegidos, máximo del periodo y una por ventana)
+                const estado = estadoRegistro(r, fechasDe(String(r._id)), ahora);
                 return (
                   <article
                     data-buscar={`${r.nombre} ${r.objetivo ?? ""} ${r.ejercicios.map((e: any) => e.nombre).join(" ")}`}
@@ -171,14 +208,34 @@ const fieldLabel = "text-sm text-gray-600 font-medium uppercase tracking-wide";
                     </details>
 
                     {r.activa && r.ejercicios.length > 0 && (
-                      <button
-                        data-registrar={String(r._id)}
-                        data-nombre={r.nombre}
-                        data-total={r.ejercicios.length}
-                        class={`${btnPrimary} w-full`}
-                      >
-                        Registrar sesión completada
-                      </button>
+                      // No puede registrar ahora: no le toca hoy, ya completó el periodo o ya la hizo en esta ventana
+                      !estado.puede ? (
+                        <div role="status" class="w-full flex items-start gap-3 border border-stone-300 bg-stone-100 rounded-lg px-4 py-3">
+                          {estado.codigo === "NO_TOCA" ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 mt-0.5 text-gray-900" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 mt-0.5 text-gray-900" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="8 12.5 11 15.5 16 9.5"/></svg>
+                          )}
+                          <div>
+                            <p class="text-base font-semibold text-gray-900">{estado.titulo}</p>
+                            <p class="text-base text-gray-600">{estado.mensaje}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div class="space-y-2">
+                          <p class="text-base text-gray-600">
+                            {estado.dias ? <>Hoy te toca · </> : null}Llevas <strong class="text-gray-900">{estado.progreso}</strong>
+                          </p>
+                          <button
+                            data-registrar={String(r._id)}
+                            data-nombre={r.nombre}
+                            data-total={r.ejercicios.length}
+                            class={`${btnPrimary} w-full`}
+                          >
+                            Registrar sesión completada
+                          </button>
+                        </div>
+                      )
                     )}
                   </article>
                 );
@@ -238,6 +295,34 @@ const fieldLabel = "text-sm text-gray-600 font-medium uppercase tracking-wide";
           <label for="notasSesion" class={`${fieldLabel} block mb-1.5`}>Notas (opcional)</label>
           <textarea id="notasSesion" rows="2" maxlength="1000" placeholder="¿Cómo te sentiste hoy?"
             class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-black transition-colors resize-none"></textarea>
+
+          <!-- Nota de voz (opcional) -->
+          <div class="mt-2" data-max-seg={NOTA_VOZ_MAX_SEG} id="notaVoz">
+            <button type="button" id="vozGrabar"
+              class="w-full inline-flex items-center justify-center gap-2 text-base font-medium border border-dashed border-gray-300 text-gray-700 px-3 py-2.5 rounded-lg hover:border-black hover:text-gray-900 transition-colors disabled:opacity-60 disabled:cursor-wait">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="22"/></svg>
+              <span id="vozGrabarTexto">Grabar nota de voz</span>
+            </button>
+
+            <div id="vozGrabando" class="hidden flex items-center gap-3 border border-red-300 bg-red-50 rounded-lg px-3 py-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse shrink-0" aria-hidden="true"></span>
+              <span id="vozTiempo" class="font-baloo font-bold text-lg tabular-nums text-red-700">0:00</span>
+              <span class="flex-1 text-sm text-red-700">Grabando · máx. {Math.floor(NOTA_VOZ_MAX_SEG / 60)} min</span>
+              <button type="button" id="vozDetener" class="text-base font-medium bg-red-600 text-white px-3 py-1.5 rounded-lg hover:bg-red-700 transition-colors">
+                Detener
+              </button>
+            </div>
+
+            <div id="vozLista" class="hidden space-y-2">
+              <audio id="vozAudio" controls preload="metadata" class="w-full"></audio>
+              <div class="flex gap-2">
+                <button type="button" id="vozRegrabar" class="flex-1 text-sm font-medium border border-gray-300 px-3 py-1.5 rounded-lg hover:border-black transition-colors">Volver a grabar</button>
+                <button type="button" id="vozEliminar" class="flex-1 text-sm font-medium border border-gray-300 px-3 py-1.5 rounded-lg hover:border-red-600 hover:text-red-600 transition-colors">Eliminar</button>
+              </div>
+            </div>
+
+            <p id="vozAviso" class="hidden text-sm text-gray-700 bg-stone-100 rounded-lg px-3 py-2 mt-2" role="status"></p>
+          </div>
         </div>
         <p id="sesionError" class="hidden text-base text-red-600"></p>
         <div class="flex gap-2 pt-1">
@@ -256,7 +341,69 @@ const fieldLabel = "text-sm text-gray-600 font-medium uppercase tracking-wide";
 </DashboardLayout>
 
 <script>
-  import { api, aviso, modal, errorEn, $ } from "../../../scripts/ui";
+  import { api, alerta, exito, confirmar, modal, errorEn, $ } from "../../../scripts/ui";
+  import { activarPush, desactivarPush, estadoPush } from "../../../scripts/push";
+
+  // ── Recordatorios ───────────────────────────────────────────────────────
+  const pushBtn = document.getElementById("pushBtn") as HTMLButtonElement | null;
+  const pushEstado = document.getElementById("pushEstado");
+  let pushActivo = false;
+  const mostrarPush = async () => {
+    if (!pushBtn || !pushEstado) return;
+    const { estado, motivo } = await estadoPush();
+    pushActivo = estado === "activo";
+    // Sin soporte, bloqueado o sin configurar: se explica por qué y cómo resolverlo
+    pushEstado.textContent = estado === "bloqueado" ? `Bloqueaste las notificaciones. ${motivo}` : (motivo ?? "");
+    pushEstado.classList.toggle("hidden", !motivo);
+    pushBtn.classList.toggle("hidden", estado === "no-soportado" || estado === "no-configurado" || estado === "bloqueado");
+    pushBtn.textContent = pushActivo ? "Desactivar notificaciones" : "Activar notificaciones";
+  };
+  mostrarPush();
+
+  pushBtn?.addEventListener("click", async () => {
+    if (pushBtn.disabled) return;
+    if (pushActivo) {
+      const si = await confirmar({
+        titulo: "¿Desactivar las notificaciones?",
+        mensaje: "Este dispositivo dejará de recibir los recordatorios de tus rutinas.",
+        aceptar: "Desactivar",
+      });
+      if (!si) return;
+    }
+    pushBtn.disabled = true;
+    // activarPush pide el permiso del navegador (o de la app instalada) en este clic
+    const error = pushActivo ? await desactivarPush() : await activarPush();
+    pushBtn.disabled = false;
+    if (error) {
+      await alerta({ titulo: "No se activaron las notificaciones", mensaje: error, tipo: "error" });
+    } else {
+      await alerta({
+        titulo: pushActivo ? "Notificaciones desactivadas" : "Notificaciones activadas",
+        mensaje: pushActivo
+          ? "Este dispositivo ya no recibirá los recordatorios."
+          : "Cada mañana te avisaremos en este dispositivo qué rutinas te tocan.",
+      });
+    }
+    await mostrarPush();
+  });
+
+  const correoCheck = document.getElementById("correoRecordatorio") as HTMLInputElement | null;
+  correoCheck?.addEventListener("change", async () => {
+    const activar = correoCheck.checked;
+    correoCheck.disabled = true; // hasta que se confirme el cambio
+    const { ok, data } = await api("/api/perfil", "PUT", { recordatoriosCorreo: activar });
+    correoCheck.disabled = false;
+    if (ok) {
+      await alerta({
+        titulo: activar ? "Recordatorios por correo activados" : "Recordatorios por correo desactivados",
+        mensaje: activar ? "Cada mañana te enviaremos un correo con las rutinas del día." : "Ya no te enviaremos estos correos.",
+      });
+    } else {
+      correoCheck.checked = !activar;
+      await alerta({ titulo: "No se guardó el cambio", mensaje: data.error || "Inténtalo de nuevo.", tipo: "error" });
+    }
+  });
+  import { crearGrabadora, comoActivarMicrofono, estadoPermiso, formatoTiempo, motivoSinGrabacion } from "../../../scripts/notaVoz";
 
   // Video de un ejercicio: se carga al abrir el modal y se detiene al cerrarlo
   const player = $<HTMLVideoElement>("videoPlayer");
@@ -284,6 +431,8 @@ const fieldLabel = "text-sm text-gray-600 font-medium uppercase tracking-wide";
   const hechos = $<HTMLSelectElement>("sesionHechos");
   const btnGuardar = $<HTMLButtonElement>("guardarSesion");
   let rutinaActual = "";
+  let botonActual: HTMLButtonElement | null = null;
+  let nombreActual = "";
 
   const mostrarValores = () => {
     $("dolorAntesVal").textContent = antes.value;
@@ -292,16 +441,64 @@ const fieldLabel = "text-sm text-gray-600 font-medium uppercase tracking-wide";
   antes.addEventListener("input", mostrarValores);
   despues.addEventListener("input", mostrarValores);
 
+  // ── Nota de voz ─────────────────────────────────────────────────────────
+  const vozAudio = $<HTMLAudioElement>("vozAudio");
+  const vozGrabar = $<HTMLButtonElement>("vozGrabar");
+  let vozUrl: string | null = null;
+  const avisoVoz = (msg?: string) => {
+    $("vozAviso").textContent = msg ?? "";
+    $("vozAviso").classList.toggle("hidden", !msg);
+  };
+  const grabadora = crearGrabadora({
+    maxSegundos: Number($("notaVoz").dataset.maxSeg) || 180,
+    alTick: (s) => ($("vozTiempo").textContent = formatoTiempo(s)),
+    alAviso: avisoVoz,
+    alCambiar: (estado) => {
+      vozGrabar.classList.toggle("hidden", estado === "grabando" || estado === "lista");
+      vozGrabar.disabled = estado === "pidiendo";
+      $("vozGrabarTexto").textContent = estado === "pidiendo" ? "Esperando permiso del micrófono..." : "Grabar nota de voz";
+      $("vozGrabando").classList.toggle("hidden", estado !== "grabando");
+      $("vozLista").classList.toggle("hidden", estado !== "lista");
+      if (vozUrl) URL.revokeObjectURL(vozUrl);
+      vozUrl = null;
+      const nota = grabadora?.nota();
+      if (estado === "lista" && nota) {
+        vozUrl = URL.createObjectURL(nota.blob);
+        vozAudio.src = vozUrl;
+      } else if (estado !== "grabando") {
+        vozAudio.removeAttribute("src");
+      }
+      if (estado === "grabando" || estado === "lista") avisoVoz();
+    },
+  });
+  vozGrabar.addEventListener("click", () => grabadora.grabar());
+  $("vozRegrabar").addEventListener("click", () => grabadora.grabar());
+  $("vozDetener").addEventListener("click", () => grabadora.detener());
+  $("vozEliminar").addEventListener("click", () => grabadora.descartar());
+
+  // Si el permiso ya está negado, se avisa desde que se abre el formulario
+  const revisarPermiso = async () => {
+    const motivo = motivoSinGrabacion();
+    if (motivo) return avisoVoz(motivo);
+    if ((await estadoPermiso()) === "denied") {
+      avisoVoz(`El micrófono está bloqueado para MotionHub. ${comoActivarMicrofono()}`);
+    }
+  };
+
   const m = modal("modalSesion", () => {
     form.reset();
     mostrarValores();
     errorEn("sesionError");
+    grabadora.descartar(); // libera el micrófono al cerrar
+    avisoVoz();
   });
   form.querySelector("[data-cerrar]")!.addEventListener("click", m.cerrar);
 
   document.querySelectorAll<HTMLButtonElement>("[data-registrar]").forEach((btn) => {
     btn.addEventListener("click", () => {
       rutinaActual = btn.dataset.registrar!;
+      botonActual = btn;
+      nombreActual = btn.dataset.nombre ?? "";
       const total = Number(btn.dataset.total) || 0;
       $("sesionRutina").textContent = `${btn.dataset.nombre} · anota cómo te sentiste hoy`;
       hechos.innerHTML = "";
@@ -309,28 +506,57 @@ const fieldLabel = "text-sm text-gray-600 font-medium uppercase tracking-wide";
         hechos.add(new Option(n === total ? `Todos (${total})` : `${n} de ${total}`, String(n)));
       }
       m.abrir();
+      revisarPermiso();
     });
   });
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (btnGuardar.disabled) return; // evita registros dobles
+    if (grabadora.grabando()) return errorEn("sesionError", "Detén la grabación antes de guardar.");
     btnGuardar.disabled = true;
     btnGuardar.textContent = "Guardando...";
     errorEn("sesionError");
 
-    const { ok, data } = await api("/api/paciente/progreso", "POST", {
+    const datos = {
       rutina: rutinaActual,
       dolorAntes: Number(antes.value),
       dolorDespues: Number(despues.value),
       ejerciciosCompletados: Number(hechos.value),
       notasPaciente: $<HTMLTextAreaElement>("notasSesion").value.trim(),
-    });
+    };
+    // Con nota de voz se envía como multipart (un solo envío: sesión + audio)
+    const nota = grabadora.nota();
+    let cuerpo: unknown = datos;
+    if (nota) {
+      const fd = new FormData();
+      Object.entries(datos).forEach(([k, v]) => fd.append(k, String(v)));
+      fd.append("notaVozDuracion", String(nota.duracion));
+      fd.append("notaVoz", nota.blob, nota.nombre);
+      cuerpo = fd;
+    }
+    const { ok, status, data } = await api("/api/paciente/progreso", "POST", cuerpo);
 
     if (ok) {
+      // El botón de la tarjeta queda bloqueado: la rutina ya no se puede registrar
+      // otra vez en esta ventana (la página recarga al cerrar la alerta)
+      if (botonActual) {
+        botonActual.disabled = true;
+        botonActual.textContent = "Sesión registrada";
+      }
       m.cerrar();
-      aviso("¡Sesión registrada! Puedes verla en «Mi progreso».", "exito");
-      setTimeout(() => location.reload(), 900);
+      const e = (data as any).estado;
+      await exito(
+        e?.completa ? "¡Completaste esta rutina!" : "¡Sesión registrada!",
+        e
+          ? `Guardamos tu sesión de «${nombreActual}». Llevas ${e.progreso}; podrás registrarla de nuevo ${e.cuandoProx}.`
+          : `Guardamos tu sesión de «${nombreActual}». Puedes verla en «Mi progreso».`,
+      );
+    } else if (status === 409) {
+      // No le toca hoy, ya completó el periodo o ya la registró (p. ej. desde otra pestaña)
+      m.cerrar();
+      await alerta({ titulo: data.titulo || "No se puede registrar ahora", mensaje: data.error, tipo: "info" });
+      location.reload();
     } else {
       btnGuardar.disabled = false;
       btnGuardar.textContent = "Guardar";

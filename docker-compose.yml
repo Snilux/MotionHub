@@ -24,6 +24,25 @@ services:
     stdin_open: true
     tty: true                   # necesario para Claude Code interactivo
 
+  # ── Recordatorios diarios ───────────────────────────────────
+  # A las 7:00 (hora de México) pide a la app que envíe los recordatorios del día
+  # (correo + notificación push). La app no repite envíos si se llama dos veces.
+  # Probar sin enviar nada:
+  #   docker compose exec cron sh -c 'wget -qO- --post-data= --header "Authorization: Bearer $$CRON_SECRET" "http://app:4321/api/cron/recordatorios?simular=1"'
+  cron:
+    image: busybox:1.36
+    container_name: motionhub-cron
+    env_file:
+      - .env
+    environment:
+      - TZ=CST6   # México (UTC-6, sin horario de verano); no requiere tzdata
+    command: >
+      sh -c 'echo "0 7 * * * wget -qO- --post-data= --header \"Authorization: Bearer $$CRON_SECRET\" http://app:4321/api/cron/recordatorios >> /proc/1/fd/1 2>&1" > /etc/crontabs/root
+      && echo "cron listo: recordatorios diarios a las 07:00" && crond -f -l 8'
+    depends_on:
+      - app
+    restart: unless-stopped
+
   # ── MongoDB 7 ───────────────────────────────────────────────
   mongo:
     image: mongo:7

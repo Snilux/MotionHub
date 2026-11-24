@@ -2,17 +2,8 @@ import { tamanoArchivo } from "./storage";
 import connectDB from "./db";
 import { Rutina } from "../models/Rutina";
 
-// Frecuencia de una rutina: "N veces" + periodo. Se guarda también como texto legible.
-export const PERIODOS = {
-  dia: { label: "al día", corto: "Diario" },
-  semana: { label: "por semana", corto: "Semanal" },
-  mes: { label: "al mes", corto: "Mensual" },
-} as const;
-
-export type Periodo = keyof typeof PERIODOS;
-
-export const textoFrecuencia = (veces: number, periodo: Periodo) =>
-  `${veces} ${veces === 1 ? "vez" : "veces"} ${PERIODOS[periodo].label}`;
+// Frecuencia, días y reglas de registro: ver lib/frecuencia.ts (sin dependencias de servidor)
+export { PERIODOS, textoFrecuencia, validarFrecuencia, type Periodo } from "./frecuencia";
 
 export interface EjercicioInput {
   nombre?: unknown;

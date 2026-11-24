@@ -60,6 +60,8 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   // Datos y sesión: siempre a la red, nunca a la caché
   if (url.pathname.startsWith("/api/")) return;
+  // Archivos privados (fotos de perfil, videos, notas de voz): tampoco se cachean
+  if (url.pathname.startsWith("/archivos/")) return;
 
   // Páginas: siempre de la red (con navigation preload); sin conexión, página offline
   if (request.mode === "navigate") {
@@ -105,4 +107,44 @@ self.addEventListener("fetch", (event) => {
       }),
     );
   }
+});
+
+// ── Notificaciones push (recordatorios de sesiones) ─────────────────────────
+self.addEventListener("push", (event) => {
+  let datos = {};
+  try {
+    datos = event.data ? event.data.json() : {};
+  } catch {
+    datos = { body: event.data ? event.data.text() : "" };
+  }
+  event.waitUntil(
+    self.registration.showNotification(datos.title || "MotionHub", {
+      body: datos.body || "",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: datos.tag, // misma etiqueta: reemplaza la anterior en vez de acumular
+      renotify: !!datos.tag,
+      lang: "es-MX",
+      data: { url: datos.url || "/" },
+    }),
+  );
+});
+
+// Al tocar la notificación: enfoca la app si ya está abierta, si no la abre
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const destino = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  event.waitUntil(
+    (async () => {
+      const ventanas = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const v of ventanas) {
+        if (new URL(v.url).origin === self.location.origin && "focus" in v) {
+          await v.focus();
+          if ("navigate" in v) await v.navigate(destino).catch(() => {});
+          return;
+        }
+      }
+      await self.clients.openWindow(destino);
+    })(),
+  );
 });
